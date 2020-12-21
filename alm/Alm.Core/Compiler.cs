@@ -1,0 +1,89 @@
+﻿using System;
+using System.IO;
+
+using alm.Core.VariableTable;
+using alm.Core.SyntaxAnalysis;
+using alm.Core.SemanticAnalysis;
+using alm.Core.CodeGeneration.Emitter;
+
+using static alm.Other.ConsoleStuff.ConsoleCustomizer;
+
+namespace alm.Core.Compiler
+{
+    public static class CompilingFile
+    {
+        public static string Path { get; set; }
+        public static string DestinationPath { get; set; }
+    }
+
+    public sealed class Compiler
+    {
+        public readonly string version = "alm v.1.0.0"; //21.12.2020
+
+        public string binaryPath;
+        public string sourcePath;
+
+        public bool ErrorsOccured = false;
+
+        public void CompileThis(string sourcePath, string binaryPath, bool run = true)
+        {
+            CompilingFile.Path = sourcePath;
+            CompilingFile.DestinationPath = binaryPath;
+
+            if (IsFileExists(sourcePath) && IsCorrectExtension(sourcePath))
+            {
+                Errors.Diagnostics.Reset();
+
+                GlobalTable.Table = Table.CreateTable(null, 1);
+
+                AbstractSyntaxTree ast = new AbstractSyntaxTree();
+                ast.BuildTree(sourcePath);
+
+                CheckForErrors();
+
+                if (!ErrorsOccured)
+                {
+                    LabelChecker.ResolveProgram(ast);
+                    CheckForErrors();
+                    if (!ErrorsOccured)
+                        TypeChecker.ResolveTypes(ast);
+                        //if (!Errors.Diagnostics.SemanticAnalysisFailed)
+                        //    if (ShellOptions.ShowTree) ast.ShowTree();
+                }
+
+                Errors.Diagnostics.ShowErrors();
+
+                if (!ErrorsOccured)
+                {
+                    Emitter.LoadBootstrapper(Path.GetFileNameWithoutExtension(sourcePath), Path.GetFileNameWithoutExtension(sourcePath));
+                    Emitter.EmitAST(ast);
+                    if (run)
+                        System.Diagnostics.Process.Start(binaryPath);
+                    Emitter.Reset();
+                }
+            }
+        }
+        private bool IsCorrectExtension(string fileName)
+        {
+            if (Path.GetExtension(fileName) == ".alm") return true;
+            ColorizedPrintln("Расширение файла должно быть \".alm\".", ConsoleColor.DarkRed);
+            return false;
+        }
+        private bool IsFileExists(string fileName)
+        {
+            if (File.Exists(fileName)) return true;
+            ColorizedPrintln("Указанный файл не существует.", ConsoleColor.DarkRed);
+            return false;
+        }
+        private void CheckForErrors(bool syntaxErrors = true,bool semanticErrors = true)
+        {
+            if (syntaxErrors)
+                if (Errors.Diagnostics.SyntaxAnalysisFailed)
+                    ErrorsOccured = true;
+
+            if (semanticErrors)
+                if (Errors.Diagnostics.SemanticAnalysisFailed) 
+                    ErrorsOccured = true;
+        }
+    }
+}

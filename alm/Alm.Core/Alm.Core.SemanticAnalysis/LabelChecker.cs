@@ -1,5 +1,6 @@
 ﻿using alm.Core.Errors;
 using alm.Other.Enums;
+using alm.Core.Compiler;
 using alm.Core.VariableTable;
 using alm.Core.SyntaxAnalysis;
 
@@ -15,7 +16,7 @@ namespace alm.Core.SemanticAnalysis
             foreach (FunctionDeclaration function in Ast.Root.GetChildsByType("FunctionDeclaration", true))
             {
                 if (function.Name == Main)
-                    if (function.SourceContext.FilePath == ParsingFile.Path)
+                    if (function.SourceContext.FilePath == CompilingFile.Path)
                         if (!IsMainDeclared) IsMainDeclared = true;
                 ResolveFunctionDeclaration(function, GlobalTable.Table);
             }

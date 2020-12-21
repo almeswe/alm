@@ -18,7 +18,7 @@ namespace alm.Core.Shell
         public void Run()
         {
             #if DEBUG
-            ShellOptions.SourceFile = @"C:\Users\Almes\source\repos\Compiler\compiler v.5\Test Scripts\AlmDebug.alm";
+            ShellOptions.SourceFile = @"C:\Users\Almes\source\repos\Compiler\compiler v.5\Alm\alm\Alm.Tests\TestScripts\AlmDebug.alm";
             if (!File.Exists(ShellOptions.SourceFile)) File.Create(ShellOptions.SourceFile);
             #endif
             #if !DEBUG
@@ -136,42 +136,7 @@ namespace alm.Core.Shell
 
         public override void Execute()
         {
-            if (File.Exists(ShellOptions.SourceFile))
-            {
-                if (Path.GetExtension(ShellOptions.SourceFile) == ".alm")
-                {
-                    Errors.Diagnostics.Reset();
-
-                    GlobalTable.Table = Table.CreateTable(null, 1);
-
-                    AbstractSyntaxTree ast = new AbstractSyntaxTree();
-                    ast.BuildTree(ShellOptions.SourceFile);
-
-                    if (!Errors.Diagnostics.SyntaxAnalysisFailed)
-                    {
-                        LabelChecker.ResolveProgram(ast);
-                        if (!Errors.Diagnostics.SemanticAnalysisFailed)
-                        {
-                            TypeChecker.ResolveTypes(ast);
-                            if (!Errors.Diagnostics.SemanticAnalysisFailed)
-                                if (ShellOptions.ShowTree) ast.ShowTree();
-                        }
-                    }
-
-                    Errors.Diagnostics.ShowErrors();
-
-                    //Emit
-                    if (!Errors.Diagnostics.SyntaxAnalysisFailed && !Errors.Diagnostics.SemanticAnalysisFailed)
-                    {
-                        Emitter.LoadBootstrapper("123", "123");
-                        Emitter.EmitAST(ast);
-                        Emitter.Reset();
-                    }
-                    //
-                }
-                else ColorizedPrintln("Extension must be \".alm\".", ConsoleColor.DarkRed);
-            }
-            else ColorizedPrintln("File doesn't exist", ConsoleColor.DarkRed);
+            new Compiler.Compiler().CompileThis(ShellOptions.SourceFile,Path.ChangeExtension(Path.GetFileName(ShellOptions.SourceFile),"exe"));
         }
     }
 

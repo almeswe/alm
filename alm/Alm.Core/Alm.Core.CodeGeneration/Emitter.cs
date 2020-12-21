@@ -4,6 +4,7 @@ using System.Reflection.Emit;
 using System.Collections.Generic;
 
 using alm.Other.Enums;
+using alm.Core.Compiler;
 using alm.Other.ConsoleStuff;
 using alm.Core.SyntaxAnalysis;
 
@@ -401,7 +402,6 @@ namespace alm.Core.CodeGeneration.Emitter
             module.CreateGlobalFunctions();
             assembly.SetEntryPoint(GetCreatedMethod("main"));
             assembly.Save(exeName);
-            System.Diagnostics.Process.Start(exeName);
 
             /*
             try
@@ -543,7 +543,7 @@ namespace alm.Core.CodeGeneration.Emitter
         {
             if (!IsLoaded)
             {
-                exeName = System.IO.Path.GetFileNameWithoutExtension(ParsingFile.Path) + ".exe";
+                exeName = System.IO.Path.GetFileName(CompilingFile.DestinationPath);
 
                 AppDomain    domain  = System.Threading.Thread.GetDomain();
                 AssemblyName asmName = new AssemblyName(assemblyName);

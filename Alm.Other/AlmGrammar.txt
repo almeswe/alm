@@ -45,30 +45,3 @@
 
 <intn>   ::= (0..9)*
 <floatn> ::= (0..9)* '.' (0..9)*
-
-
-//переписать
-Список стандартных функций alm:
-
-	print_str(str:string) of void    -> Вывод в консоль строки 'str'
-	print_num(num:integer) of void   -> Вывод в консоль числа  'num'
-
-	len(str:string) of integer -> Размер строки
-
-	str(num:integer) of string -> Перевод числа 'num' в строку
-
-Список (будущих пакетов для alm?? 15.11.20)
-	alm.Math;
-	alm.IO;
-
-
-//-----------------------------------------------
-stmt	   ::= abc();
-
-expression ::=   ...	
-				| ...
-				| abc()
-
-bool-expression ::=   ...	
-					| ...
-				    | abc()

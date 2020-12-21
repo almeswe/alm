@@ -1,0 +1,13 @@
+import math;
+import extInput;
+
+function main() of integer
+{	
+	integer i = 1;
+	while (true)
+	{
+		println(tostr(i));
+		i = i+1;
+	}
+	return 0;
+}

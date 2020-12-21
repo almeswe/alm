@@ -1,0 +1,11 @@
+﻿function readln(string inputMessage) of string
+{
+	println(inputMessage);
+	return input();
+}
+
+function read(string inputMessage) of string 
+{
+	print(inputMessage);
+	return input();
+}

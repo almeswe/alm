@@ -8,9 +8,7 @@ using alm.Other.InnerTypes;
 using alm.Core.Errors;
 using alm.Other.Structs;
 
-using static alm.Other.Enums.NodeType;
 using static alm.Other.Enums.TokenType;
-using static alm.Other.Enums.Operators;
 using static alm.Other.String.StringMethods;
 using static alm.Other.Structs.SourceContext;
 
@@ -24,7 +22,7 @@ namespace alm.Core.SyntaxAnalysis
     internal sealed class Parser
     {
         private Lexer Lexer;
-        public Parser(Lexer Lexer) => this.Lexer = Lexer;
+        public Parser(Lexer lexer) => this.Lexer = lexer;
 
         public string GetImportPath(string scriptname)
         {
@@ -34,7 +32,6 @@ namespace alm.Core.SyntaxAnalysis
                 return Path.Combine(envdir, scriptname) + ".alm";
             return string.Empty;
         }
-
         public SyntaxTreeNode Parse()
         {
             Lexer.GetNextToken();
@@ -45,14 +42,13 @@ namespace alm.Core.SyntaxAnalysis
 
         #region For Debug Cases 
 
-        private Root RunParserOnlyOnArithExpression(string Path)
+        private Root RunParserOnlyOnArithExpression(string path)
         {
-            Root root = new Root(Path);
+            Root root = new Root(path);
             root.AddNode(ParseExpression());
             return root;
         }
-
-        private Root RunParser(string Path) => (Root)ParseProgram(Path);
+        private Root RunParser(string path) => (Root)ParseProgram(path);
         #endregion 
 
         public SyntaxTreeNode ParseProgram(string Path)
@@ -74,7 +70,6 @@ namespace alm.Core.SyntaxAnalysis
             }
             return Root;
         }
-
         public SyntaxTreeNode ParseImportExpression()
         {
             if (!Match(tkImport)) return new ImportExpression(new ReservedWordExpected("import", Lexer.CurrentToken));
@@ -125,7 +120,6 @@ namespace alm.Core.SyntaxAnalysis
 
             else return new ImportExpression(new ExpectedCorrectImport(Lexer.CurrentToken.Context));
         }
-
         public SyntaxTreeNode ParseFunctionDeclaration()
         {
             SourceContext funccontext = new SourceContext();
@@ -273,7 +267,6 @@ namespace alm.Core.SyntaxAnalysis
             Lexer.GetNextToken();
             return assign;
         }
-
         public SyntaxTreeNode ParseStatement()
         {
             switch (Lexer.CurrentToken.TokenType)
@@ -288,14 +281,12 @@ namespace alm.Core.SyntaxAnalysis
                 default: return new ReturnExpression(new OnlyDebug("Ожидалось выражение", Lexer.CurrentToken));
             }
         }
-
         public SyntaxTreeNode ParseIdentifierExpression()
         {
             if (!Match(tkId)) return new FunctionCall(new IdentifierExpected(Lexer.CurrentToken));
             if (Match(tkLpar,1)) return ParseFunctionCall();
             else return ParseAssignmentExpression();
         }
-
         public SyntaxTreeNode ParseFunctionCall(bool ParseAsSingleExpression = true)
         {
             SourceContext funccontext = new SourceContext();
@@ -346,7 +337,6 @@ namespace alm.Core.SyntaxAnalysis
             else funccontext.EndsAt = Lexer.CurrentToken.Context.EndsAt;
             return new FunctionCall(funcname.Name,args,funccontext);
         }
-
         public SyntaxTreeNode ParseReturnExpression()
         {
             SourceContext retcontext = new SourceContext();
@@ -489,7 +479,7 @@ namespace alm.Core.SyntaxAnalysis
             if (Match(tkOr))
             {
                 Lexer.GetNextToken();
-                node = new BooleanExpression(node, Operators.LogicalOR, ParseBooleanExpression());
+                node = new BooleanExpression(node, Operator.LogicalOR, ParseBooleanExpression());
             }
             return node;
         }
@@ -500,7 +490,7 @@ namespace alm.Core.SyntaxAnalysis
             if (Match(tkAnd))
             {
                 Lexer.GetNextToken();
-                node = new BooleanExpression(node, Operators.LogicalAND, ParseBooleanNotFactor());
+                node = new BooleanExpression(node, Operator.LogicalAND, ParseBooleanNotFactor());
             }
             return node;
         }
@@ -510,7 +500,7 @@ namespace alm.Core.SyntaxAnalysis
             if (Match(tkNot))
             {
                 Lexer.GetNextToken();
-                node = new BooleanExpression(Operators.LogicalNOT, ParseBooleanTerm());
+                node = new BooleanExpression(Operator.LogicalNOT, ParseBooleanTerm());
             }
             else
             {
@@ -529,10 +519,10 @@ namespace alm.Core.SyntaxAnalysis
 
                     switch (Lexer.CurrentToken.TokenType)
                     {
-                        case tkLess: Lexer.GetNextToken(); node = new BooleanExpression(node, Operators.Less, ParseExpression()); break;
-                        case tkMore: Lexer.GetNextToken(); node = new BooleanExpression(node, Operators.Greater, ParseExpression()); break;
-                        case tkEqual: Lexer.GetNextToken(); node = new BooleanExpression(node, Operators.Equal, ParseExpression()); break;
-                        case tkNotEqual: Lexer.GetNextToken(); node = new BooleanExpression(node, Operators.NotEqual, ParseExpression()); break;
+                        case tkLess: Lexer.GetNextToken(); node = new BooleanExpression(node, Operator.Less, ParseExpression()); break;
+                        case tkMore: Lexer.GetNextToken(); node = new BooleanExpression(node, Operator.Greater, ParseExpression()); break;
+                        case tkEqual: Lexer.GetNextToken(); node = new BooleanExpression(node, Operator.Equal, ParseExpression()); break;
+                        case tkNotEqual: Lexer.GetNextToken(); node = new BooleanExpression(node, Operator.NotEqual, ParseExpression()); break;
                     }
                     return node;
 
@@ -541,10 +531,10 @@ namespace alm.Core.SyntaxAnalysis
 
                     switch (Lexer.CurrentToken.TokenType)
                     {
-                        case tkLess: Lexer.GetNextToken();     node = new BooleanExpression(node, Operators.Less, ParseExpression()); break;
-                        case tkMore: Lexer.GetNextToken();     node = new BooleanExpression(node, Operators.Greater, ParseExpression()); break;
-                        case tkEqual: Lexer.GetNextToken();    node = new BooleanExpression(node, Operators.Equal, ParseExpression()); break;
-                        case tkNotEqual: Lexer.GetNextToken(); node = new BooleanExpression(node, Operators.NotEqual, ParseExpression()); break;
+                        case tkLess: Lexer.GetNextToken();     node = new BooleanExpression(node, Operator.Less, ParseExpression()); break;
+                        case tkMore: Lexer.GetNextToken();     node = new BooleanExpression(node, Operator.Greater, ParseExpression()); break;
+                        case tkEqual: Lexer.GetNextToken();    node = new BooleanExpression(node, Operator.Equal, ParseExpression()); break;
+                        case tkNotEqual: Lexer.GetNextToken(); node = new BooleanExpression(node, Operator.NotEqual, ParseExpression()); break;
                     }
                     return node;
 
@@ -559,11 +549,11 @@ namespace alm.Core.SyntaxAnalysis
                     {
                         case tkEqual:
                             Lexer.GetNextToken();
-                            node = new BooleanExpression(node, Operators.Equal, ParseExpression());
+                            node = new BooleanExpression(node, Operator.Equal, ParseExpression());
                             return node;
                         case tkNotEqual:
                             Lexer.GetNextToken();
-                            node = new BooleanExpression(node, Operators.NotEqual, ParseExpression());
+                            node = new BooleanExpression(node, Operator.NotEqual, ParseExpression());
                             return node;
                         default: return node;
                     }
@@ -576,8 +566,8 @@ namespace alm.Core.SyntaxAnalysis
             SyntaxTreeNode node = ParseExpression();
             switch (Lexer.CurrentToken.TokenType)
             {
-                case tkLess: Lexer.GetNextToken(); return new BooleanExpression(node, Less, ParseBooleanRelation());
-                case tkMore: Lexer.GetNextToken(); return new BooleanExpression(node, Greater, ParseBooleanRelation());
+                case tkLess: Lexer.GetNextToken(); return new BooleanExpression(node, Operator.Less, ParseBooleanRelation());
+                case tkMore: Lexer.GetNextToken(); return new BooleanExpression(node, Operator.Greater, ParseBooleanRelation());
             }
             return node;
         }
@@ -595,8 +585,8 @@ namespace alm.Core.SyntaxAnalysis
             SyntaxTreeNode node = ParseTerm();
             switch (Lexer.CurrentToken.TokenType)
             {
-                case tkMinus: Lexer.GetNextToken(); node = new BinaryExpression(node, Minus, ParseExpression()); break;
-                case tkPlus: Lexer.GetNextToken();  node = new BinaryExpression(node, Plus, ParseExpression()); break;
+                case tkMinus: Lexer.GetNextToken(); node = new BinaryExpression(node, Operator.Minus, ParseExpression()); break;
+                case tkPlus: Lexer.GetNextToken();  node = new BinaryExpression(node, Operator.Plus, ParseExpression()); break;
             }
             return node;
         }
@@ -605,8 +595,8 @@ namespace alm.Core.SyntaxAnalysis
             SyntaxTreeNode node = ParseSignedFactor();
             switch (Lexer.CurrentToken.TokenType)
             {
-                case tkMult: Lexer.GetNextToken(); node = new BinaryExpression(node, Operators.Multiplication, ParseTerm()); break;
-                case tkDiv: Lexer.GetNextToken(); node = new BinaryExpression(node, Operators.Division, ParseTerm()); break;
+                case tkMult: Lexer.GetNextToken(); node = new BinaryExpression(node, Operator.Multiplication, ParseTerm()); break;
+                case tkDiv: Lexer.GetNextToken(); node = new BinaryExpression(node, Operator.Division, ParseTerm()); break;
             }
             return node;
         }
@@ -648,30 +638,30 @@ namespace alm.Core.SyntaxAnalysis
             return node;
         }
 
-        public bool Match(TokenType ExpectedType, int offset = 0)
+        public bool Match(TokenType expectedType, int offset = 0)
         {
-            if (Lexer.Peek(offset).TokenType == ExpectedType) return true;
+            if (Lexer.Peek(offset).TokenType == expectedType) return true;
             return false;
         }
-        public bool Match(SyntaxTreeNode Node, NodeType ExpectedType)
+        public bool Match(SyntaxTreeNode node, NodeType expectedType)
         {
-            if (Node.NodeType == ExpectedType) return true;
+            if (node.NodeType == expectedType) return true;
             return false;
         }
-        public bool Match(Expression Expression, NodeType ExpectedType)
+        public bool Match(Expression expression, NodeType expectedType)
         {
-            if (Expression.NodeType == ExpectedType) return true;
+            if (expression.NodeType == expectedType) return true;
             return false;
         }
-        public Operators GetOperatorFromTokenType(TokenType type)
+        public Operator GetOperatorFromTokenType(TokenType type)
         {
             switch (type)
             {
-                case tkPlus: return Plus;
-                case tkMinus: return Minus;
-                case tkMult: return Operators.Multiplication;
-                case tkDiv: return Operators.Division;
-                default: return As;
+                case tkPlus: return Operator.Plus;
+                case tkMinus:return Operator.Minus;
+                case tkMult: return Operator.Multiplication;
+                case tkDiv:  return Operator.Division;
+                default: return Operator.As;
             }
         }
     }
@@ -687,7 +677,7 @@ namespace alm.Core.SyntaxAnalysis
 
         public SourceContext SourceContext = new SourceContext();
 
-        public void SetSourceContext(Token Token)                                => this.SourceContext = GetSourceContext(Token, ParsingFile.Path);
+        public void SetSourceContext(Token token)                                => this.SourceContext = GetSourceContext(token, ParsingFile.Path);
         public void SetSourceContext(Token sToken, Token fToken)                 => this.SourceContext = GetSourceContext(sToken,fToken, ParsingFile.Path);
         public void SetSourceContext(SyntaxTreeNode node)                        => this.SourceContext = GetSourceContext(node, ParsingFile.Path);
         public void SetSourceContext(SyntaxTreeNode lnode, SyntaxTreeNode rnode) => this.SourceContext = GetSourceContext(lnode,rnode, ParsingFile.Path);
@@ -705,21 +695,22 @@ namespace alm.Core.SyntaxAnalysis
             foreach (SyntaxTreeNode node in nodes) AddNode(node);
         }
 
-        public SyntaxTreeNode GetParentByType(string TypeString)
+        public SyntaxTreeNode GetParentByType(string typeString)
         {
             for (SyntaxTreeNode Parent = this.Parent; Parent != null; Parent = Parent.Parent)
-                if (LastAfterDot(Parent.GetType().ToString()) == TypeString)
+                if (LastAfterDot(Parent.GetType().ToString()) == typeString)
                     return Parent;
             return null;
         }
-        public SyntaxTreeNode[] GetChildsByType(string TypeString,bool Recursive = false,bool Once = true)
+
+        public SyntaxTreeNode[] GetChildsByType(string typeString, bool recursive = false, bool once = true)
         {
             List<SyntaxTreeNode> Childs = new List<SyntaxTreeNode>();
-            if (Once) if (LastAfterDot(this.GetType().ToString()) == TypeString) Childs.Add(this);
+            if (once) if (LastAfterDot(this.GetType().ToString()) == typeString) Childs.Add(this);
             for (int i = 0;i < this.Nodes.Count; i++)
             {
-                if (LastAfterDot(this.Nodes[i].GetType().ToString()) == TypeString) Childs.Add(this.Nodes[i]);
-                if (Recursive) Childs.AddRange(this.Nodes[i].GetChildsByType(TypeString, true, false));
+                if (LastAfterDot(this.Nodes[i].GetType().ToString()) == typeString) Childs.Add(this.Nodes[i]);
+                if (recursive) Childs.AddRange(this.Nodes[i].GetChildsByType(typeString, true, false));
             }
             return Childs.ToArray();
         }
@@ -730,11 +721,11 @@ namespace alm.Core.SyntaxAnalysis
         private string Filename;
         public SyntaxTreeNode Body { get; set; }
 
-        public override NodeType NodeType => Program;
+        public override NodeType NodeType => NodeType.Program;
 
-        public Root(string FilePath)
+        public Root(string filePath)
         {
-            Filename = Path.GetFileName(FilePath);
+            Filename = Path.GetFileName(filePath);
         }
         public override string ToConsoleString() => $"[{Filename}]";
     }
@@ -743,20 +734,20 @@ namespace alm.Core.SyntaxAnalysis
         public override NodeType NodeType  => NodeType.Body;
         public override ConsoleColor Color => this.Parent.Color;
 
-        public Body(SyntaxTreeNode Body) => this.AddNode(Body);
+        public Body(SyntaxTreeNode body) => this.AddNode(body);
         public Body() { }
     }
     public class Condition : SyntaxTreeNode
     {
         public override NodeType NodeType  => NodeType.Condition;
         public override ConsoleColor Color => this.Parent.Color;
-        public Condition(SyntaxTreeNode Condition) => this.AddNode(Condition);
+        public Condition(SyntaxTreeNode condition) => this.AddNode(condition);
     }
     public class Arguments : SyntaxTreeNode
     {
         public override NodeType NodeType  => NodeType.Arguments;
         public override ConsoleColor Color => this.Parent.Color;
-        public Arguments(SyntaxTreeNode Args) => this.AddNode(Args);
+        public Arguments(SyntaxTreeNode arguments) => this.AddNode(arguments);
         public Arguments() { }
     }
     public class ElseBody : Body
@@ -775,22 +766,22 @@ namespace alm.Core.SyntaxAnalysis
         public override NodeType NodeType => NodeType.Function;
         public override ConsoleColor Color => ConsoleColor.DarkYellow;
 
-        public FunctionDeclaration(IdentifierExpression Id, Arguments Arguments, TypeExpression Type, Body Body, SourceContext Context)
+        public FunctionDeclaration(IdentifierExpression id, Arguments arguments, TypeExpression type, Body body, SourceContext context)
         {
-            this.Body = Body;
-            this.Name = Id.Name;
-            this.Type = Type.Type;
-            this.Arguments = Arguments;
-            this.SourceContext = Context;
-            this.ArgumentCount = Arguments.Nodes.Count;
+            this.Body = body;
+            this.Name = id.Name;
+            this.Type = type.Type;
+            this.Arguments = arguments;
+            this.SourceContext = context;
+            this.ArgumentCount = arguments.Nodes.Count;
 
-            this.AddNodes(Arguments, Body);
+            this.AddNodes(arguments, body);
         }
 
-        public FunctionDeclaration(SyntaxError Error)
+        public FunctionDeclaration(SyntaxError error)
         {
             this.Errored = true;
-            Diagnostics.SyntaxErrors.Add(Error);
+            Diagnostics.SyntaxErrors.Add(error);
         }
 
         public override string ToConsoleString() => $"{Name}:{Type.Representation}:[func decl]";
@@ -805,81 +796,78 @@ namespace alm.Core.SyntaxAnalysis
         public InnerType Type      { get; set; }
         public Arguments Arguments { get; private set; }
 
-        public FunctionCall(string Name, Arguments Arguments,SourceContext Context)
+        public FunctionCall(string name, Arguments arguments,SourceContext context)
         {
-            this.Name = Name;
-            this.Arguments = Arguments;
-            this.SourceContext = Context;
-            this.ArgumentCount = Arguments.Nodes.Count;
+            this.Name = name;
+            this.Arguments = arguments;
+            this.SourceContext = context;
+            this.ArgumentCount = arguments.Nodes.Count;
 
-            this.AddNode(Arguments);
+            this.AddNode(arguments);
         }
 
-        public FunctionCall(SyntaxError Error)
+        public FunctionCall(SyntaxError error)
         {
             this.Errored = true;
-            Diagnostics.SyntaxErrors.Add(Error);
+            Diagnostics.SyntaxErrors.Add(error);
         }
 
         public override string ToConsoleString() => $"{Name}:{Type}:[func call]";
     }
-
     public sealed class ImportExpression : Expression
     {
         public string ImportPath { get; private set; }
         public Root ImportedRoot { get; private set; }
 
-        public override NodeType NodeType => Import;
+        public override NodeType NodeType => NodeType.Import;
 
-        public ImportExpression(StringConst Import,Root ImportedRoot)
+        public ImportExpression(StringConst import,Root importedRoot)
         {
-            SetSourceContext(Import);
+            SetSourceContext(import);
 
-            this.Right = Import;
-            this.ImportPath = Import.Value;
-            this.ImportedRoot = ImportedRoot;
-            this.AddNode(ImportedRoot);
+            this.Right = import;
+            this.ImportPath = import.Value;
+            this.ImportedRoot = importedRoot;
+            this.AddNode(importedRoot);
         }
-        public ImportExpression(IdentifierExpression Import, Root ImportedRoot)
+        public ImportExpression(IdentifierExpression import, Root importedRoot)
         {
-            SetSourceContext(Import);
+            SetSourceContext(import);
 
-            this.Right = Import;
-            this.ImportPath = Import.Name;
-            this.ImportedRoot = ImportedRoot;
-            this.AddNode(ImportedRoot);
+            this.Right = import;
+            this.ImportPath = import.Name;
+            this.ImportedRoot = importedRoot;
+            this.AddNode(importedRoot);
         }
 
-        public ImportExpression(SyntaxError Error)
+        public ImportExpression(SyntaxError error)
         {
             this.Errored = true;
-            Diagnostics.SyntaxErrors.Add(Error);
+            Diagnostics.SyntaxErrors.Add(error);
         }
     }
-
-
     public sealed class ArgumentDeclaration : Expression
     {
         public string Name;
         public InnerType Type;
         public override NodeType NodeType => NodeType.Argument;
 
-        public ArgumentDeclaration(TypeExpression Type, IdentifierExpression Id)
+        public ArgumentDeclaration(TypeExpression type, IdentifierExpression id)
         {
-            this.SetSourceContext(Id, Type);
+            this.SetSourceContext(id, type);
 
-            this.Name = Id.Name;
-            this.Type = Type.Type;
-            this.Left = Type;
-            this.Right = Id;
+            this.Name = id.Name;
+            this.Type = type.Type;
+            this.Left = type;
+            this.Right = id;
 
-            this.AddNodes(Type, Id);
+            this.AddNodes(type, id);
         }
 
-        public ArgumentDeclaration(SyntaxError Error)
+        public ArgumentDeclaration(SyntaxError error)
         {
             this.Errored = true;
-            Diagnostics.SyntaxErrors.Add(Error);
+            Diagnostics.SyntaxErrors.Add(error);
         }
     }
 
@@ -896,28 +884,28 @@ namespace alm.Core.SyntaxAnalysis
 
         public override NodeType NodeType => _type;
 
-        public IfStatement(Condition Condition, Body Body, SourceContext Context)
+        public IfStatement(Condition condition, Body body, SourceContext context)
         {
             _type = NodeType.If;
-            this.SourceContext = Context;
-            this.Condition = Condition;
+            this.SourceContext = context;
+            this.Condition = condition;
             this.Body = Body;
-            this.AddNodes(Condition, Body);
+            this.AddNodes(condition, body);
         }
-        public IfStatement(IfStatement IfStatement, ElseBody ElseBody, SourceContext Context)
+        public IfStatement(IfStatement ifStatement, ElseBody elseBody, SourceContext context)
         {
             _type = NodeType.IfElse;
-            this.SourceContext = Context;
-            this.Body = IfStatement.Body;
-            this.Condition = IfStatement.Condition;
-            this.ElseBody = ElseBody;
-            this.AddNodes(IfStatement.Condition,IfStatement.Body, ElseBody);
+            this.SourceContext = context;
+            this.Body = ifStatement.Body;
+            this.Condition = ifStatement.Condition;
+            this.ElseBody = elseBody;
+            this.AddNodes(ifStatement.Condition, ifStatement.Body, elseBody);
         }
 
-        public IfStatement(SyntaxError Error)
+        public IfStatement(SyntaxError error)
         {
             this.Errored = true;
-            Diagnostics.SyntaxErrors.Add(Error);
+            Diagnostics.SyntaxErrors.Add(error);
         }
     }
     public sealed class WhileStatement : Statement
@@ -925,94 +913,91 @@ namespace alm.Core.SyntaxAnalysis
         public override NodeType NodeType => NodeType.While;
         //public override ConsoleColor Color => ConsoleColor.Blue;
 
-        public WhileStatement(Condition Condition, Body Body)
+        public WhileStatement(Condition condition, Body body)
         {
-            this.Condition = Condition;
-            this.Body = Body;
-            this.AddNodes(Condition, Body);
+            this.Condition = condition;
+            this.Body = body;
+            this.AddNodes(condition, body);
         }
 
-        public WhileStatement(SyntaxError Error)
+        public WhileStatement(SyntaxError error)
         {
             this.Errored = true;
-            Diagnostics.SyntaxErrors.Add(Error);
+            Diagnostics.SyntaxErrors.Add(error);
         }
     }
     public sealed class DoWhileStatement : Statement
     {
         public override NodeType NodeType => NodeType.Do;
 
-        public DoWhileStatement(Body Body, Condition Condition)
+        public DoWhileStatement(Body body, Condition condition)
         {
-            this.Body = Body;
-            this.Condition = Condition;
-            this.AddNodes(Body, Condition);
+            this.Body = body;
+            this.Condition = condition;
+            this.AddNodes(body, condition);
         }
 
-        public DoWhileStatement(SyntaxError Error)
+        public DoWhileStatement(SyntaxError error)
         {
             this.Errored = true;
-            Diagnostics.SyntaxErrors.Add(Error);
+            Diagnostics.SyntaxErrors.Add(error);
         }
     }
 
     public abstract class Expression : SyntaxTreeNode
     {
         public SyntaxTreeNode Left { get; protected set; }
-        public Operators Op { get; protected set; }
+        public Operator Op { get; protected set; }
         public SyntaxTreeNode Right { get; protected set; }
         public override ConsoleColor Color => ConsoleColor.DarkCyan;
     }
-
     public class IdentifierExpression : Expression, ITypeable
     {
         public string Name { get; private set; }
 
         public InnerType Type { get; set; }
-        public override NodeType NodeType  => Variable;
+        public override NodeType NodeType  => NodeType.Variable;
         public override ConsoleColor Color => ConsoleColor.Magenta;
 
-        public IdentifierExpression(Token Token)
+        public IdentifierExpression(Token token)
         {
-            this.Name = Token.Value;
-            SetSourceContext(Token);
+            this.Name = token.Value;
+            SetSourceContext(token);
             this.Type = new Underfined();
         }
-        public IdentifierExpression(Token Token, InnerType Type)
+        public IdentifierExpression(Token token, InnerType type)
         {
-            this.Name = Token.Value;
-            SetSourceContext(Token);
-            this.Type = Type;
+            this.Name = token.Value;
+            SetSourceContext(token);
+            this.Type = type;
         }
 
-        public IdentifierExpression(SyntaxError Error)
+        public IdentifierExpression(SyntaxError error)
         {
             this.Errored = true;
-            Diagnostics.SyntaxErrors.Add(Error);
+            Diagnostics.SyntaxErrors.Add(error);
         }
 
         public override string ToConsoleString() => $"{Name}:{Type}";
     }
-
     public sealed class IdentifierDeclaration : IdentifierExpression
     {
-        public IdentifierDeclaration(Token Token)                 : base(Token) { }
-        public IdentifierDeclaration(Token Token, InnerType Type) : base(Token, Type) { }
+        public IdentifierDeclaration(Token token)                 : base(token) { }
+        public IdentifierDeclaration(Token token, InnerType type) : base(token, type) { }
 
-        public IdentifierDeclaration(SyntaxError Error) : base(Error) { }
+        public IdentifierDeclaration(SyntaxError error) : base(error) { }
 
         public override string ToConsoleString() => base.ToConsoleString() + ":[decl]";
     }
     public sealed class IdentifierCall : IdentifierExpression
     {
-        public IdentifierCall(Token Token)                 : base(Token) { }
-        public IdentifierCall(Token Token, InnerType Type) : base(Token, Type) { }
+        public IdentifierCall(Token token)                 : base(token) { }
+        public IdentifierCall(Token token, InnerType type) : base(token, type) { }
 
-        public IdentifierCall(SyntaxError Error) : base(Error) { }
+        public IdentifierCall(SyntaxError error) : base(error) { }
 
         public override string ToConsoleString() => base.ToConsoleString() + ":[call]";
     }
-
     public abstract class ConstExpression : Expression, ITypeable
     {
         public string Value { get; protected set; }
@@ -1020,27 +1005,25 @@ namespace alm.Core.SyntaxAnalysis
 
         public override string ToConsoleString() => $"{Value}:{Type}";
     }
-
     public sealed class IntegerConst : ConstExpression
     {
-        public override NodeType NodeType  => IntegerConstant;
+        public override NodeType NodeType  => NodeType.IntegerConstant;
         public override ConsoleColor Color => ConsoleColor.DarkMagenta;
 
         public override InnerType Type => new Integer32();
 
-        public IntegerConst(Token Token)
+        public IntegerConst(Token token)
         {
-            this.SetSourceContext(Token);
-            this.Value = Token.Value;
+            this.SetSourceContext(token);
+            this.Value = token.Value;
         }
 
-        public IntegerConst(SyntaxError Error)
+        public IntegerConst(SyntaxError error)
         {
             this.Errored = true;
-            Diagnostics.SyntaxErrors.Add(Error);
+            Diagnostics.SyntaxErrors.Add(error);
         }
     }
-
     public sealed class BooleanConst : ConstExpression
     {
         private NodeType _type;
@@ -1050,41 +1033,40 @@ namespace alm.Core.SyntaxAnalysis
 
         public override InnerType Type => new Other.InnerTypes.Boolean();
 
-        public BooleanConst(Token Token)
+        public BooleanConst(Token token)
         {
-            if      (Token.Value == "true")  _type = NodeType.True;
-            else if (Token.Value == "false") _type = NodeType.False;
+            if      (token.Value == "true")  _type = NodeType.True;
+            else if (token.Value == "false") _type = NodeType.False;
 
-            else throw new Exception("Либо true,либо false:" + Token.Value);
+            else throw new Exception("Либо true,либо false:" + token.Value);
 
-            this.SetSourceContext(Token);
-            this.Value = Token.Value;
+            this.SetSourceContext(token);
+            this.Value = token.Value;
         }
 
-        public BooleanConst(SyntaxError Error)
+        public BooleanConst(SyntaxError error)
         {
             this.Errored = true;
-            Diagnostics.SyntaxErrors.Add(Error);
+            Diagnostics.SyntaxErrors.Add(error);
         }
     }
-
     public sealed class StringConst : ConstExpression
     {
-        public override NodeType NodeType  => StringConstant;
+        public override NodeType NodeType  => NodeType.StringConstant;
         public override ConsoleColor Color => ConsoleColor.Yellow;
 
         public override InnerType Type => new Other.InnerTypes.String();
 
-        public StringConst(Token Token)
+        public StringConst(Token token)
         {
-            this.SetSourceContext(Token);
-            this.Value = Token.Value;
+            this.SetSourceContext(token);
+            this.Value = token.Value;
         }
 
-        public StringConst(SyntaxError Error)
+        public StringConst(SyntaxError error)
         {
             this.Errored = true;
-            Diagnostics.SyntaxErrors.Add(Error);
+            Diagnostics.SyntaxErrors.Add(error);
         }
 
         public override string ToConsoleString() => $"\"{Value}\":{Type}";
@@ -1095,16 +1077,16 @@ namespace alm.Core.SyntaxAnalysis
         public override NodeType NodeType => NodeType.Type;
         public override ConsoleColor Color => ConsoleColor.Red;
 
-        public TypeExpression(Token Token)
+        public TypeExpression(Token token)
         {
-            this.SetSourceContext(Token);
-            Type = InnerType.GetFromString(Token.Value);
+            this.SetSourceContext(token);
+            Type = InnerType.GetFromString(token.Value);
         }
 
-        public TypeExpression(SyntaxError Error)
+        public TypeExpression(SyntaxError error)
         {
             this.Errored = true;
-            Diagnostics.SyntaxErrors.Add(Error);
+            Diagnostics.SyntaxErrors.Add(error);
         }
 
         public override string ToConsoleString() => $"{Type}";
@@ -1117,27 +1099,27 @@ namespace alm.Core.SyntaxAnalysis
         public override NodeType NodeType  => _type;
         public override ConsoleColor Color => _color;
 
-        public BinaryExpression(SyntaxTreeNode Left, Operators Op, SyntaxTreeNode Right)
+        public BinaryExpression(SyntaxTreeNode left, Operator op, SyntaxTreeNode right)
         {
-            switch (Op)
+            switch (op)
             {
-                case Operators.Plus:           _type = NodeType.Addition;       _color = ConsoleColor.DarkYellow; break;
-                case Operators.Minus:          _type = NodeType.Substraction;   _color = ConsoleColor.DarkYellow; break;
-                case Operators.Multiplication: _type = NodeType.Multiplication; _color = ConsoleColor.Yellow;     break;
-                case Operators.Division:       _type = NodeType.Division;       _color = ConsoleColor.Yellow;     break;
-                default: throw new Exception("Встречен неизвестный оператор: " + Op.ToString());
+                case Operator.Plus:           _type = NodeType.Addition;       _color = ConsoleColor.DarkYellow; break;
+                case Operator.Minus:          _type = NodeType.Substraction;   _color = ConsoleColor.DarkYellow; break;
+                case Operator.Multiplication: _type = NodeType.Multiplication; _color = ConsoleColor.Yellow;     break;
+                case Operator.Division:       _type = NodeType.Division;       _color = ConsoleColor.Yellow;     break;
+                default: throw new Exception("Встречен неизвестный оператор: " + op.ToString());
             }
-            this.SetSourceContext(Left, Right);
-            this.Left = Left;
-            this.Op = Op;
-            this.Right = Right;
-            this.AddNodes(Left, Right);
+            this.SetSourceContext(left, right);
+            this.Left = left;
+            this.Op = op;
+            this.Right = right;
+            this.AddNodes(left, right);
         }
 
-        public BinaryExpression(SyntaxError Error)
+        public BinaryExpression(SyntaxError error)
         {
             this.Errored = true;
-            Diagnostics.SyntaxErrors.Add(Error);
+            Diagnostics.SyntaxErrors.Add(error);
         }
 
     }
@@ -1149,112 +1131,112 @@ namespace alm.Core.SyntaxAnalysis
         public override NodeType NodeType  => _type;
         public override ConsoleColor Color => _color;
 
-        public BooleanExpression(SyntaxTreeNode Left, Operators Op, SyntaxTreeNode Right)
+        public BooleanExpression(SyntaxTreeNode left, Operator op, SyntaxTreeNode right)
         {
             // Opertator -> NodeType
-            switch (Op)
+            switch (op)
             {
-                case LogicalAND: _type = And; _color = ConsoleColor.DarkGreen; break;
-                case LogicalOR: _type = Or; _color = ConsoleColor.DarkGreen; break;
-                case LogicalNOT: _type = Not; _color = ConsoleColor.DarkGreen; break;
-                case Less: _type = LessThan; _color = ConsoleColor.Green; break;
-                case LessEqual: _type = EqualLess; _color = ConsoleColor.Green; break;
-                case Greater: _type = MoreThan; _color = ConsoleColor.Green; break;
-                case GreaterEqual: _type = EqualMore; _color = ConsoleColor.Green; break;
-                case Operators.Equal: _type = NodeType.Equal; _color = ConsoleColor.Green; break;
-                case Operators.NotEqual: _type = NodeType.NotEqual; _color = ConsoleColor.Green; break;
+                case Operator.LogicalAND: _type = NodeType.And; _color = ConsoleColor.DarkGreen; break;
+                case Operator.LogicalOR:  _type = NodeType.Or;  _color = ConsoleColor.DarkGreen; break;
+                case Operator.LogicalNOT: _type = NodeType.Not; _color = ConsoleColor.DarkGreen; break;
+                case Operator.Less:       _type = NodeType.LessThan;  _color = ConsoleColor.Green; break;
+                case Operator.LessEqual:  _type = NodeType.EqualLess; _color = ConsoleColor.Green; break;
+                case Operator.Greater:    _type = NodeType.MoreThan;  _color = ConsoleColor.Green; break;
+                case Operator.GreaterEqual: _type = NodeType.EqualMore; _color = ConsoleColor.Green; break;
+                case Operator.Equal:        _type = NodeType.Equal;     _color = ConsoleColor.Green; break;
+                case Operator.NotEqual:     _type = NodeType.NotEqual;  _color = ConsoleColor.Green; break;
 
-                default: throw new Exception("Встречен неизвестный оператор: " + Op.ToString());
+                default: throw new Exception("Встречен неизвестный оператор: " + op.ToString());
             }
-            this.SetSourceContext(Left, Right);
-            this.Left = Left;
-            this.Op = Op;
-            this.Right = Right;
-            this.AddNodes(Left, Right);
+            this.SetSourceContext(left, right);
+            this.Left = left;
+            this.Op = op;
+            this.Right = right;
+            this.AddNodes(left, right);
         }
 
-        public BooleanExpression(Operators NotOp, SyntaxTreeNode Right)
+        public BooleanExpression(Operator notOp, SyntaxTreeNode right)
         {
-            if (NotOp != LogicalNOT) throw new Exception("Конструктор предназначен только для not expression.");
-            _type = Not;
+            //if (NotOp != OperatorLogicalNOT) throw new Exception("Конструктор предназначен только для not expression.");
+            _type = NodeType.Not;
             _color = ConsoleColor.DarkGreen;
-            this.SetSourceContext(Right);
-            this.Op = NotOp;
-            this.Right = Right;
-            this.AddNodes(Right);
+            this.SetSourceContext(right);
+            this.Op = notOp;
+            this.Right = right;
+            this.AddNodes(right);
         }
 
-        public BooleanExpression(SyntaxError Error)
+        public BooleanExpression(SyntaxError error)
         {
             this.Errored = true;
-            Diagnostics.SyntaxErrors.Add(Error);
+            Diagnostics.SyntaxErrors.Add(error);
         }
     }
     public sealed class AssignmentExpression : Expression
     {
         public override NodeType NodeType => NodeType.Assignment;
 
-        public AssignmentExpression(SyntaxTreeNode Left, SyntaxTreeNode Right)
+        public AssignmentExpression(SyntaxTreeNode left, SyntaxTreeNode right)
         {
-            this.SetSourceContext(Left, Right);
+            this.SetSourceContext(left, right);
 
-            this.Left = Left;
-            this.Op = Operators.Assignment;
-            this.Right = Right;
-            this.AddNodes(Left, Right);
+            this.Left = left;
+            this.Op = Operator.Assignment;
+            this.Right = right;
+            this.AddNodes(left, right);
 
         }
 
-        public AssignmentExpression(SyntaxError Error)
+        public AssignmentExpression(SyntaxError error)
         {
             this.Errored = true;
-            Diagnostics.SyntaxErrors.Add(Error);
+            Diagnostics.SyntaxErrors.Add(error);
         }
     }
     public sealed class DeclarationExpression : Expression
     {
         public override NodeType NodeType => NodeType.Declaration;
 
-        public DeclarationExpression(TypeExpression Type, IdentifierExpression Id)
+        public DeclarationExpression(TypeExpression type, IdentifierExpression id)
         {
-            this.SetSourceContext(Type, Id);
-            this.Left = Type;
-            this.Right = Id;
+            this.SetSourceContext(type, id);
+            this.Left = type;
+            this.Right = id;
             this.AddNodes(Left, Right);
         }
-        public DeclarationExpression(TypeExpression Type, AssignmentExpression Assign)
+        public DeclarationExpression(TypeExpression type, AssignmentExpression assign)
         {
-            this.SetSourceContext(Type, Assign);
-            this.Left = Type;
-            this.Right = Assign;
+            this.SetSourceContext(type, assign);
+            this.Left = type;
+            this.Right = assign;
             this.AddNodes(Left, Right);
         }
 
-        public DeclarationExpression(SyntaxError Error)
+        public DeclarationExpression(SyntaxError error)
         {
             this.Errored = true;
-            Diagnostics.SyntaxErrors.Add(Error);
+            Diagnostics.SyntaxErrors.Add(error);
         }
     }
 
     public sealed class ReturnExpression : Expression
     {
-        public override NodeType NodeType => Return;
+        public override NodeType NodeType => NodeType.Return;
         public override ConsoleColor Color => ConsoleColor.Red;
 
-        public ReturnExpression(SyntaxTreeNode Expression, SourceContext Context)
+        public ReturnExpression(SyntaxTreeNode expression, SourceContext context)
         {
-            this.SourceContext = Context;
-            this.Right = Expression;
+            this.SourceContext = context;
+            this.Right = expression;
             this.AddNodes(Right);
         }
 
-        public ReturnExpression(SourceContext Context) => this.SourceContext = Context;
+        public ReturnExpression(SourceContext context) => this.SourceContext = context;
 
-        public ReturnExpression(SyntaxError Error)
+        public ReturnExpression(SyntaxError error)
         {
             this.Errored = true;
-            Diagnostics.SyntaxErrors.Add(Error);
+            Diagnostics.SyntaxErrors.Add(error);
         }
     }
 

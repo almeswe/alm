@@ -2,7 +2,7 @@
 using alm.Core.Errors;
 using alm.Core.SyntaxAnalysis;
 
-using static alm.Other.Enums.Operators;
+using static alm.Other.Enums.Operator;
 using alm.Core.VariableTable;
 
 namespace alm.Core.SemanticAnalysis

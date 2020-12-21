@@ -378,13 +378,13 @@ namespace alm.Core.CodeGeneration.Emitter
             if      (booleanExpression is BooleanConst)         EmitConstExpression(methodIL, (ConstExpression)booleanExpression);
             else if (booleanExpression is IdentifierExpression) EmitIdentifierCall(methodIL, (IdentifierCall)booleanExpression);
             else if (booleanExpression is FunctionCall)         EmitFunctionCall(methodIL, (FunctionCall)booleanExpression);
-            else if (booleanExpression.Op == Operators.Equal)      EmitEqual(methodIL, (BooleanExpression)booleanExpression);
-            else if (booleanExpression.Op == Operators.NotEqual)   EmitNotEqual(methodIL, (BooleanExpression)booleanExpression);
-            else if (booleanExpression.Op == Operators.Less)       EmitLessThan(methodIL, (BooleanExpression)booleanExpression);
-            else if (booleanExpression.Op == Operators.Greater)    EmitGreaterThan(methodIL, (BooleanExpression)booleanExpression);
-            else if (booleanExpression.Op == Operators.LogicalAND) EmitAnd(methodIL, (BooleanExpression)booleanExpression);
-            else if (booleanExpression.Op == Operators.LogicalOR)  EmitOr(methodIL, (BooleanExpression)booleanExpression);
-            else if (booleanExpression.Op == Operators.LogicalNOT) EmitNot(methodIL, (BooleanExpression)booleanExpression);
+            else if (booleanExpression.Op == Operator.Equal)      EmitEqual(methodIL, (BooleanExpression)booleanExpression);
+            else if (booleanExpression.Op == Operator.NotEqual)   EmitNotEqual(methodIL, (BooleanExpression)booleanExpression);
+            else if (booleanExpression.Op == Operator.Less)       EmitLessThan(methodIL, (BooleanExpression)booleanExpression);
+            else if (booleanExpression.Op == Operator.Greater)    EmitGreaterThan(methodIL, (BooleanExpression)booleanExpression);
+            else if (booleanExpression.Op == Operator.LogicalAND) EmitAnd(methodIL, (BooleanExpression)booleanExpression);
+            else if (booleanExpression.Op == Operator.LogicalOR)  EmitOr(methodIL, (BooleanExpression)booleanExpression);
+            else if (booleanExpression.Op == Operator.LogicalNOT) EmitNot(methodIL, (BooleanExpression)booleanExpression);
         }
 
         private static void EmitBody(ILGenerator methodIL,Body body)
@@ -481,14 +481,14 @@ namespace alm.Core.CodeGeneration.Emitter
                     return true;
             return false;
         }
-        private static OpCode DefineArithOpCode(Operators op)
+        private static OpCode DefineArithOpCode(Operator op)
         {
             switch (op)
             {
-                case Operators.Plus: return OpCodes.Add;
-                case Operators.Minus: return OpCodes.Sub;
-                case Operators.Multiplication: return OpCodes.Mul;
-                case Operators.Division: return OpCodes.Div;
+                case Operator.Plus: return OpCodes.Add;
+                case Operator.Minus: return OpCodes.Sub;
+                case Operator.Multiplication: return OpCodes.Mul;
+                case Operator.Division: return OpCodes.Div;
                 default: throw new Exception($"?? [{op}]");
             }
         }

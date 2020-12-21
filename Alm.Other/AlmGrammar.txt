@@ -1,0 +1,74 @@
+﻿grammar redesign 6.11.20;
+
+
+<program>				::= <function_declarations> | ε
+<function_declarations> ::= <function_declarations> | <function_declaration>  | ε
+<function_declaration>  ::= 'function' <id> '(' <argument_declarations> ')' 'of' <functype> <body>
+
+<argument_declarations> ::= <argument_declaration> | <argument_declarations> | ε
+<argument_declaration>  ::= <id> ':' <idtype>
+
+
+<body> ::=    '{' <statements> '}' 
+		    | '{' ε '}'
+
+<statements> ::= <statement> | <statements> 
+
+<statement>	 ::=   <if-statement> 
+			     | <while-statement>
+				 | <do-while-statement>
+				 | <assignment-expression>
+				 | <declaration-expression>
+				 | <funccall-expression>
+
+<if-statement> ::=   if '(' <parentisized-boolean-expression> ')'  '{' <body> '}'
+				   | if '(' <parentisized-boolean-expression> ')'  '{' <body> '}' else '{' <body> '}'
+
+<while-statement>    ::= while '(' <parentisized-boolean-expression> ')'  '{' <body> '}' 
+<do-while-statement> ::= do '{' <body> '}' while '(' <parentisized-boolean-expression> ')' ';' 
+
+
+<assignment-expression>  ::= <id> '=' <expression> ';'
+<declaration-expression> ::=   <idtype> <id> ';'
+							 | <idtype> <assignment-expression>
+
+<funccall-expression> ::= ...
+<expression> ::= ...
+
+
+
+
+<id> ::= ('a'..'Z' + '0'..'9')*
+
+<idtype>	::= "boolean" | "integer" | "float"	| "string"
+<functype>  ::= "void(?)" | "boolean" | "integer" | "float(?)" | "string"
+
+<intn>   ::= (0..9)*
+<floatn> ::= (0..9)* '.' (0..9)*
+
+
+//переписать
+Список стандартных функций alm:
+
+	print_str(str:string) of void    -> Вывод в консоль строки 'str'
+	print_num(num:integer) of void   -> Вывод в консоль числа  'num'
+
+	len(str:string) of integer -> Размер строки
+
+	str(num:integer) of string -> Перевод числа 'num' в строку
+
+Список (будущих пакетов для alm?? 15.11.20)
+	alm.Math;
+	alm.IO;
+
+
+//-----------------------------------------------
+stmt	   ::= abc();
+
+expression ::=   ...	
+				| ...
+				| abc()
+
+bool-expression ::=   ...	
+					| ...
+				    | abc()

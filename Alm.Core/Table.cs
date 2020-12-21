@@ -101,70 +101,7 @@ namespace alm.Core.VariableTable
             return identifier.InitializedBlocks.Contains(Block) ? true : false;
         }
 
-        public void GetInfoAbout(Function func)
-        {
-            Function function = FetchFunction(func);
-
-            if (function is null)
-            {
-                ColorizedPrintln($"Нет информации о функции {func.Name}", System.ConsoleColor.DarkRed);
-                return;
-            }
-
-            ColorizedPrint("Имя:                 ", System.ConsoleColor.Yellow); ColorizedPrintln(function.Name, System.ConsoleColor.Green);
-            ColorizedPrint("Тип:                 ", System.ConsoleColor.Yellow); ColorizedPrintln(function.ReturnType.Representation, System.ConsoleColor.DarkYellow);
-            ColorizedPrintln($"Аргументы ({function.ArgumentCount}):        ", System.ConsoleColor.Yellow);
-            foreach (Argument arg in function.Arguments)
-            {
-                ColorizedPrint($"    Аргумент:        ", System.ConsoleColor.DarkCyan);ColorizedPrintln(arg.Position.ToString(),System.ConsoleColor.Green);
-                ColorizedPrint("     Имя:            ",  System.ConsoleColor.Blue);ColorizedPrintln(arg.Name, System.ConsoleColor.Green);
-                ColorizedPrint("     Тип:            ",  System.ConsoleColor.Blue);ColorizedPrintln(arg.Type.Representation, System.ConsoleColor.DarkYellow);
-                System.Console.WriteLine(string.Empty);
-            }
-            ColorizedPrint("Уровень вложенности: ", System.ConsoleColor.Yellow); ColorizedPrintln(function.Level.ToString(), System.ConsoleColor.Green);
-
-            System.Console.WriteLine(string.Empty);
-        }
-        public void GetInfoAbout(IdentifierExpression id)
-        {
-            Identifier identifier = FetchIdentifier(id);
-
-            if (identifier is null)
-            {
-                ColorizedPrintln($"Нет информации о переменной {id.Name}", System.ConsoleColor.DarkRed);
-                return;
-            }
-
-            ColorizedPrint("Имя:                 ", System.ConsoleColor.Yellow); ColorizedPrintln(identifier.Name, System.ConsoleColor.Green);
-            ColorizedPrint("Тип:                 ", System.ConsoleColor.Yellow); ColorizedPrintln(identifier.Type.Representation, System.ConsoleColor.DarkYellow);
-            ColorizedPrint("Инициализирована:    ", System.ConsoleColor.Yellow); ColorizedPrintln(identifier.IsGloballyInitialized ? "Да" : "Нет", identifier.IsGloballyInitialized ? System.ConsoleColor.Green : System.ConsoleColor.Red);
-            ColorizedPrint("Уровень вложенности: ", System.ConsoleColor.Yellow); ColorizedPrintln(identifier.Level.ToString(), System.ConsoleColor.Green);
-
-            System.Console.WriteLine(string.Empty);
-        }
-        public void GetInfoAbout(Identifier id)
-        {
-            if (!CheckIdentifier(id))
-            {
-                ColorizedPrintln($"Нет информации о переменной {id.Name}", System.ConsoleColor.DarkRed);
-                return;
-            }
-
-            ColorizedPrint("Имя:                 ", System.ConsoleColor.Yellow); ColorizedPrintln(id.Name, System.ConsoleColor.Green);
-            ColorizedPrint("Тип:                 ", System.ConsoleColor.Yellow); ColorizedPrintln(id.Type.Representation, System.ConsoleColor.DarkYellow);
-            ColorizedPrint("Инициализирована:    ", System.ConsoleColor.Yellow); ColorizedPrintln(id.IsGloballyInitialized ? "Да" : "Нет", id.IsGloballyInitialized ? System.ConsoleColor.Green : System.ConsoleColor.Red);
-            ColorizedPrint("Уровень вложенности: ", System.ConsoleColor.Yellow); ColorizedPrintln(id.Level.ToString(), System.ConsoleColor.Green);
-
-            System.Console.WriteLine(string.Empty);
-        }
-
         public void AddTable(Table Table) => this.ThisContains.Add(Table);
-        public void ShowTable()
-        {
-            foreach (Identifier var in this.Identifiers) this.GetInfoAbout(var);
-            foreach (Function func in this.Functions)    this.GetInfoAbout(func);
-            foreach (Table table in this.ThisContains) table.ShowTable();
-        }
 
         public bool CheckFunction(FunctionCall func)
         {

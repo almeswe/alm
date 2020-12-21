@@ -1,4 +1,0 @@
-﻿function print(string msg) of integer
-{
-	return 0;
-}

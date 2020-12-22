@@ -2,7 +2,7 @@
 
 	ways of args representation : 
 		{str} : "string sample"
-		{bool}: true,false
+		{bool}: 1,0
 
 	example of using shell commands :
 		> c true "test.exe"

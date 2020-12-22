@@ -21,7 +21,7 @@ namespace alm.Core.Shell
             string[] subs = SplitSubstrings(input);
             if (!IsCommand(subs[0]))
             {
-                ColorizedPrintln($"\"{subs[0]}\" не является командой. (Нажмите \"?\" для получения информации)",ConsoleColor.DarkRed);
+                ColorizedPrintln($"\"{subs[0]}\" не является командой.",ConsoleColor.DarkRed);
                 return;
             }
             CallCommandByName(subs);

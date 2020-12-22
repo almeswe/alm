@@ -47,15 +47,15 @@ namespace alm.Core.Compiler
                     LabelChecker.ResolveProgram(ast);
                     CheckForErrors();
                     if (!ErrorsOccured)
+                    { 
                         TypeChecker.ResolveTypes(ast);
                         #if DEBUG
                         if (!Errors.Diagnostics.SemanticAnalysisFailed)
                             if (ShellInfo.ShowTree) ast.ShowTree();
                         #endif
+                    }
                 }
-
-                Errors.Diagnostics.ShowErrors();
-
+                CheckForErrors();
                 if (!ErrorsOccured)
                 {
                     Emitter.LoadBootstrapper(Path.GetFileNameWithoutExtension(sourcePath), Path.GetFileNameWithoutExtension(sourcePath));
@@ -64,6 +64,8 @@ namespace alm.Core.Compiler
                         System.Diagnostics.Process.Start(binaryPath);
                     Emitter.Reset();
                 }
+
+                Errors.Diagnostics.ShowErrors();
             }
         }
         private bool IsCorrectExtension(string fileName)
@@ -78,15 +80,10 @@ namespace alm.Core.Compiler
             ColorizedPrintln("Указанный файл не существует.", ConsoleColor.DarkRed);
             return false;
         }
-        private void CheckForErrors(bool syntaxErrors = true,bool semanticErrors = true)
+        private void CheckForErrors()
         {
-            if (syntaxErrors)
-                if (Errors.Diagnostics.SyntaxAnalysisFailed)
-                    ErrorsOccured = true;
-
-            if (semanticErrors)
-                if (Errors.Diagnostics.SemanticAnalysisFailed) 
-                    ErrorsOccured = true;
+            if (Errors.Diagnostics.SyntaxErrors.Count != 0 || Errors.Diagnostics.SemanticErrors.Count != 0)
+                ErrorsOccured = true;
         }
     }
 }

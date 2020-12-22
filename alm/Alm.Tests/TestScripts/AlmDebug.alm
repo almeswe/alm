@@ -1,5 +1,12 @@
-function main() of integer 
+function sum(integer a,integer b) of integer
 {
+	return a+b;
+}
+
+function main() of integer
+{
+	string a = "asd";
+	println(tostr(sum(1,sum(2,2))));
 	input();
-	return 0;	
+	return 0;
 }

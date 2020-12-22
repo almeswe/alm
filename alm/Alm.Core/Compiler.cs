@@ -7,6 +7,7 @@ using alm.Core.SemanticAnalysis;
 using alm.Core.CodeGeneration.Emitter;
 
 using static alm.Other.ConsoleStuff.ConsoleCustomizer;
+using alm.Core.Shell;
 
 namespace alm.Core.Compiler
 {
@@ -47,8 +48,10 @@ namespace alm.Core.Compiler
                     CheckForErrors();
                     if (!ErrorsOccured)
                         TypeChecker.ResolveTypes(ast);
-                        //if (!Errors.Diagnostics.SemanticAnalysisFailed)
-                        //    if (ShellOptions.ShowTree) ast.ShowTree();
+                        #if DEBUG
+                        if (!Errors.Diagnostics.SemanticAnalysisFailed)
+                            if (ShellInfo.ShowTree) ast.ShowTree();
+                        #endif
                 }
 
                 Errors.Diagnostics.ShowErrors();
@@ -71,7 +74,7 @@ namespace alm.Core.Compiler
         }
         private bool IsFileExists(string fileName)
         {
-            if (File.Exists(fileName)) return true;
+            if (System.IO.File.Exists(fileName)) return true;
             ColorizedPrintln("Указанный файл не существует.", ConsoleColor.DarkRed);
             return false;
         }

@@ -1,7 +1,5 @@
-import extInput;
-
-function main() of integer
-{	
-	read("");
-	return 0;
+function main() of integer 
+{
+	input();
+	return 0;	
 }

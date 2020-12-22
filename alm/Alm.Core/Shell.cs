@@ -1,92 +1,10 @@
 ﻿using System;
-using System.IO;
 
-using alm.Core.SyntaxAnalysis;
-using alm.Core.SemanticAnalysis;
-
-using alm.Core.VariableTable;
-using alm.Core.CodeGeneration.Emitter;
 using static alm.Other.String.StringMethods;
 using static alm.Other.ConsoleStuff.ConsoleCustomizer;
 
 namespace alm.Core.Shell
 {
-    public sealed class CompilerShell
-    {
-        string input = string.Empty;
-
-        public void Run()
-        {
-            #if DEBUG
-            ShellOptions.SourceFile = @"C:\Users\Almes\source\repos\Compiler\compiler v.5\Alm\alm\Alm.Tests\TestScripts\AlmDebug.alm";
-            if (!File.Exists(ShellOptions.SourceFile)) File.Create(ShellOptions.SourceFile);
-            #endif
-            #if !DEBUG
-            ColorizedPrint("alm Compiler Shell 2020.",ConsoleColor.Green);
-            Console.WriteLine();
-            Console.WriteLine();
-            #endif
-
-            ShellOptions.InitStandartOptions(ShellOptions.SourceFile);
-
-            while (true)
-            {
-                ColorizedPrint(">", ConsoleColor.Green);
-                input = Console.ReadLine();
-                ParseInput(input);
-                //Console.WriteLine(Console.CursorLeft);
-            }
-        }
-        private void ParseInput(string Input)
-        {
-            string[] splitted = SplitSubstrings(Input);
-            bool found = false;
-
-            int i = 0;
-            while (i < splitted.Length)
-            {
-                foreach (var flag in ShellOptions.ShellFlags)
-                {
-                    if (splitted[i] == flag.Flag)
-                    {
-                        found = true;
-                        if (i + 1 < splitted.Length)
-                            flag.ExecuteFlag(splitted[i+1]);
-                        break;
-                    }
-                }
-                i++;
-            }
-
-            i = 0;
-            while (i < splitted.Length)
-            {
-                foreach (var command in ShellOptions.ShellCommands)
-                {
-                    if (splitted[i] == command.Command)
-                    {
-                        found = true;
-                        if (splitted[i] == "fl")
-                            if (i + 1 < splitted.Length)
-                            {
-                                command.Argument = splitted[i + 1];
-                                i++;
-                            }
-                        command.Execute();
-                        break;
-                    }
-                }
-                if (!found)
-                {
-                    ColorizedPrintln("[ShellError]: Unknown command or flag",ConsoleColor.DarkRed);
-                    break;
-                }
-
-                i++;
-            }
-        }
-    }
-
     public sealed class Shell
     {
         public void Start()
@@ -106,18 +24,60 @@ namespace alm.Core.Shell
                 ColorizedPrintln($"\"{subs[0]}\" не является командой. (Нажмите \"?\" для получения информации)",ConsoleColor.DarkRed);
                 return;
             }
+            CallCommandByName(subs);
+        }
+
+        private void CallCommandByName(string[] subs)
+        {
+            //return later 
             if (subs[0] == "c")
             {
                 if (subs.Length == 3)
-                    new Compile(subs[1], subs[2]);
-                else ColorizedPrintln($"Команда [{subs[0]}] не содержит такое кол-во аргументов {subs.Length}",ConsoleColor.DarkRed);
+                    new Compile(subs[1], subs[2]).Execute();
+                else ColorizedPrintln($"Команда [{subs[0]}] не содержит такое кол-во аргументов {subs.Length - 1}", ConsoleColor.DarkRed);
+            }
+            else if (subs[0] == "file")
+            {
+                if (subs.Length == 2)
+                    new File(subs[1]).Execute();
+                else ColorizedPrintln($"Команда [{subs[0]}] не содержит такое кол-во аргументов {subs.Length - 1}", ConsoleColor.DarkRed);
+            }
+            else if (subs[0] == "crfl")
+            {
+                if (subs.Length == 2)
+                    new CreateFile(subs[1]).Execute();
+                else ColorizedPrintln($"Команда [{subs[0]}] не содержит такое кол-во аргументов {subs.Length - 1}", ConsoleColor.DarkRed);
+            }
+            else if (subs[0] == "opfl")
+            {
+                if (subs.Length == 2)
+                    new OpenFile(subs[1]).Execute();
+                else ColorizedPrintln($"Команда [{subs[0]}] не содержит такое кол-во аргументов {subs.Length - 1}", ConsoleColor.DarkRed);
+            }
+            else if (subs[0] == "cls")
+            {
+                if (subs.Length == 1)
+                    new Cls().Execute();
+                else ColorizedPrintln($"Команда [{subs[0]}] не содержит такое кол-во аргументов {subs.Length - 1}", ConsoleColor.DarkRed);
+            }
+            else if (subs[0] == "exit")
+            {
+                if (subs.Length == 1)
+                    new Exit().Execute();
+                else ColorizedPrintln($"Команда [{subs[0]}] не содержит такое кол-во аргументов {subs.Length - 1}", ConsoleColor.DarkRed);
+            }
+            else if (subs[0] == "rec")
+            {
+                if (subs.Length == 1)
+                    new Recompile().Execute();
+                else ColorizedPrintln($"Команда [{subs[0]}] не содержит такое кол-во аргументов {subs.Length - 1}", ConsoleColor.DarkRed);
             }
         }
 
         private bool IsCommand(string sub)
         {
             //shtree доступна только в DEBUG
-            string[] allCommands = new string[] { "c","rec","file","opfl","cls","exit","shtree" };
+            string[] allCommands = new string[] { "c","rec","file","opfl","crfl","cls","exit","shtree" };
 
             for (int i = 0; i < allCommands.Length; i++)
                 if (allCommands[i] == sub && !IsBlocked(allCommands[i])) return true;
@@ -145,8 +105,15 @@ namespace alm.Core.Shell
 
     internal static class ShellInfo
     {
+        #if DEBUG
         public static string SourcePath = @"C:\Users\Almes\source\repos\Compiler\compiler v.5\Alm\alm\Alm.Tests\TestScripts\AlmDebug.alm";
-        public static string DestinationPath;
+        #endif
+
+        #if !DEBUG
+        public static string SourcePath = "alm";
+        #endif
+
+        public static string DestinationPath = "alm.exe";
 
         public static bool ShowTree = false;
         public static bool RunExeAfterCompiling = true;
@@ -168,16 +135,20 @@ namespace alm.Core.Shell
         public object DefineValue()
         {
             if (IsBoolean())
-                return Value == "true" ? true : false;
+                return Value == "1" ? true : false;
             else if (IsString())
+            {
+                if (this.Value == "this")
+                    this.Value = ShellInfo.SourcePath;
                 return SubstractSymbol(Value, '"');
+            }
             else return null;
         }
         public Type DefineType()
         {
-            if (Value[0] == '"' && Value[Value.Length - 1] == '"')
+            if ((Value[0] == '"' && Value[Value.Length - 1] == '"') || Value == "this")
                 return typeof(string);
-            else if (bool.Parse(Value)) return typeof(bool);
+            else if (Value == "1" || Value == "0") return typeof(bool);
             else return typeof(void);
         }
         public bool IsBoolean()
@@ -215,7 +186,7 @@ namespace alm.Core.Shell
             {
                 if (argument.Type != argument.DefineType())
                 {
-                    ColorizedPrintln($"Неизвестный тип аргумента, аргумент [{argument.Name}] имееет тип {argument.Type}.", ConsoleColor.DarkRed); return false;
+                    ColorizedPrintln($"Неизвестный тип аргумента, аргумент [{argument.Name}] имееет тип {argument.Type.Name.ToLower()}.", ConsoleColor.DarkRed); return false;
                 }
             }
             return true;
@@ -244,193 +215,118 @@ namespace alm.Core.Shell
             new Compiler.Compiler().CompileThis(ShellInfo.SourcePath,binPath,run);
         }
     }
-
-    public abstract class ShellCommand
+    internal sealed class File : Command
     {
-        public abstract string Command { get; }
-        public abstract ShellCommandFlag[] Flags { get; }
-        public string Argument { get; set; }
-
-
-        public virtual bool IsThatCommand(string Command) => Command == this.Command ? true : false;
-
-        public virtual void Execute() => Console.Clear();
-        public virtual void ShowFlags()
+        public File(string filePath)
         {
-            foreach (var Flag in Flags)
-                ColorizedPrintln("   " + Flag.Representation(),ConsoleColor.Blue);
+            this.Name = "file";
+            this.Arguments = new CommandArgument[] { new CommandArgument("filePath",filePath,typeof(string))};
         }
-    }
-
-    public interface ShellCommandFlag
-    {
-        string Flag { get; }
-        string Value{ get; }
-
-        void ExecuteFlag(string Argument);
-        string Representation();
-    }
-
-    internal sealed class ClearConsole: ShellCommand
-    {
-        public override string Command => "cls";
-
-        public override ShellCommandFlag[] Flags => null;
-
-        public override void Execute()   => Console.Clear();
-        public override void ShowFlags() => ColorizedPrintln("   # empty", ConsoleColor.Blue);
-    }
-    internal sealed class Recompile : ShellCommand
-    {
-        public override string Command => "rec";
-        public ShellCommandFlag SourceFlag   = new Source();
-        public ShellCommandFlag ShowTreeFlag = new ShowTree();
-
-        public override ShellCommandFlag[] Flags => new ShellCommandFlag[]
-        {
-            SourceFlag,
-            ShowTreeFlag
-        };
 
         public override void Execute()
         {
-            new Compiler.Compiler().CompileThis(ShellOptions.SourceFile,Path.ChangeExtension(Path.GetFileName(ShellOptions.SourceFile),"exe"));
+            if (!ArgumentTypesCorrect()) return;
+
+            string filePath = (string)GetArgumentByName("filePath").DefineValue();
+
+            if (System.IO.File.Exists(filePath))
+                ShellInfo.SourcePath = filePath;
+            else ColorizedPrintln($"Указанный файл не существует.", ConsoleColor.DarkRed);
         }
     }
 
-    internal sealed class OpenSourceFile : ShellCommand
+    internal sealed class Recompile : Command
     {
-        public override string Command => "open";
-        public ShellCommandFlag SourceFlag = new Source();
-
-        public override ShellCommandFlag[] Flags => new ShellCommandFlag[]
+        public Recompile()
         {
-            SourceFlag,
-        };
+            this.Name = "rec";
+            this.Arguments = new CommandArgument[]{};
+        }
 
         public override void Execute()
         {
-            if (File.Exists(ShellOptions.SourceFile))
+            if (!ArgumentTypesCorrect()) return;
+            new Compiler.Compiler().CompileThis(ShellInfo.SourcePath, ShellInfo.DestinationPath, ShellInfo.RunExeAfterCompiling);
+
+        }
+    }
+
+    internal sealed class CreateFile : Command
+    {
+        public CreateFile(string filePath)
+        {
+            this.Name = "crfl";
+            this.Arguments = new CommandArgument[] { new CommandArgument("filePath", filePath, typeof(string)) };
+        }
+
+        public override void Execute()
+        {
+            if (!ArgumentTypesCorrect()) return;
+
+            string filePath = (string)GetArgumentByName("filePath").DefineValue();
+            try
             {
-                try
+                if (!System.IO.File.Exists(filePath))
                 {
-                    System.Diagnostics.Process.Start(ShellOptions.SourceFile);
+                    System.IO.File.Create(filePath).Close();
+                    ShellInfo.SourcePath = filePath;
                 }
-                catch { ColorizedPrintln("Error opening file", ConsoleColor.DarkRed); }
+                else ColorizedPrintln($"Файл существует.", ConsoleColor.DarkRed);
             }
-            else ColorizedPrintln("File doesn't exist", ConsoleColor.DarkRed);
+            catch (Exception e){ ColorizedPrintln($"Возникла ошибка при создании файла.[{e.Message}]",ConsoleColor.DarkRed); }
+
         }
     }
 
-    internal sealed class ExitShell : ShellCommand
+    internal sealed class OpenFile : Command
     {
-        public override string Command => "exit";
-
-        public override ShellCommandFlag[] Flags => null;
-        public override void Execute() => System.Diagnostics.Process.GetCurrentProcess().Kill();
-        public override void ShowFlags() => ColorizedPrintln("   # empty", ConsoleColor.Blue);
-    }
-
-    internal sealed class ShowCommandFlags : ShellCommand
-    {
-        public override string Command           => "fl";
-        public override ShellCommandFlag[] Flags => null;
+        public OpenFile(string filePath)
+        {
+            this.Name = "opfl";
+            this.Arguments = new CommandArgument[] { new CommandArgument("filePath", filePath, typeof(string)) };
+        }
 
         public override void Execute()
         {
-            if (this.Argument is null)
+            if (!ArgumentTypesCorrect()) return;
+
+            string filePath = (string)GetArgumentByName("filePath").DefineValue();
+
+            try
             {
-                ColorizedPrintln("[flags] [command] ", ConsoleColor.DarkRed);
-                return;
+                System.Diagnostics.Process.Start(filePath);
             }
-            foreach (var command in ShellOptions.ShellCommands)
-            {
-                if (command.IsThatCommand(Argument))
-                {
-                    command.ShowFlags();
-                    return;
-                }
-            }
-            ColorizedPrintln("[flags] [command] ", ConsoleColor.DarkRed);
+            catch (Exception e) { ColorizedPrintln($"Возникла ошибка при открытии файла.[{e.Message}]", ConsoleColor.DarkRed); }
         }
-        public override void ShowFlags() => ColorizedPrintln("   # empty", ConsoleColor.Green);
     }
 
-    internal sealed class PreviousFilePath : ShellCommand
+    internal sealed class Cls : Command
     {
-        public string Value => ShellOptions.PreviousSourceFile;
-
-        public override string Command => $"prevc";
-
-        public override ShellCommandFlag[] Flags => null;
-
-        public override void Execute() => ColorizedPrintln("   "+Value,ConsoleColor.Blue);
-        public override void ShowFlags() => ColorizedPrintln("   # empty", ConsoleColor.Blue);
-    }
-
-    internal sealed class Source : ShellCommandFlag
-    {
-        public string SourcePath => ShellOptions.SourceFile;
-
-        public string Flag => $"src";
-
-        public string Value => SourcePath;
-
-        public void ExecuteFlag(string Argument)
+        public Cls()
         {
-            if (File.Exists(SubstractSymbol(Argument, '"')))
-            {
-                ShellOptions.PreviousSourceFile = ShellOptions.SourceFile;
-                ShellOptions.SourceFile = SubstractSymbol(Argument, '"');
-            }
-            else ColorizedPrintln($"   Bad argument in [src] flag ({Argument}), this file doesn't exist (Mark: the file path must be quoted)", ConsoleColor.DarkRed);
+            this.Name = "cls";
+            this.Arguments = new CommandArgument[] {};
         }
 
-        public string Representation() => $"# {Flag} -> {Value}";
+        public override void Execute()
+        {
+            if (!ArgumentTypesCorrect()) return;
+            Console.Clear();
+        }
     }
 
-
-
-    internal sealed class ShowTree : ShellCommandFlag
+    internal sealed class Exit : Command
     {
-        public string Flag => $"tree";
-
-        public string Value => ShellOptions.ShowTree ? "on" : "off";
-
-        public void ExecuteFlag(string Argument)
+        public Exit()
         {
-            if (Argument == "on")       ShellOptions.ShowTree = true;
-            else if (Argument == "off") ShellOptions.ShowTree = false;
-            else ColorizedPrintln($"   Bad argument in [tree] flag ({Argument})",ConsoleColor.DarkRed);
+            this.Name = "exit";
+            this.Arguments = new CommandArgument[] { };
         }
 
-        public string Representation() => $"# {Flag} -> {Value}";
-    }
-
-
-    public sealed class ShellOptions
-    {
-        public static ShellCommand[] ShellCommands { get; private set; } = new ShellCommand[] { new Recompile(), 
-                                                                                                new ClearConsole(), 
-                                                                                                new ShowCommandFlags(),
-                                                                                                new OpenSourceFile(),
-                                                                                                new PreviousFilePath(),
-                                                                                                new ExitShell() };
-        public static ShellCommandFlag[] ShellFlags { get; private set; } = new ShellCommandFlag[] { new Source(), 
-                                                                                                     new ShowTree() };
-
-
-        public static string PreviousSourceFile;
-        public static string SourceFile;
-        public static bool   ShowTree;
-
-        //...
-        public static void InitStandartOptions(string FilePath)
+        public override void Execute()
         {
-            SourceFile = FilePath;
-            PreviousSourceFile = SourceFile;
-            ShowTree   = false;
-            //...
+            if (!ArgumentTypesCorrect()) return;
+            System.Diagnostics.Process.GetCurrentProcess().Kill();
         }
     }
 }

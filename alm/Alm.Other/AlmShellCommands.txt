@@ -25,6 +25,9 @@
 	-opfl [path {str}] :
 		opens file in notepad by entered path, or type "this" to open file setted in [file] command.
 
+	-crfl [path {str}] :
+		creates file by entered path, and sets [file] value to it.
+
 	-cls [null] :
 		clears the console.
 

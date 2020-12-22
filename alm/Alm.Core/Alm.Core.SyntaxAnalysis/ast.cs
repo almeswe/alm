@@ -22,9 +22,6 @@ namespace alm.Core.SyntaxAnalysis
             this.Root = parser.Parse();
             Builded = true;
             if (Diagnostics.SyntaxErrors.Count > 0) Failure = true;
-            #if !DEBUG
-            else ConsoleCustomizer.ColorizedPrintln($"Синтаксическое дерево построено успешно.({DateTime.Now.ToString()})",ConsoleColor.Green);
-            #endif
         }
         public void ShowTree()
         {

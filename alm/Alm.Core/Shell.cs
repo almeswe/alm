@@ -153,18 +153,15 @@ namespace alm.Core.Shell
         }
         public bool IsBoolean()
         {
-            if (DefineType() == typeof(bool)) return true;
-            return false;
+            return DefineType() == typeof(bool) ? true : false;
         }
         public bool IsString()
         {
-            if (DefineType() == typeof(string)) return true;
-            return false;
+            return DefineType() == typeof(string) ? true : false;
         }
         public bool IsUnknown()
         {
-            if (DefineType() == typeof(void)) return true;
-            return false;
+            return DefineType() == typeof(void) ? true : false;
         }
     }
     internal abstract class Command

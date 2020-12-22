@@ -87,6 +87,164 @@ namespace alm.Core.Shell
         }
     }
 
+    public sealed class Shell
+    {
+        public void Start()
+        {
+            while (true)
+            {
+                ColorizedPrint(">",ConsoleColor.Green);
+                ParseInput(Console.ReadLine());
+            }
+        }
+
+        private void ParseInput(string input)
+        {
+            string[] subs = SplitSubstrings(input);
+            if (!IsCommand(subs[0]))
+            {
+                ColorizedPrintln($"\"{subs[0]}\" не является командой. (Нажмите \"?\" для получения информации)",ConsoleColor.DarkRed);
+                return;
+            }
+            if (subs[0] == "c")
+            {
+                if (subs.Length == 3)
+                    new Compile(subs[1], subs[2]);
+                else ColorizedPrintln($"Команда [{subs[0]}] не содержит такое кол-во аргументов {subs.Length}",ConsoleColor.DarkRed);
+            }
+        }
+
+        private bool IsCommand(string sub)
+        {
+            //shtree доступна только в DEBUG
+            string[] allCommands = new string[] { "c","rec","file","opfl","cls","exit","shtree" };
+
+            for (int i = 0; i < allCommands.Length; i++)
+                if (allCommands[i] == sub && !IsBlocked(allCommands[i])) return true;
+
+            return false;
+        }
+
+        private bool IsArgument(string sub)
+        {
+            if (!IsCommand(sub)) return true;
+            return false;
+        }
+
+        private bool IsBlocked(string command)
+        {
+            if (command == "shtree")
+            { 
+                #if DEBUG
+                    return true;
+                #endif
+            }
+            return false;
+        }
+    }
+
+    internal static class ShellInfo
+    {
+        public static string SourcePath = @"C:\Users\Almes\source\repos\Compiler\compiler v.5\Alm\alm\Alm.Tests\TestScripts\AlmDebug.alm";
+        public static string DestinationPath;
+
+        public static bool ShowTree = false;
+        public static bool RunExeAfterCompiling = true;
+    }
+
+    internal sealed class CommandArgument
+    {
+        public Type Type { get; set; }
+        public string Name  { get; set; }
+        public string Value { get; set; }
+
+        public CommandArgument(string name,string value,Type type)
+        {
+            this.Type = type;
+            this.Name = name;
+            this.Value = value;
+        }
+
+        public object DefineValue()
+        {
+            if (IsBoolean())
+                return Value == "true" ? true : false;
+            else if (IsString())
+                return SubstractSymbol(Value, '"');
+            else return null;
+        }
+        public Type DefineType()
+        {
+            if (Value[0] == '"' && Value[Value.Length - 1] == '"')
+                return typeof(string);
+            else if (bool.Parse(Value)) return typeof(bool);
+            else return typeof(void);
+        }
+        public bool IsBoolean()
+        {
+            if (DefineType() == typeof(bool)) return true;
+            return false;
+        }
+        public bool IsString()
+        {
+            if (DefineType() == typeof(string)) return true;
+            return false;
+        }
+        public bool IsUnknown()
+        {
+            if (DefineType() == typeof(void)) return true;
+            return false;
+        }
+    }
+    internal abstract class Command
+    {
+        public string Name;
+        public CommandArgument[] Arguments;
+
+        public abstract void Execute();
+        protected virtual CommandArgument GetArgumentByName(string name)
+        {
+            for (int i = 0; i < this.Arguments.Length; i++)
+                if (name == this.Arguments[i].Name) return this.Arguments[i];
+
+            return null;
+        }
+        protected virtual bool ArgumentTypesCorrect()
+        {
+            foreach (var argument in this.Arguments)
+            {
+                if (argument.Type != argument.DefineType())
+                {
+                    ColorizedPrintln($"Неизвестный тип аргумента, аргумент [{argument.Name}] имееет тип {argument.Type}.", ConsoleColor.DarkRed); return false;
+                }
+            }
+            return true;
+        }
+    }
+
+    internal sealed class Compile : Command
+    {        
+        public Compile(string run,string binPath)
+        {
+            this.Name = "c";
+            this.Arguments = new CommandArgument[] { new CommandArgument("run",run,typeof(bool)),
+                                                     new CommandArgument("binPath", binPath, typeof(string)) };
+        }
+
+        public override void Execute()
+        {
+            if (!ArgumentTypesCorrect()) return;
+
+            bool run =       (bool)GetArgumentByName("run").DefineValue();
+            string binPath = (string)GetArgumentByName("binPath").DefineValue();
+
+            ShellInfo.DestinationPath = binPath;
+            ShellInfo.RunExeAfterCompiling = run;
+
+            new Compiler.Compiler().CompileThis(ShellInfo.SourcePath,binPath,run);
+        }
+    }
+
     public abstract class ShellCommand
     {
         public abstract string Command { get; }

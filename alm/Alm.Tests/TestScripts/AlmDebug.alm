@@ -3,6 +3,5 @@ import extInput;
 function main() of integer
 {	
 	read("");
-	readln("Enter any key...");
 	return 0;
 }

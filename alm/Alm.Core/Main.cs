@@ -5,7 +5,8 @@ namespace alm.Core.Main
 {
     public class Program
     {
-        static void Main(string[] args) => new CompilerShell().Run();
+        //static void Main(string[] args) => new CompilerShell().Run();
+        static void Main(string[] args) => new Shell.Shell().Start();
         /*static void Main(string[] args)
         {
             System.Console.WriteLine(CodeGeneration.CodeGen.GeneratePrintStr("try except"));

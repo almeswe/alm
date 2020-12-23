@@ -885,7 +885,7 @@ namespace alm.Core.SyntaxAnalysis
             _type = NodeType.If;
             this.SourceContext = context;
             this.Condition = condition;
-            this.Body = Body;
+            this.Body = body;
             this.AddNodes(condition, body);
         }
         public IfStatement(IfStatement ifStatement, ElseBody elseBody, SourceContext context)

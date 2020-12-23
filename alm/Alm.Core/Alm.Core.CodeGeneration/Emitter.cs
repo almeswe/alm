@@ -204,7 +204,6 @@ namespace alm.Core.CodeGeneration.Emitter
 
             methodIL.MarkLabel(toIfBody);
             EmitBody(methodIL,ifStatement.Body);
-            methodIL.Emit(OpCodes.Br, toEndOfIf);
 
             methodIL.MarkLabel(toEndOfIf);
         }

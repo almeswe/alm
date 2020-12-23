@@ -31,7 +31,7 @@ namespace alm.Core.SemanticAnalysis
             {
                 ResolveArguments(FuncDecl.Arguments, ThisTable);
                 ResolveBody(FuncDecl.Body, ThisTable);
-                if (!ResolveBlock(FuncDecl.Body)) Diagnostics.SemanticErrors.Add(new NotAllCodePathsReturnValue(FuncDecl.SourceContext));
+                if (!ResolveBlockForReturn(FuncDecl.Body)) Diagnostics.SemanticErrors.Add(new NotAllCodePathsReturnValue(FuncDecl.SourceContext));
             }
             else Diagnostics.SemanticErrors.Add(new ThisFunctionAlreadyDeclared(FuncDecl.Name, FuncDecl.SourceContext));
         }
@@ -201,35 +201,29 @@ namespace alm.Core.SemanticAnalysis
             if      (DeclarationExpression.Right is IdentifierExpression) ResolveIdExression((IdentifierExpression)DeclarationExpression.Right, Table);
             else if (DeclarationExpression.Right is AssignmentExpression) ResolveAssignmentExpression((AssignmentExpression)DeclarationExpression.Right, Table);
         }
-        public static bool ResolveBlock(Body Block)
+        public static bool ResolveBlockForReturn(Body Block)
         {
-            int BlocksResolved = 2;
             bool Resolved = false;
 
             foreach (var node in Block.Nodes)
             {
-                if (node is IfStatement)
+                if (node is Statement)
                 {
-                    if (BlocksResolved == 2)
-                        BlocksResolved = 0;
-                    if (node.NodeType == NodeType.If)
-                        BlocksResolved = 0;
-                    else
-                        if (ResolveBlock(((IfStatement)node).Body) && ResolveBlock(((IfStatement)node).ElseBody)) BlocksResolved = 1;
-                }
-                else
-                {
-                    if (node is Statement)
-                    {
-                        if (BlocksResolved == 2) BlocksResolved = 0;
-                        if (!ResolveBlock(((Statement)node).Body)) BlocksResolved = 0;
-                    }
-                }
+                    bool IfElseResolved = false;
 
+                    if (!ResolveBlockForReturn(((Statement)node).Body))
+                        Resolved = false;
+                    else 
+                        IfElseResolved = true;
+
+                    if (((Statement)node).ElseBody != null)
+                        if (!ResolveBlockForReturn(((Statement)node).ElseBody))
+                            Resolved = false;
+                        else
+                            if (IfElseResolved) Resolved = true;
+                }
                 if (node is ReturnExpression) Resolved = true;
             }
-
-            if (BlocksResolved == 1) Resolved = true;
             return Resolved;
         }
     }

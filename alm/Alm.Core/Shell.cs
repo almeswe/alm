@@ -29,48 +29,23 @@ namespace alm.Core.Shell
 
         private void CallCommandByName(string[] subs)
         {
-            //return later 
-            if (subs[0] == "c")
+            Command[] Commands = new Command[]
             {
-                if (subs.Length == 3)
-                    new Compile(subs[1], subs[2]).Execute();
-                else ColorizedPrintln($"Команда [{subs[0]}] не содержит такое кол-во аргументов {subs.Length - 1}", ConsoleColor.DarkRed);
-            }
-            else if (subs[0] == "file")
+                new Compile(),
+                new Recompile(),
+                new File(),
+                new OpenFile(),
+                new CreateFile(),
+                new Cls(),
+                new Exit()
+            };
+
+            foreach (Command command in Commands)
             {
-                if (subs.Length == 2)
-                    new File(subs[1]).Execute();
-                else ColorizedPrintln($"Команда [{subs[0]}] не содержит такое кол-во аргументов {subs.Length - 1}", ConsoleColor.DarkRed);
-            }
-            else if (subs[0] == "crfl")
-            {
-                if (subs.Length == 2)
-                    new CreateFile(subs[1]).Execute();
-                else ColorizedPrintln($"Команда [{subs[0]}] не содержит такое кол-во аргументов {subs.Length - 1}", ConsoleColor.DarkRed);
-            }
-            else if (subs[0] == "opfl")
-            {
-                if (subs.Length == 2)
-                    new OpenFile(subs[1]).Execute();
-                else ColorizedPrintln($"Команда [{subs[0]}] не содержит такое кол-во аргументов {subs.Length - 1}", ConsoleColor.DarkRed);
-            }
-            else if (subs[0] == "cls")
-            {
-                if (subs.Length == 1)
-                    new Cls().Execute();
-                else ColorizedPrintln($"Команда [{subs[0]}] не содержит такое кол-во аргументов {subs.Length - 1}", ConsoleColor.DarkRed);
-            }
-            else if (subs[0] == "exit")
-            {
-                if (subs.Length == 1)
-                    new Exit().Execute();
-                else ColorizedPrintln($"Команда [{subs[0]}] не содержит такое кол-во аргументов {subs.Length - 1}", ConsoleColor.DarkRed);
-            }
-            else if (subs[0] == "rec")
-            {
-                if (subs.Length == 1)
-                    new Recompile().Execute();
-                else ColorizedPrintln($"Команда [{subs[0]}] не содержит такое кол-во аргументов {subs.Length - 1}", ConsoleColor.DarkRed);
+                if (command.Name == subs[0])
+                    if (subs.Length - 1 == command.ArgumentCount)
+                        command.Execute(subs);
+                    else ColorizedPrintln($"Команда [{subs[0]}] не содержит такое кол-во аргументов [{subs.Length - 1}]", ConsoleColor.DarkRed);
             }
         }
 
@@ -135,12 +110,13 @@ namespace alm.Core.Shell
         public object DefineValue()
         {
             if (IsBoolean())
-                return Value == "1" ? true : false;
+                return this.Value == "1" ? true : false;
             else if (IsString())
             {
                 if (this.Value == "this")
                     this.Value = ShellInfo.SourcePath;
-                return SubstractSymbol(Value, '"');
+                else this.Value = SubstractSymbol(this.Value,'"');
+                return this.Value;
             }
             else return null;
         }
@@ -167,9 +143,10 @@ namespace alm.Core.Shell
     internal abstract class Command
     {
         public string Name;
-        public CommandArgument[] Arguments;
+        public int ArgumentCount;
+        public CommandArgument[] Arguments = new CommandArgument[] { };
 
-        public abstract void Execute();
+        public abstract void Execute(string[] arguments);
         protected virtual CommandArgument GetArgumentByName(string name)
         {
             for (int i = 0; i < this.Arguments.Length; i++)
@@ -192,19 +169,22 @@ namespace alm.Core.Shell
 
     internal sealed class Compile : Command
     {        
-        public Compile(string run,string binPath)
+        public Compile()
         {
             this.Name = "c";
-            this.Arguments = new CommandArgument[] { new CommandArgument("run",run,typeof(bool)),
-                                                     new CommandArgument("binPath", binPath, typeof(string)) };
+            this.ArgumentCount = 2;
         }
 
-        public override void Execute()
+        //run,binName
+        public override void Execute(string[] arguments)
         {
             if (!ArgumentTypesCorrect()) return;
 
-            bool run =       (bool)GetArgumentByName("run").DefineValue();
-            string binPath = (string)GetArgumentByName("binPath").DefineValue();
+            this.Arguments = new CommandArgument[] { new CommandArgument("run",     arguments[1],typeof(bool)),
+                                                     new CommandArgument("binName", arguments[2], typeof(string)) };
+
+            bool run       = (bool)  this.Arguments[0].DefineValue();
+            string binPath = (string)this.Arguments[1].DefineValue();
 
             ShellInfo.DestinationPath = binPath;
             ShellInfo.RunExeAfterCompiling = run;
@@ -214,17 +194,20 @@ namespace alm.Core.Shell
     }
     internal sealed class File : Command
     {
-        public File(string filePath)
+        public File()
         {
             this.Name = "file";
-            this.Arguments = new CommandArgument[] { new CommandArgument("filePath",filePath,typeof(string))};
+            this.ArgumentCount = 1;
         }
 
-        public override void Execute()
+        //filePath
+        public override void Execute(string[] arguments)
         {
             if (!ArgumentTypesCorrect()) return;
 
-            string filePath = (string)GetArgumentByName("filePath").DefineValue();
+            this.Arguments = new CommandArgument[] { new CommandArgument("filePath", arguments[1], typeof(string)) };
+
+            string filePath = (string)this.Arguments[0].DefineValue();
 
             if (System.IO.File.Exists(filePath))
                 ShellInfo.SourcePath = filePath;
@@ -237,10 +220,11 @@ namespace alm.Core.Shell
         public Recompile()
         {
             this.Name = "rec";
-            this.Arguments = new CommandArgument[]{};
+            this.ArgumentCount = 0;
         }
 
-        public override void Execute()
+        //null
+        public override void Execute(string[] arguments)
         {
             if (!ArgumentTypesCorrect()) return;
             new Compiler.Compiler().CompileThis(ShellInfo.SourcePath, ShellInfo.DestinationPath, ShellInfo.RunExeAfterCompiling);
@@ -250,17 +234,20 @@ namespace alm.Core.Shell
 
     internal sealed class CreateFile : Command
     {
-        public CreateFile(string filePath)
+        public CreateFile()
         {
             this.Name = "crfl";
-            this.Arguments = new CommandArgument[] { new CommandArgument("filePath", filePath, typeof(string)) };
+            this.ArgumentCount = 1;
         }
 
-        public override void Execute()
+        //filePath
+        public override void Execute(string[] arguments)
         {
             if (!ArgumentTypesCorrect()) return;
 
-            string filePath = (string)GetArgumentByName("filePath").DefineValue();
+            this.Arguments = new CommandArgument[] { new CommandArgument("filePath", arguments[1], typeof(string)) };
+
+            string filePath = (string)this.Arguments[0].DefineValue();
             try
             {
                 if (!System.IO.File.Exists(filePath))
@@ -277,17 +264,19 @@ namespace alm.Core.Shell
 
     internal sealed class OpenFile : Command
     {
-        public OpenFile(string filePath)
+        public OpenFile()
         {
             this.Name = "opfl";
-            this.Arguments = new CommandArgument[] { new CommandArgument("filePath", filePath, typeof(string)) };
+            this.ArgumentCount = 1;
         }
 
-        public override void Execute()
+        //filePath
+        public override void Execute(string[] arguments)
         {
             if (!ArgumentTypesCorrect()) return;
 
-            string filePath = (string)GetArgumentByName("filePath").DefineValue();
+            this.Arguments = new CommandArgument[] { new CommandArgument("filePath", arguments[1], typeof(string)) };
+            string filePath = (string)this.Arguments[0].DefineValue();
 
             try
             {
@@ -302,10 +291,11 @@ namespace alm.Core.Shell
         public Cls()
         {
             this.Name = "cls";
-            this.Arguments = new CommandArgument[] {};
+            this.ArgumentCount = 0;
         }
 
-        public override void Execute()
+        //null
+        public override void Execute(string[] arguments)
         {
             if (!ArgumentTypesCorrect()) return;
             Console.Clear();
@@ -317,10 +307,11 @@ namespace alm.Core.Shell
         public Exit()
         {
             this.Name = "exit";
-            this.Arguments = new CommandArgument[] { };
+            this.ArgumentCount = 0;
         }
 
-        public override void Execute()
+        //null
+        public override void Execute(string[] arguments)
         {
             if (!ArgumentTypesCorrect()) return;
             System.Diagnostics.Process.GetCurrentProcess().Kill();

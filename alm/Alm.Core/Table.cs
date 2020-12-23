@@ -3,8 +3,6 @@
 using alm.Other.InnerTypes;
 using alm.Core.SyntaxAnalysis;
 
-using static alm.Other.ConsoleStuff.ConsoleCustomizer;
-
 namespace alm.Core.VariableTable
 {
     public sealed class Table
@@ -164,7 +162,6 @@ namespace alm.Core.VariableTable
     public sealed class Identifier
     {
         public int Level   { get; private set; }
-        public int References { get; set; } //?
         public string Name { get; private set; }
 
         public InnerType Type  { get; private set; }

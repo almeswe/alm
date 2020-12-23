@@ -2,11 +2,7 @@
 {
     public enum NodeType
     {
-        FOR,
         Program,
-        EMPTY,
-        Error,
-
         If,
         IfElse,
         While,
@@ -17,20 +13,16 @@
         StringConstant,
         Type,
         PrimaryNode,
-
         Function,
         FunctionCall,
         Argument,
-
         Import,
-
         LessThan,
         MoreThan,
         EqualLess,
         EqualMore,
         Equal,
         NotEqual,
-
         Assignment,
         Declaration,
         Division,
@@ -39,15 +31,13 @@
         Substraction,
         And,
         Or,
-        //Xor,
         Not,
-
         True,
         False,
-
-        //special
-        Body, ElseBody, Condition,Arguments,
-
+        Body, 
+        ElseBody, 
+        Condition,
+        Arguments,
         Return,
         BinaryExpression,
         BooleanExpression

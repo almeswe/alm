@@ -174,7 +174,7 @@ namespace alm.Core.Shell
         public override void Execute(string[] arguments)
         {
             if (!ArgumentTypesCorrect()) return;
-            ColorizedPrintln("Команды оболочки языка alm.");
+            ColorizedPrintln($"Команды оболочки языка alm {Compiler.Compiler.version} .");
 
             ColorizedPrintln("\tПути представления аргументов: ");
             ColorizedPrint("\t\t{str}  ",ConsoleColor.Cyan); ColorizedPrintln(": \"string sample\"");

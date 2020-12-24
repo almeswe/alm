@@ -19,7 +19,7 @@ namespace alm.Core.Compiler
 
     public sealed class Compiler
     {
-        public readonly string version = "alm v.1.0.0"; //21.12.2020
+        public static readonly string version = "v.1.0.0"; //21.12.2020
 
         public string binaryPath;
         public string sourcePath;

@@ -48,13 +48,13 @@ namespace alm.Other.ConsoleStuff
             if (level >= colors_copy.Length) level -= (int)(level / colors_copy.Length) * colors_copy.Length;
             return colors_copy[level];
         }
-        public static void ColorizedPrint(string message, ConsoleColor color)
+        public static void ColorizedPrint(string message, ConsoleColor color = ConsoleColor.Gray)
         {
             Console.ForegroundColor = color;
             Console.Write(message);
             Console.ResetColor();
         }
-        public static void ColorizedPrintln(string message, ConsoleColor color)
+        public static void ColorizedPrintln(string message, ConsoleColor color = ConsoleColor.Gray)
         {
             Console.ForegroundColor = color;
             Console.WriteLine(message);

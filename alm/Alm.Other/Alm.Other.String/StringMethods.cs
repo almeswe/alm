@@ -78,7 +78,7 @@
                     }
                 sub += String[i].ToString();
             }
-            subs.Add(sub.Trim());
+            if (sub.Trim() != "") subs.Add(sub.Trim());
             return subs.ToArray();
         }
         public static string SubstractSymbol(string String,char Symbol)

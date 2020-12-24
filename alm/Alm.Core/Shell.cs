@@ -176,8 +176,8 @@ namespace alm.Core.Shell
             if (!ArgumentTypesCorrect()) return;
             ColorizedPrintln($"Команды оболочки языка alm {Compiler.Compiler.version} .");
 
-            ColorizedPrintln("\tПути представления аргументов: ");
-            ColorizedPrint("\t\t{str}  ",ConsoleColor.Cyan); ColorizedPrintln(": \"string sample\"");
+            ColorizedPrintln("\tВарианты представления аргументов: ");
+            ColorizedPrint("\t\t{str}  ",ConsoleColor.DarkCyan); ColorizedPrintln(": \"string sample\"");
             ColorizedPrint("\t\t{bool} ",ConsoleColor.Blue); ColorizedPrintln(": 1,0");
 
             ColorizedPrintln("\tПример использования команд оболочки: ");
@@ -188,11 +188,11 @@ namespace alm.Core.Shell
 
             ColorizedPrint("\t-"); ColorizedPrint("?",ConsoleColor.Red); ColorizedPrint(" [null]",ConsoleColor.Yellow); ColorizedPrintln(" :"); ColorizedPrintln("\t\tПоказывает информацию о названии команд оболочки,их определениях и их аргументах.");
 
-            ColorizedPrint("\t-"); ColorizedPrint("c", ConsoleColor.Red);    ColorizedPrint(" [run {bool}]",ConsoleColor.Blue); ColorizedPrint(" [binName {str}]", ConsoleColor.Cyan); ColorizedPrintln(" :"); ColorizedPrintln("\t\tКомпилирует файл, путь к которому указывается в команде [file], и создает исполняетмый файл c указанным именем в папке с оболочкой.");
+            ColorizedPrint("\t-"); ColorizedPrint("c", ConsoleColor.Red);    ColorizedPrint(" [run {bool}]",ConsoleColor.Blue); ColorizedPrint(" [binName {str}]", ConsoleColor.DarkCyan); ColorizedPrintln(" :"); ColorizedPrintln("\t\tКомпилирует файл, путь к которому указывается в команде [file], и создает исполняетмый файл c указанным именем в папке с оболочкой.");
             ColorizedPrint("\t-"); ColorizedPrint("rec", ConsoleColor.Red);  ColorizedPrint(" [null]", ConsoleColor.Yellow);  ColorizedPrintln(" :"); ColorizedPrintln("\t\tПроизводит компиляцию с аргументами указанными в последнем вызове команды [c].");
-            ColorizedPrint("\t-"); ColorizedPrint("file", ConsoleColor.Red); ColorizedPrint(" [path {str}]", ConsoleColor.Cyan); ColorizedPrintln(" :"); ColorizedPrintln("\t\tЗадает путь к файлу с которым будут взаимодействовать команды компиляции.");
-            ColorizedPrint("\t-"); ColorizedPrint("opfl", ConsoleColor.Red); ColorizedPrint(" [path {str}]", ConsoleColor.Cyan); ColorizedPrintln(" :"); ColorizedPrintln("\t\tОткрывает файл в блокноте по указанному пути,или если использовать в качестве аргумента \"this\", то окроется файл указанный в команде [file].");
-            ColorizedPrint("\t-"); ColorizedPrint("crfl", ConsoleColor.Red); ColorizedPrint(" [path {str}]", ConsoleColor.Cyan); ColorizedPrintln(" :"); ColorizedPrintln("\t\tСоздает файл по указанному пути, и задает значение команды [file] как указанный путь.");
+            ColorizedPrint("\t-"); ColorizedPrint("file", ConsoleColor.Red); ColorizedPrint(" [path {str}]", ConsoleColor.DarkCyan); ColorizedPrintln(" :"); ColorizedPrintln("\t\tЗадает путь к файлу с которым будут взаимодействовать команды компиляции.");
+            ColorizedPrint("\t-"); ColorizedPrint("opfl", ConsoleColor.Red); ColorizedPrint(" [path {str}]", ConsoleColor.DarkCyan); ColorizedPrintln(" :"); ColorizedPrintln("\t\tОткрывает файл в блокноте по указанному пути,или если использовать в качестве аргумента \"this\", то окроется файл указанный в команде [file].");
+            ColorizedPrint("\t-"); ColorizedPrint("crfl", ConsoleColor.Red); ColorizedPrint(" [path {str}]", ConsoleColor.DarkCyan); ColorizedPrintln(" :"); ColorizedPrintln("\t\tСоздает файл по указанному пути, и задает значение команды [file] как указанный путь.");
             ColorizedPrint("\t-"); ColorizedPrint("cls", ConsoleColor.Red);  ColorizedPrint(" [null]", ConsoleColor.Yellow); ColorizedPrintln(" :"); ColorizedPrintln("\t\tОчищает консоль.");
             ColorizedPrint("\t-"); ColorizedPrint("exit", ConsoleColor.Red); ColorizedPrint(" [null]", ConsoleColor.Yellow); ColorizedPrintln(" :"); ColorizedPrintln("\t\tЗакрывает оболочку.");
         }
@@ -345,7 +345,11 @@ namespace alm.Core.Shell
         public override void Execute(string[] arguments)
         {
             if (!ArgumentTypesCorrect()) return;
-            System.Diagnostics.Process.GetCurrentProcess().Kill();
+            try
+            {
+                System.Diagnostics.Process.GetCurrentProcess().Kill();
+            }
+            catch (Exception e) { ColorizedPrintln($"Произошла ошибка при закрытии оболочки.[{e.Message}]"); }
         }
     }
 }

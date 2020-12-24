@@ -21,7 +21,7 @@ namespace alm.Core.Shell
             string[] subs = SplitSubstrings(input);
             if (!IsCommand(subs[0]))
             {
-                ColorizedPrintln($"\"{subs[0]}\" не является командой.",ConsoleColor.DarkRed);
+                ColorizedPrintln($"\"{subs[0]}\" не является командой.(Введите команду \"?\" для получения информации)",ConsoleColor.DarkRed);
                 return;
             }
             CallCommandByName(subs);
@@ -31,6 +31,7 @@ namespace alm.Core.Shell
         {
             Command[] Commands = new Command[]
             {
+                new Info(),
                 new Compile(),
                 new Recompile(),
                 new File(),
@@ -52,7 +53,7 @@ namespace alm.Core.Shell
         private bool IsCommand(string sub)
         {
             //shtree доступна только в DEBUG
-            string[] allCommands = new string[] { "c","rec","file","opfl","crfl","cls","exit","shtree" };
+            string[] allCommands = new string[] { "?","c","rec","file","opfl","crfl","cls","exit","shtree" };
 
             for (int i = 0; i < allCommands.Length; i++)
                 if (allCommands[i] == sub && !IsBlocked(allCommands[i])) return true;
@@ -140,20 +141,13 @@ namespace alm.Core.Shell
             return DefineType() == typeof(void) ? true : false;
         }
     }
+
     internal abstract class Command
     {
         public string Name;
         public int ArgumentCount;
         public CommandArgument[] Arguments = new CommandArgument[] { };
 
-        public abstract void Execute(string[] arguments);
-        protected virtual CommandArgument GetArgumentByName(string name)
-        {
-            for (int i = 0; i < this.Arguments.Length; i++)
-                if (name == this.Arguments[i].Name) return this.Arguments[i];
-
-            return null;
-        }
         protected virtual bool ArgumentTypesCorrect()
         {
             foreach (var argument in this.Arguments)
@@ -164,6 +158,43 @@ namespace alm.Core.Shell
                 }
             }
             return true;
+        }
+        public abstract void Execute(string[] arguments);
+    }
+
+    internal sealed class Info : Command
+    {
+        public Info()
+        {
+            this.Name = "?";
+            this.ArgumentCount = 0;
+        }
+
+        //filePath
+        public override void Execute(string[] arguments)
+        {
+            if (!ArgumentTypesCorrect()) return;
+            ColorizedPrintln("Команды оболочки языка alm.");
+
+            ColorizedPrintln("\tПути представления аргументов: ");
+            ColorizedPrint("\t\t{str}  ",ConsoleColor.Cyan); ColorizedPrintln(": \"string sample\"");
+            ColorizedPrint("\t\t{bool} ",ConsoleColor.Blue); ColorizedPrintln(": 1,0");
+
+            ColorizedPrintln("\tПример использования команд оболочки: ");
+            ColorizedPrint("\t\t> ", ConsoleColor.Green); ColorizedPrintln("c 1 \"test.exe\"");
+            ColorizedPrint("\t\t> ", ConsoleColor.Green); ColorizedPrintln("file \"C:\\Windows\\this.alm\"");
+            ColorizedPrint("\t\t> ", ConsoleColor.Green); ColorizedPrintln("rec");
+            ColorizedPrint("\t\t> ", ConsoleColor.Green); ColorizedPrintln("opfl this");
+
+            ColorizedPrint("\t-"); ColorizedPrint("?",ConsoleColor.Red); ColorizedPrint(" [null]",ConsoleColor.Yellow); ColorizedPrintln(" :"); ColorizedPrintln("\t\tПоказывает информацию о названии команд оболочки,их определениях и их аргументах.");
+
+            ColorizedPrint("\t-"); ColorizedPrint("c", ConsoleColor.Red);    ColorizedPrint(" [run {bool}]",ConsoleColor.Blue); ColorizedPrint(" [binName {str}]", ConsoleColor.Cyan); ColorizedPrintln(" :"); ColorizedPrintln("\t\tКомпилирует файл, путь к которому указывается в команде [file], и создает исполняетмый файл c указанным именем в папке с оболочкой.");
+            ColorizedPrint("\t-"); ColorizedPrint("rec", ConsoleColor.Red);  ColorizedPrint(" [null]", ConsoleColor.Yellow);  ColorizedPrintln(" :"); ColorizedPrintln("\t\tПроизводит компиляцию с аргументами указанными в последнем вызове команды [c].");
+            ColorizedPrint("\t-"); ColorizedPrint("file", ConsoleColor.Red); ColorizedPrint(" [path {str}]", ConsoleColor.Cyan); ColorizedPrintln(" :"); ColorizedPrintln("\t\tЗадает путь к файлу с которым будут взаимодействовать команды компиляции.");
+            ColorizedPrint("\t-"); ColorizedPrint("opfl", ConsoleColor.Red); ColorizedPrint(" [path {str}]", ConsoleColor.Cyan); ColorizedPrintln(" :"); ColorizedPrintln("\t\tОткрывает файл в блокноте по указанному пути,или если использовать в качестве аргумента \"this\", то окроется файл указанный в команде [file].");
+            ColorizedPrint("\t-"); ColorizedPrint("crfl", ConsoleColor.Red); ColorizedPrint(" [path {str}]", ConsoleColor.Cyan); ColorizedPrintln(" :"); ColorizedPrintln("\t\tСоздает файл по указанному пути, и задает значение команды [file] как указанный путь.");
+            ColorizedPrint("\t-"); ColorizedPrint("cls", ConsoleColor.Red);  ColorizedPrint(" [null]", ConsoleColor.Yellow); ColorizedPrintln(" :"); ColorizedPrintln("\t\tОчищает консоль.");
+            ColorizedPrint("\t-"); ColorizedPrint("exit", ConsoleColor.Red); ColorizedPrint(" [null]", ConsoleColor.Yellow); ColorizedPrintln(" :"); ColorizedPrintln("\t\tЗакрывает оболочку.");
         }
     }
 

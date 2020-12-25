@@ -9,8 +9,21 @@ namespace alm.Core.Shell
     {
         public void Start()
         {
+                #if DEBUG
+                ColorizedPrintln($"Оболочка компилятора alm {Compiler.Compiler.version} debug",ConsoleColor.DarkGreen);
+                ColorizedPrintln("Введите команду \"?\" для получения дополнительной информации.");
+
+                #endif
+
+                #if !DEBUG
+                ColorizedPrintln($"Оболочка компилятора alm {Compiler.Compiler.version} release",ConsoleColor.DarkGreen);
+                ColorizedPrintln("Введите команду \"?\" для получения дополнительной информации.");
+                ColorizedPrintln("\talmeswe 2020. all rights reserved.",ConsoleColor.DarkYellow);
+                #endif
+            Console.WriteLine("");
             while (true)
             {
+
                 ColorizedPrint(">",ConsoleColor.Green);
                 ParseInput(Console.ReadLine());
             }
@@ -116,7 +129,7 @@ namespace alm.Core.Shell
             {
                 if (this.Value == "this")
                     this.Value = ShellInfo.SourcePath;
-                else this.Value = SubstractSymbol(this.Value,'"');
+                else this.Value = SubstractSymbol(this.Value, '"');
                 return this.Value;
             }
             else return null;
@@ -209,10 +222,11 @@ namespace alm.Core.Shell
         //run,binName
         public override void Execute(string[] arguments)
         {
-            if (!ArgumentTypesCorrect()) return;
-
             this.Arguments = new CommandArgument[] { new CommandArgument("run",     arguments[1],typeof(bool)),
                                                      new CommandArgument("binName", arguments[2], typeof(string)) };
+
+            if (!ArgumentTypesCorrect()) return;
+
 
             bool run       = (bool)  this.Arguments[0].DefineValue();
             string binPath = (string)this.Arguments[1].DefineValue();
@@ -234,9 +248,9 @@ namespace alm.Core.Shell
         //filePath
         public override void Execute(string[] arguments)
         {
+            this.Arguments = new CommandArgument[] { new CommandArgument("filePath", arguments[1], typeof(string)) };
             if (!ArgumentTypesCorrect()) return;
 
-            this.Arguments = new CommandArgument[] { new CommandArgument("filePath", arguments[1], typeof(string)) };
 
             string filePath = (string)this.Arguments[0].DefineValue();
 
@@ -274,9 +288,9 @@ namespace alm.Core.Shell
         //filePath
         public override void Execute(string[] arguments)
         {
+            this.Arguments = new CommandArgument[] { new CommandArgument("filePath", arguments[1], typeof(string)) };
             if (!ArgumentTypesCorrect()) return;
 
-            this.Arguments = new CommandArgument[] { new CommandArgument("filePath", arguments[1], typeof(string)) };
 
             string filePath = (string)this.Arguments[0].DefineValue();
             try
@@ -304,9 +318,9 @@ namespace alm.Core.Shell
         //filePath
         public override void Execute(string[] arguments)
         {
+            this.Arguments = new CommandArgument[] { new CommandArgument("filePath", arguments[1], typeof(string)) };
             if (!ArgumentTypesCorrect()) return;
 
-            this.Arguments = new CommandArgument[] { new CommandArgument("filePath", arguments[1], typeof(string)) };
             string filePath = (string)this.Arguments[0].DefineValue();
 
             try

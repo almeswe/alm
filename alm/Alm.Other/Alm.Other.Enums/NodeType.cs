@@ -8,6 +8,7 @@
         While,
         Do,
         Variable,
+        FloatConstant,
         IntegerConstant,
         BooleanConstant,
         StringConstant,

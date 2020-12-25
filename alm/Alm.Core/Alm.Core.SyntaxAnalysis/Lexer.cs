@@ -104,14 +104,24 @@ namespace alm.Core.SyntaxAnalysis
         {
             string num = string.Empty;
             int start = charPos;
-            while (char.IsDigit(currentChar))
+            bool dot  = false;
+            while (char.IsDigit(currentChar) || currentChar == 46)
             {
-                num += currentChar.ToString();
+                if (currentChar == 46)
+                {
+                    if (dot) break;
+                    else dot = true;
+                    num += ',';
+                }
+                else
+                    num += currentChar.ToString();
                 currCharIndex++;
                 GetNextChar();
             }
             int end = charPos;
-            return new Token(tkNum, new Position(start, end, linePos), CompilingFile.Path, num);
+            if (dot)
+                return new Token(tkFloatConst, new Position(start, end, linePos), CompilingFile.Path, num);
+            return new Token(tkIntConst, new Position(start, end, linePos), CompilingFile.Path, num);
         }
         private Token RecognizeIdent()
         {
@@ -199,6 +209,7 @@ namespace alm.Core.SyntaxAnalysis
                 case "integer": return new Token(tkType, new Position(charPos - 7, charPos, linePos), CompilingFile.Path, "integer");
                 case "boolean": return new Token(tkType, new Position(charPos - 7, charPos, linePos), CompilingFile.Path, "boolean");
                 case "string":  return new Token(tkType, new Position(charPos - 6, charPos, linePos), CompilingFile.Path, "string");
+                case "float" :  return new Token(tkType, new Position(charPos - 5, charPos, linePos), CompilingFile.Path, "float");
 
                 case "import": return new Token(tkImport, new Position(charPos - 6, charPos, linePos), CompilingFile.Path);
 

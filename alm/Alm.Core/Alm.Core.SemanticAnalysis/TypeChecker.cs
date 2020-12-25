@@ -2,8 +2,8 @@
 using alm.Core.Errors;
 using alm.Core.SyntaxAnalysis;
 
-using static alm.Other.Enums.Operator;
 using alm.Core.VariableTable;
+using static alm.Other.Enums.Operator;
 
 namespace alm.Core.SemanticAnalysis
 {
@@ -83,7 +83,7 @@ namespace alm.Core.SemanticAnalysis
                 case LessEqual:
                 case Greater:
                 case GreaterEqual:
-                    ExpectedType = new Integer32();break;
+                    ExpectedType = new NumericType();break;
                 default:
                     ExpectedType = null;break;
             }    
@@ -113,19 +113,19 @@ namespace alm.Core.SemanticAnalysis
 
             }
 
-            if (LeftType == ExpectedType && RightType == ExpectedType) return new Boolean();
+            if (LeftType is NumericType && RightType is NumericType) return new Boolean();
 
-            if (ExpectedType != RightType)
+            if (!(RightType is NumericType))
             {
                 if (!ErrorShownForBoolean) Diagnostics.SemanticErrors.Add(new IncompatibleBooleanExpressionType(ExpectedType, RightType, BoolExpr.Right.SourceContext));
                 ErrorShownForBoolean = true;
-                return ExpectedType;
+                return RightType;
             }
-            else if (ExpectedType != LeftType)
+            else if (!(LeftType is NumericType))
             {
                 if (!ErrorShownForBoolean) Diagnostics.SemanticErrors.Add(new IncompatibleBooleanExpressionType(ExpectedType, LeftType, BoolExpr.Left.SourceContext));
                 ErrorShownForBoolean = true;
-                return ExpectedType;
+                return LeftType;
             }
 
             return new Underfined();
@@ -149,7 +149,7 @@ namespace alm.Core.SemanticAnalysis
         {
             InnerType LeftType;
             InnerType RightType;
-            InnerType ExpectedType = new Integer32();
+            InnerType ExpectedType = new NumericType();
 
             if (first) ErrorShownForBinary = false;
 
@@ -165,19 +165,19 @@ namespace alm.Core.SemanticAnalysis
             else if (BinaryExpr.Right is BinaryExpression)     RightType = ResolveBinaryExpressionType((BinaryExpression)BinaryExpr.Right,false);
             else                                               RightType = ResolveNodeType(BinaryExpr.Right);
 
-            if (ExpectedType == RightType && ExpectedType == LeftType) return ExpectedType;
+            if (RightType is NumericType && LeftType is NumericType) return RightType;
 
-            if (ExpectedType != RightType)
+            if (!(RightType is NumericType))
             {
                 if (!ErrorShownForBinary) Diagnostics.SemanticErrors.Add(new IncompatibleBinaryExpressionType(ExpectedType, RightType,BinaryExpr.SourceContext));
                 ErrorShownForBinary = true;
-                return ExpectedType;
+                return RightType;
             }
-            else if (ExpectedType != LeftType)
+            else if (!(LeftType is NumericType))
             {
                 if (!ErrorShownForBinary) Diagnostics.SemanticErrors.Add(new IncompatibleBinaryExpressionType(ExpectedType, LeftType, BinaryExpr.SourceContext));
                 ErrorShownForBinary = true;
-                return ExpectedType;
+                return LeftType;
             }
 
             return new Underfined();

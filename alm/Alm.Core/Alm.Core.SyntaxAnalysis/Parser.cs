@@ -181,7 +181,6 @@ namespace alm.Core.SyntaxAnalysis
                 if (funcbody.Nodes.Last().Errored) break;
             }
 
-            //bodycontext.EndsAt = funccontext.EndsAt = new Position(Lexer.currToken);
             bodycontext.EndsAt = new Position(Lexer.CurrentToken);
             funcbody.SourceContext = bodycontext;
             Lexer.GetNextToken();
@@ -313,8 +312,6 @@ namespace alm.Core.SyntaxAnalysis
 
                 else
                     args.AddNode(ParseExpression());
-
-                //Lexer.GetNextToken();
 
                 if (!Match(tkComma))
                 {
@@ -522,7 +519,8 @@ namespace alm.Core.SyntaxAnalysis
                     }
                     return node;
 
-                case tkNum:
+                case tkIntConst:
+                case tkFloatConst:
                     node = ParseExpression();
 
                     switch (Lexer.CurrentToken.TokenType)
@@ -614,8 +612,13 @@ namespace alm.Core.SyntaxAnalysis
                     }
                     return node;
 
-                case tkNum:
+                case tkIntConst:
                     node = new IntegerConst(Lexer.CurrentToken);
+                    Lexer.GetNextToken();
+                    return node;
+
+                case tkFloatConst:
+                    node = new FloatConst(Lexer.CurrentToken);
                     Lexer.GetNextToken();
                     return node;
 
@@ -1000,6 +1003,25 @@ namespace alm.Core.SyntaxAnalysis
         public abstract InnerType Type { get; }
 
         public override string ToConsoleString() => $"{Value}:{Type}";
+    }
+    public sealed class FloatConst : ConstExpression
+    {
+        public override NodeType NodeType => NodeType.FloatConstant;
+        public override ConsoleColor Color => ConsoleColor.DarkMagenta;
+
+        public override InnerType Type => new Float();
+
+        public FloatConst(Token token)
+        {
+            this.SetSourceContext(token);
+            this.Value = token.Value;
+        }
+
+        public FloatConst(SyntaxError error)
+        {
+            this.Errored = true;
+            Diagnostics.SyntaxErrors.Add(error);
+        }
     }
     public sealed class IntegerConst : ConstExpression
     {

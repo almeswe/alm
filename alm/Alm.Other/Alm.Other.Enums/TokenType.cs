@@ -2,7 +2,8 @@
 {
     public enum TokenType
     {
-        tkNum,
+        tkIntConst,
+        tkFloatConst,
         tkId,
 
         tkIf,

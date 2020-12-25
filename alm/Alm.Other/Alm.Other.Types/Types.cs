@@ -18,6 +18,7 @@
                 case "integer": return new Integer32();
                 case "boolean": return new Boolean();
                 case "string" : return new String();
+                case "float"  : return new Float();
                 default: return new Underfined();
             }
         }
@@ -28,6 +29,7 @@
                 case "string" : return typeof(string);
                 case "integer": return typeof(int);
                 case "boolean": return typeof(bool);
+                case "float"  : return typeof(float);
                 default : return null;
             }
         }
@@ -54,12 +56,22 @@
         }
     }
 
-    public sealed class Integer32 : InnerType
+    public class NumericType : InnerType
+    {
+        public override string Representation => "numeric";
+    }
+
+    public sealed class Integer32 : NumericType
     {
         public override int Bytes => 4;
         public override string Representation => "integer";
         public const int MaxValue = System.Int32.MaxValue;
         public const int MinValue = System.Int32.MinValue;
+    }
+    public sealed class Float : NumericType
+    {
+        public override int Bytes => 4;
+        public override string Representation => "float";
     }
     public sealed class String : InnerType
     {

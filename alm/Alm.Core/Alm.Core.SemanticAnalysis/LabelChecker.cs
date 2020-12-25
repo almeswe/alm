@@ -1,5 +1,4 @@
 ﻿using alm.Core.Errors;
-using alm.Other.Enums;
 using alm.Core.Compiler;
 using alm.Core.VariableTable;
 using alm.Core.SyntaxAnalysis;
@@ -9,19 +8,24 @@ namespace alm.Core.SemanticAnalysis
     public sealed class LabelChecker
     {
         private static bool IsMainDeclared = false;
-        private const string Main = "main";
 
         public static void ResolveProgram(AbstractSyntaxTree Ast)
         {
+            IsMainDeclared = false;
             foreach (FunctionDeclaration function in Ast.Root.GetChildsByType("FunctionDeclaration", true))
             {
-                if (function.Name == Main)
-                    if (function.SourceContext.FilePath == CompilingFile.Path)
-                        if (!IsMainDeclared) IsMainDeclared = true;
+                ResolveMainFunction(function);
                 ResolveFunctionDeclaration(function, GlobalTable.Table);
             }
 
             if (!IsMainDeclared) Diagnostics.SemanticErrors.Add(new InExexutableFileMainExprected());
+        }
+
+        public static void ResolveMainFunction(FunctionDeclaration FuncDecl)
+        {
+            if (FuncDecl.Name == "main")
+                if (FuncDecl.SourceContext.FilePath == CompilingFile.Path)
+                    if (!IsMainDeclared) IsMainDeclared = true;
         }
 
         public static void ResolveFunctionDeclaration(FunctionDeclaration FuncDecl, Table Table)

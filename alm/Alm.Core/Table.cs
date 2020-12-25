@@ -19,9 +19,14 @@ namespace alm.Core.VariableTable
         {
             new Function("println",new Integer32(),new Argument[]{ new Argument("message",new String(),1) }, 1),
             new Function("print",new Integer32(),new Argument[]{ new Argument("message", new String(),1) }, 1),
-            new Function("tostr",new String(),new Argument[]{ new Argument("num", new Integer32(),1) }, 1),
-            new Function("toint",new Integer32(),new Argument[]{ new Argument("str", new String(),1) }, 1),
             new Function("input",new String(),new Argument[]{ }, 1),
+
+            new Function("tostr",new String(),new Argument[]{ new Argument("num", new Integer32(),1) }, 1),
+            new Function("tostrf",new String(),new Argument[]{ new Argument("num", new Float(),1) }, 1),
+            new Function("tofloat",new Float(),new Argument[]{ new Argument("str", new String(),1) }, 1),
+            new Function("point",new Float(),new Argument[]{ new Argument("num", new Integer32(),1) }, 1),
+            new Function("round",new Integer32(),new Argument[]{ new Argument("fnum", new Float(),1) }, 1),
+            new Function("toint",new Integer32(),new Argument[]{ new Argument("str", new String(),1) }, 1),
         };
 
         public Table(Table PuttedIn, int Level)

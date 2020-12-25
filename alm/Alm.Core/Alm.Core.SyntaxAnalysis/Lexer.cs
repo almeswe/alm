@@ -15,6 +15,7 @@ namespace alm.Core.SyntaxAnalysis
         private const char chEOF = '\0';
         private const char chSpace = ' ';
         private const char chNewLn = '\n';
+        private const char chCarrRet = '\r';
 
         private int charPos;
         private int linePos;
@@ -229,6 +230,9 @@ namespace alm.Core.SyntaxAnalysis
             else
             {
                 currentChar = (char)reader.Read();
+                //Комментарий
+                CheckCommentary();
+                //
                 currCharIndex++;
                 charPos++;
                 if (currentChar == chNewLn)
@@ -238,6 +242,14 @@ namespace alm.Core.SyntaxAnalysis
                     GetNextChar();
                 }
             }
+        }
+
+        private void CheckCommentary()
+        {
+            int line = linePos;
+            if (currentChar == '#')
+                while (currentChar == chEOF || linePos == line)
+                    GetNextChar();
         }
     }
 }

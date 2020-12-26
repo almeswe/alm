@@ -402,7 +402,11 @@ namespace alm.Core.CodeGeneration.Emitter
 
             module.CreateGlobalFunctions();
             assembly.SetEntryPoint(GetCreatedMethod("main"));
-            assembly.Save(exeName);
+            try
+            {
+                assembly.Save(exeName);
+            }
+            catch (Exception e) { ConsoleCustomizer.ColorizedPrintln($"Ошибка при попытке сохранения исполняемого файла.[{e.Message}]",ConsoleColor.DarkRed); }
         }
 
         //

@@ -74,7 +74,7 @@ namespace alm.Core.SyntaxAnalysis
             if (Match(tkQuote))
             {
                 Lexer.GetNextToken();
-                if (!Match(tkString)) return new ImportExpression(new OnlyDebug("Ожидалась строка", Lexer.CurrentToken));
+                if (!Match(tkStringConst)) return new ImportExpression(new OnlyDebug("Ожидалась строка", Lexer.CurrentToken));
                 StringConst stringImport = new StringConst(Lexer.CurrentToken);
                 Lexer.GetNextToken();
                 if (!Match(tkQuote)) return new ImportExpression(new ReservedSymbolExpected("\"", Lexer.CurrentToken));
@@ -201,24 +201,8 @@ namespace alm.Core.SyntaxAnalysis
             if (Match(tkAssign))
             {
                 Lexer.GetNextToken();
-                if (Match(tkTrue) || Match(tkFalse))
-                {
-                    assign = new AssignmentExpression(id, new BooleanConst(Lexer.CurrentToken));
-                    Lexer.GetNextToken();
-                }
-                else if (Match(tkQuote))
-                {
-                    Lexer.GetNextToken();
-                    if (!Match(tkString)) return new AssignmentExpression(new OnlyDebug("Ожидалась строка",Lexer.CurrentToken));
-                    assign = new AssignmentExpression(id, new StringConst(Lexer.CurrentToken));
-                    Lexer.GetNextToken();
-                    if (!Match(tkQuote)) return new AssignmentExpression(new ReservedSymbolExpected("\"", Lexer.PreviousToken));
-                    Lexer.GetNextToken();
-                }
-                else
-                {
-                    assign = new AssignmentExpression(id, ParseExpression());
-                }
+                assign = new AssignmentExpression(id, ParseExpression());
+           
                 if (!Match(tkSemicolon)) return new DeclarationExpression(new MissingSemi(Lexer.PreviousToken));
                 Lexer.GetNextToken();
                 return new DeclarationExpression(idtype, assign);
@@ -237,26 +221,7 @@ namespace alm.Core.SyntaxAnalysis
             Lexer.GetNextToken();
             if (!Match(tkAssign)) return new AssignmentExpression(new ReservedSymbolExpected("=", Lexer.CurrentToken));
             Lexer.GetNextToken();
-            AssignmentExpression assign;
-
-            if (Match(tkTrue) || Match(tkFalse))
-            {
-                assign = new AssignmentExpression(id, new BooleanConst(Lexer.CurrentToken));
-                Lexer.GetNextToken();
-            }
-            else if (Match(tkQuote))
-            {
-                Lexer.GetNextToken();
-                if (!Match(tkString)) return new AssignmentExpression(new OnlyDebug("Ожидалась строка", Lexer.CurrentToken));
-                assign = new AssignmentExpression(id, new StringConst(Lexer.CurrentToken));
-                Lexer.GetNextToken();
-                if (!Match(tkQuote)) return new AssignmentExpression(new ReservedSymbolExpected("\"", Lexer.CurrentToken));
-                Lexer.GetNextToken();
-            }
-            else
-            {
-                assign = new AssignmentExpression(id, ParseExpression());
-            }
+            AssignmentExpression assign = new AssignmentExpression(id, ParseExpression());
 
             if (!Match(tkSemicolon)) return new AssignmentExpression(new MissingSemi(Lexer.PreviousToken));
             Lexer.GetNextToken();
@@ -294,24 +259,7 @@ namespace alm.Core.SyntaxAnalysis
             Lexer.GetNextToken();
             while (!Match(tkRpar))
             {
-                if (Match(tkTrue) || Match(tkFalse))
-                {
-                    args.AddNode(new BooleanConst(Lexer.CurrentToken));
-                    Lexer.GetNextToken();
-                }
-
-                else if (Match(tkQuote))
-                {
-                    Lexer.GetNextToken();
-                    if (!Match(tkString)) return new FunctionCall(new OnlyDebug("Ожидалась строка",Lexer.CurrentToken));
-                    args.Nodes.Add(new StringConst(Lexer.CurrentToken));
-                    Lexer.GetNextToken();
-                    if (!Match(tkQuote)) return new FunctionCall(new ReservedSymbolExpected("\"", Lexer.CurrentToken));
-                    Lexer.GetNextToken();
-                }
-
-                else
-                    args.AddNode(ParseExpression());
+                args.AddNode(ParseExpression());
 
                 if (!Match(tkComma))
                 {
@@ -337,31 +285,7 @@ namespace alm.Core.SyntaxAnalysis
             if (!Match(tkRet)) return new ReturnExpression(new ReservedWordExpected("return", Lexer.CurrentToken));
             retcontext.StartsAt = new Position(Lexer.CurrentToken);
             Lexer.GetNextToken();
-            SyntaxTreeNode Expression;
-            if (Match(tkSemicolon))
-            {
-                retcontext.EndsAt = new Position(Lexer.CurrentToken);
-                Lexer.GetNextToken();
-                return new ReturnExpression(retcontext);
-            }
-            if (Match(tkTrue) || Match(tkFalse))
-            {
-                Expression = new BooleanConst(Lexer.CurrentToken);
-                Lexer.GetNextToken();
-            }
-            else if (Match(tkQuote))
-            {
-                Lexer.GetNextToken();
-                if (!Match(tkString)) return new ReturnExpression(new OnlyDebug("Ожидалась строка", Lexer.CurrentToken));
-                Expression = new StringConst(Lexer.CurrentToken);
-                Lexer.GetNextToken();
-                if (!Match(tkQuote)) return new AssignmentExpression(new ReservedSymbolExpected("\"", Lexer.CurrentToken));
-                Lexer.GetNextToken();
-            }
-            else
-            {
-                Expression = ParseExpression();
-            }
+            SyntaxTreeNode Expression = ParseExpression();
             retcontext.EndsAt = new Position(Lexer.CurrentToken);
             if (!Match(tkSemicolon)) return new ReturnExpression(new MissingSemi(Lexer.PreviousToken));
             Lexer.GetNextToken();
@@ -496,65 +420,30 @@ namespace alm.Core.SyntaxAnalysis
                 node = new BooleanExpression(Operator.LogicalNOT, ParseBooleanTerm());
             }
             else
-            {
                 node = ParseBooleanFactor();
-            }
 
             return node;
         }
         public SyntaxTreeNode ParseBooleanFactor()
         {
             SyntaxTreeNode node;
+            node = ParseExpression();
             switch (Lexer.CurrentToken.TokenType)
             {
-                case tkId:
-                    node = ParseExpression();
-
+                case tkLpar:
+                    return ParseBooleanParentisizedExpression();
+                default:
                     switch (Lexer.CurrentToken.TokenType)
                     {
-                        case tkLess: Lexer.GetNextToken(); node = new BooleanExpression(node, Operator.Less, ParseExpression()); break;
-                        case tkMore: Lexer.GetNextToken(); node = new BooleanExpression(node, Operator.Greater, ParseExpression()); break;
+                        case tkLess:  Lexer.GetNextToken(); node = new BooleanExpression(node, Operator.Less, ParseExpression()); break;
+                        case tkMore:  Lexer.GetNextToken(); node = new BooleanExpression(node, Operator.Greater, ParseExpression()); break;
                         case tkEqual: Lexer.GetNextToken(); node = new BooleanExpression(node, Operator.Equal, ParseExpression()); break;
                         case tkNotEqual: Lexer.GetNextToken(); node = new BooleanExpression(node, Operator.NotEqual, ParseExpression()); break;
                     }
                     return node;
-
-                case tkIntConst:
-                case tkFloatConst:
-                    node = ParseExpression();
-
-                    switch (Lexer.CurrentToken.TokenType)
-                    {
-                        case tkLess: Lexer.GetNextToken();     node = new BooleanExpression(node, Operator.Less, ParseExpression()); break;
-                        case tkMore: Lexer.GetNextToken();     node = new BooleanExpression(node, Operator.Greater, ParseExpression()); break;
-                        case tkEqual: Lexer.GetNextToken();    node = new BooleanExpression(node, Operator.Equal, ParseExpression()); break;
-                        case tkNotEqual: Lexer.GetNextToken(); node = new BooleanExpression(node, Operator.NotEqual, ParseExpression()); break;
-                    }
-                    return node;
-
-                case tkLpar: return ParseBooleanParentisizedExpression();
-
-                case tkTrue:
-                case tkFalse:
-                    Lexer.GetNextToken();
-                    node = new BooleanConst(Lexer.PreviousToken);
-                    Token start = Lexer.CurrentToken;
-                    switch (start.TokenType)
-                    {
-                        case tkEqual:
-                            Lexer.GetNextToken();
-                            node = new BooleanExpression(node, Operator.Equal, ParseExpression());
-                            return node;
-                        case tkNotEqual:
-                            Lexer.GetNextToken();
-                            node = new BooleanExpression(node, Operator.NotEqual, ParseExpression());
-                            return node;
-                        default: return node;
-                    }
-
-                default: return new BooleanConst(new ReservedSymbolExpected("< или >,переменная,выражение в скобках", Lexer.CurrentToken));
             }
         }
+
         public SyntaxTreeNode ParseBooleanRelation()
         {
             SyntaxTreeNode node = ParseExpression();
@@ -619,6 +508,20 @@ namespace alm.Core.SyntaxAnalysis
 
                 case tkFloatConst:
                     node = new FloatConst(Lexer.CurrentToken);
+                    Lexer.GetNextToken();
+                    return node;
+
+                case tkBooleanConst:
+                    node = new BooleanConst(Lexer.CurrentToken);
+                    Lexer.GetNextToken();
+                    return node;
+
+                case tkQuote:
+                    Lexer.GetNextToken();
+                    if (!Match(tkStringConst)) return new ReturnExpression(new OnlyDebug("Ожидалась строка", Lexer.CurrentToken));
+                    node = new StringConst(Lexer.CurrentToken);
+                    Lexer.GetNextToken();
+                    if (!Match(tkQuote)) return new AssignmentExpression(new ReservedSymbolExpected("\"", Lexer.CurrentToken));
                     Lexer.GetNextToken();
                     return node;
 

@@ -151,7 +151,7 @@ namespace alm.Core.SyntaxAnalysis
                 currCharIndex++;
                 GetNextChar();
             }
-            return new Token(tkString, new Position(start, start+str.Length, line), CompilingFile.Path, str);
+            return new Token(tkStringConst, new Position(start, start+str.Length, line), CompilingFile.Path, str);
         }
 
         private Token RecognizeSymbol()
@@ -215,8 +215,8 @@ namespace alm.Core.SyntaxAnalysis
                 case "import": return new Token(tkImport, new Position(charPos - 6, charPos, linePos), CompilingFile.Path);
 
                 case "return": return new Token(tkRet,   new Position(charPos - 6, charPos, linePos), CompilingFile.Path);
-                case "true":   return new Token(tkTrue,  new Position(charPos - 4, charPos, linePos), CompilingFile.Path, "true");
-                case "false":  return new Token(tkFalse, new Position(charPos - 5, charPos, linePos), CompilingFile.Path, "false");
+                case "true":   return new Token(tkBooleanConst,  new Position(charPos - 4, charPos, linePos), CompilingFile.Path, "true");
+                case "false":  return new Token(tkBooleanConst,  new Position(charPos - 5, charPos, linePos), CompilingFile.Path, "false");
                 default: return Token.GetNullToken();
             }
         }

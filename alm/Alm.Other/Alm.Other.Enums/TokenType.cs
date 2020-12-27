@@ -5,52 +5,37 @@
         tkIntConst,
         tkFloatConst,
         tkId,
-
         tkIf,
         tkElse,
         tkWhile,
         tkImport,
         tkDo,
-
         tkLbra,
         tkRbra,
         tkLpar,
         tkRpar,
-
         tkAnd,
         tkOr,
         tkNot,
-
         tkOf,
-
         tkPlus,
         tkMinus,
         tkMult,
         tkDiv,
-
         tkComma,
-
         tkAssign,
-
         tkFunc,
-
         tkEqualLess,
         tkEqualMore,
         tkLess,
         tkMore,
         tkEqual,
         tkNotEqual,
-
         tkQuote,
-
         tkType,
-        tkString,
-
-        tkTrue,
-        tkFalse,
-
+        tkStringConst,
+        tkBooleanConst,
         tkRet,
-
         tkSemicolon,
         tkColon,
         tkNull,

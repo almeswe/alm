@@ -49,7 +49,7 @@ namespace alm.Core.Shell
                 new Recompile(),
                 new File(),
                 new OpenFile(),
-                new OpDir(),
+                new OpenDir(),
                 new CreateFile(),
                 new Cls(),
                 new Exit()
@@ -312,9 +312,9 @@ namespace alm.Core.Shell
         }
     }
 
-    internal sealed class OpDir : Command
+    internal sealed class OpenDir : Command
     {
-        public OpDir()
+        public OpenDir()
         {
             this.Name = "opdir";
             this.ArgumentCount = 1;

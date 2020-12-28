@@ -1,12 +1,10 @@
-function sum(integer a,integer b) of integer
-{
-	return a+b;
-}
+import Math;
 
 function main() of integer
 {
-	string a = "asd";
-	println(tostr(sum(1,sum(2,2))));
+	if (true == true and false) { }
+	println(pi());
 	input();
 	return 0;
 }
+

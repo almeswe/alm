@@ -6,7 +6,8 @@ using System.Threading.Tasks;
 
 namespace alm.Core.SyntaxAnalysis
 {
-    public class Preprocessor
+    public sealed class Preprocessor
     {
+        
     }
 }

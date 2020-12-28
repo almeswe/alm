@@ -1,5 +1,10 @@
 ﻿alm shell commands:
 
+	special words:
+		this -> equivalence of path set in [file] command
+		here -> equivalent to directory where shell is located
+		
+
 	ways of args representation : 
 		{str} : "string sample"
 		{bool}: 1,0
@@ -27,6 +32,9 @@
 
 	-crfl [path {str}] :
 		creates file by entered path, and sets [file] value to it.
+
+	#-setlib 
+	#-explore 
 
 	-cls [null] :
 		clears the console.

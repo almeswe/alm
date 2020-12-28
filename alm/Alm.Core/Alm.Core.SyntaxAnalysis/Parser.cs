@@ -6,10 +6,10 @@ using System.Collections.Generic;
 using alm.Other.Enums;
 using alm.Core.Errors;
 using alm.Other.Structs;
-using alm.Core.Compiler;
 using alm.Other.InnerTypes;
 
 using static alm.Other.Enums.TokenType;
+using static alm.Core.Compiler.Compiler;
 using static alm.Other.String.StringMethods;
 using static alm.Other.Structs.SourceContext;
 
@@ -18,21 +18,80 @@ namespace alm.Core.SyntaxAnalysis
     internal sealed class Parser
     {
         private Lexer Lexer;
+        private static List<string> Imports = new List<string>();
+
         public Parser(Lexer lexer) => this.Lexer = lexer;
 
-        public string GetImportPath(string scriptname)
+        public string GetLongImportPath(string shortPath)
         {
-            string envdir = Path.GetDirectoryName(CompilingFile.Path);
+            string envdir = Path.GetDirectoryName(CurrentParsingFile);
 
-            if (File.Exists(Path.Combine(envdir,scriptname) + ".alm"))
-                return Path.Combine(envdir, scriptname) + ".alm";
+            if (File.Exists(Path.Combine(envdir,shortPath) + ".alm"))
+                return Path.Combine(envdir, shortPath) + ".alm";
             return string.Empty;
         }
-        public SyntaxTreeNode Parse()
+        public ImportExpression Import(IdentifierExpression identifierExpression)
+        {
+            string buildedPath = GetLongImportPath(identifierExpression.Name);
+            if (File.Exists(buildedPath))
+            {
+                if (buildedPath == CurrentParsingFile)  return new ImportExpression(new CannotImportThisFile(buildedPath,identifierExpression.SourceContext));
+
+                if (Imports.Contains(buildedPath + CurrentParsingFile) ||
+                         Imports.Contains(CurrentParsingFile + buildedPath))
+                            return new ImportExpression(new ThisFileAlreadyImported(buildedPath, identifierExpression.SourceContext));
+                else if (Imports.Contains(buildedPath)) return new ImportExpression();
+                else
+                {
+                    Imports.Add(CurrentParsingFile + buildedPath);
+                    Imports.Add(buildedPath + CurrentParsingFile);
+                    Imports.Add(buildedPath);
+                }
+                CurrentParsingFile = buildedPath;
+
+                AbstractSyntaxTree ast = new AbstractSyntaxTree();
+                ast.BuildTree(buildedPath);
+
+                CurrentParsingFile = CompilingSourceFile;
+
+                return new ImportExpression(identifierExpression, (Root)ast.Root);
+            }
+            return new ImportExpression(new WrongShortImport(identifierExpression.SourceContext));
+        }
+        public ImportExpression Import(StringConst stringConst)
+        {
+            if (File.Exists(stringConst.Value))
+            {
+                if (Path.GetExtension(stringConst.Value) != ".alm") return new ImportExpression(new WrongImportExtension(stringConst.SourceContext));
+                if (stringConst.Value == CurrentParsingFile) return new ImportExpression(new CannotImportThisFile(stringConst.Value, stringConst.SourceContext));
+
+                if (Imports.Contains(stringConst.Value + CurrentParsingFile) || 
+                         Imports.Contains(CurrentParsingFile + stringConst.Value)) 
+                         return new ImportExpression(new ThisFileAlreadyImported(stringConst.Value, stringConst.SourceContext));
+                else if (Imports.Contains(stringConst.Value)) return new ImportExpression();
+                else
+                {
+                    Imports.Add(CurrentParsingFile + stringConst.Value);
+                    Imports.Add(stringConst.Value + CurrentParsingFile);
+                    Imports.Add(stringConst.Value);
+                }
+                CurrentParsingFile = stringConst.Value;
+
+                AbstractSyntaxTree ast = new AbstractSyntaxTree();
+                ast.BuildTree(stringConst.Value);
+
+                CurrentParsingFile = CompilingSourceFile;
+                return new ImportExpression(stringConst, (Root)ast.Root);
+            }
+            return new ImportExpression(new WrongImport(stringConst.SourceContext));
+        }
+
+        public SyntaxTreeNode Parse(string parsingFile)
         {
             Lexer.GetNextToken();
             //Root root = RunParserOnlyOnArithExpression(ParsingFile.Path);
-            Root root = RunParser(CompilingFile.Path);
+            if (parsingFile == CompilingSourceFile) Imports.Clear();
+            Root root = RunParser(parsingFile);
             return root;
         }
 
@@ -81,17 +140,7 @@ namespace alm.Core.SyntaxAnalysis
                 Lexer.GetNextToken();
                 if (!Match(tkSemicolon)) return new ImportExpression(new MissingSemi(Lexer.PreviousToken));
                 Lexer.GetNextToken();
-                if (File.Exists(stringImport.Value))
-                {
-                    if (Path.GetExtension(stringImport.Value) != ".alm") return new ImportExpression(new WrongImportExtension(stringImport.SourceContext));
-                    string startpath = CompilingFile.Path;
-                    CompilingFile.Path = stringImport.Value;
-                    AbstractSyntaxTree ast = new AbstractSyntaxTree();
-                    ast.BuildTree(stringImport.Value);
-                    CompilingFile.Path = startpath;
-                    return new ImportExpression(stringImport, (Root)ast.Root);
-                }
-                return new ImportExpression(new WrongImport(stringImport.SourceContext));
+                return Import(stringImport);
             }
             else if (Match(tkId))
             {
@@ -99,19 +148,7 @@ namespace alm.Core.SyntaxAnalysis
                 Lexer.GetNextToken();
                 if (!Match(tkSemicolon)) return new ImportExpression(new MissingSemi(Lexer.PreviousToken));
                 Lexer.GetNextToken();
-                if (File.Exists(GetImportPath(idImport.Name)))
-                {
-                    string buildedapth = GetImportPath(idImport.Name);
-                    string startpath = CompilingFile.Path;
-                    CompilingFile.Path = buildedapth;
-
-                    AbstractSyntaxTree ast = new AbstractSyntaxTree();
-                    ast.BuildTree(buildedapth);
-                    CompilingFile.Path = startpath;
-                    
-                    return new ImportExpression(idImport, (Root)ast.Root);
-                }
-                return new ImportExpression(new WrongShortImport(idImport.SourceContext));
+                return Import(idImport);
             }
 
             else return new ImportExpression(new ExpectedCorrectImport(Lexer.CurrentToken.Context));
@@ -134,7 +171,7 @@ namespace alm.Core.SyntaxAnalysis
             ArgumentDeclaration arg;
             Arguments args = new Arguments();
             SourceContext argscontext = new SourceContext();
-            argscontext.FilePath = CompilingFile.Path;
+            argscontext.FilePath = CurrentParsingFile;
             argscontext.StartsAt = new Position(Lexer.CurrentToken);
 
             while (!Match(tkRpar))
@@ -172,7 +209,7 @@ namespace alm.Core.SyntaxAnalysis
             Lexer.GetNextToken();
             Body funcbody = new Body();
             SourceContext bodycontext = new SourceContext();
-            bodycontext.FilePath = CompilingFile.Path;
+            bodycontext.FilePath = CurrentParsingFile;
             bodycontext.StartsAt = new Position(Lexer.CurrentToken);
             while (!Match(tkRbra))
             {
@@ -250,7 +287,7 @@ namespace alm.Core.SyntaxAnalysis
         public SyntaxTreeNode ParseFunctionCall(bool ParseAsSingleExpression = true)
         {
             SourceContext funccontext = new SourceContext();
-            funccontext.FilePath = CompilingFile.Path;
+            funccontext.FilePath = CurrentParsingFile;
             funccontext.StartsAt = Lexer.CurrentToken.Context.StartsAt;
             IdentifierCall funcname = new IdentifierCall(Lexer.CurrentToken);
             Arguments args = new Arguments();
@@ -281,7 +318,7 @@ namespace alm.Core.SyntaxAnalysis
         public SyntaxTreeNode ParseReturnExpression()
         {
             SourceContext retcontext = new SourceContext();
-            retcontext.FilePath = CompilingFile.Path;
+            retcontext.FilePath = CurrentParsingFile;
             if (!Match(tkRet)) return new ReturnExpression(new ReservedWordExpected("return", Lexer.CurrentToken));
             retcontext.StartsAt = new Position(Lexer.CurrentToken);
             Lexer.GetNextToken();
@@ -296,14 +333,14 @@ namespace alm.Core.SyntaxAnalysis
             if (!Match(tkIf)) return new IfStatement(new ReservedWordExpected("if", Lexer.CurrentToken));
 
             SourceContext ifcontext = new SourceContext();
-            ifcontext.FilePath = CompilingFile.Path;
+            ifcontext.FilePath = CurrentParsingFile;
 
             ifcontext.StartsAt = new Position(Lexer.CurrentToken);
 
             Lexer.GetNextToken();
 
             SourceContext conditioncontext = new SourceContext();
-            conditioncontext.FilePath = CompilingFile.Path;
+            conditioncontext.FilePath = CurrentParsingFile;
             conditioncontext.StartsAt = new Position(Lexer.CurrentToken);
             Condition ifcondition = new Condition(ParseBooleanParentisizedExpression());
             conditioncontext.EndsAt = new Position(Lexer.CurrentToken);
@@ -313,7 +350,7 @@ namespace alm.Core.SyntaxAnalysis
             Lexer.GetNextToken();
             Body ifbody = new Body();
             SourceContext bodycontext = new SourceContext();
-            bodycontext.FilePath = CompilingFile.Path;
+            bodycontext.FilePath = CurrentParsingFile;
             bodycontext.StartsAt = new Position(Lexer.CurrentToken);
             while (!Match(tkRbra))
             {
@@ -333,7 +370,7 @@ namespace alm.Core.SyntaxAnalysis
                 Lexer.GetNextToken();
                 ElseBody elsebody = new ElseBody();
                 SourceContext elsecontext = new SourceContext();
-                elsecontext.FilePath = CompilingFile.Path;
+                elsecontext.FilePath = CurrentParsingFile;
                 elsecontext.StartsAt = new Position(Lexer.CurrentToken);
                 while (!Match(tkRbra))
                 {
@@ -490,15 +527,10 @@ namespace alm.Core.SyntaxAnalysis
             {
                 case tkId:
                     if(Match(tkLpar,1))
-                    {
                         node = ParseFunctionCall(false);
-                        Lexer.GetNextToken();
-                    }
                     else
-                    {
                         node = new IdentifierCall(Lexer.CurrentToken);
-                        Lexer.GetNextToken();
-                    }
+                    Lexer.GetNextToken();
                     return node;
 
                 case tkIntConst:
@@ -579,10 +611,10 @@ namespace alm.Core.SyntaxAnalysis
 
         public SourceContext SourceContext = new SourceContext();
 
-        public void SetSourceContext(Token token)                                => this.SourceContext = GetSourceContext(token, CompilingFile.Path);
-        public void SetSourceContext(Token sToken, Token fToken)                 => this.SourceContext = GetSourceContext(sToken,fToken, CompilingFile.Path);
-        public void SetSourceContext(SyntaxTreeNode node)                        => this.SourceContext = GetSourceContext(node, CompilingFile.Path);
-        public void SetSourceContext(SyntaxTreeNode lnode, SyntaxTreeNode rnode) => this.SourceContext = GetSourceContext(lnode,rnode, CompilingFile.Path);
+        public void SetSourceContext(Token token)                                => this.SourceContext = GetSourceContext(token, CurrentParsingFile);
+        public void SetSourceContext(Token sToken, Token fToken)                 => this.SourceContext = GetSourceContext(sToken,fToken, CurrentParsingFile);
+        public void SetSourceContext(SyntaxTreeNode node)                        => this.SourceContext = GetSourceContext(node, CurrentParsingFile);
+        public void SetSourceContext(SyntaxTreeNode lnode, SyntaxTreeNode rnode) => this.SourceContext = GetSourceContext(lnode,rnode, CurrentParsingFile);
 
         public virtual string ToConsoleString() => $"{NodeType}";
         //public virtual string ToConsoleString() => $"{NodeType} {this.SourceContext}";
@@ -741,6 +773,8 @@ namespace alm.Core.SyntaxAnalysis
             this.ImportedRoot = importedRoot;
             this.AddNode(importedRoot);
         }
+
+        public ImportExpression() { }
 
         public ImportExpression(SyntaxError error)
         {

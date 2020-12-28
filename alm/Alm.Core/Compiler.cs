@@ -1,22 +1,16 @@
 ﻿using System;
 using System.IO;
 
+using alm.Core.Shell;
 using alm.Core.VariableTable;
 using alm.Core.SyntaxAnalysis;
 using alm.Core.SemanticAnalysis;
 using alm.Core.CodeGeneration.Emitter;
 
 using static alm.Other.ConsoleStuff.ConsoleCustomizer;
-using alm.Core.Shell;
 
 namespace alm.Core.Compiler
 {
-    public static class CompilingFile
-    {
-        public static string Path { get; set; }
-        public static string DestinationPath { get; set; }
-    }
-
     public sealed class Compiler
     {
         //public static readonly string version = "v.1.0.0";   //21.12.2020
@@ -24,15 +18,16 @@ namespace alm.Core.Compiler
         //public static readonly string version = "v.1.1.0";   //25.12.2020
         public static readonly string version = "v.1.1.1";     //27.12.2020
 
-        public string binaryPath;
-        public string sourcePath;
-
         public bool ErrorsOccured = false;
+
+        public static string CurrentParsingFile;
+        public static string CompilingSourceFile;
+        public static string CompilingDestinationPath;
 
         public void CompileThis(string sourcePath, string binaryPath, bool run = true)
         {
-            CompilingFile.Path = sourcePath;
-            CompilingFile.DestinationPath = binaryPath;
+            CompilingSourceFile = CurrentParsingFile = sourcePath;
+            CompilingDestinationPath = binaryPath;
 
             if (IsFileExists(sourcePath) && IsCorrectExtension(sourcePath))
             {

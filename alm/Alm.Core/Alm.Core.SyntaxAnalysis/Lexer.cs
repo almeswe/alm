@@ -37,7 +37,6 @@ namespace alm.Core.SyntaxAnalysis
         public Lexer(string path)
         {
             this.Path = path;
-            CompilingFile.Path = path;
             reader = new StreamReader(path);
             currCharIndex = -1;
             currTokenIndex = -1;
@@ -58,7 +57,7 @@ namespace alm.Core.SyntaxAnalysis
                 }
                 else
                 {
-                    token = new Token(tkEOF, new Position(charPos, charPos, linePos), CompilingFile.Path);
+                    token = new Token(tkEOF, new Position(charPos, charPos, linePos));
                     return token;
                 }
             }
@@ -72,7 +71,7 @@ namespace alm.Core.SyntaxAnalysis
         {
             if (currTokenIndex + offset < _tokens.Length) return _tokens[currTokenIndex + offset];
             else if (currTokenIndex + offset < 0) return new Token(tkNull);
-            else return new Token(tkEOF, new Position(charPos, charPos, linePos), CompilingFile.Path);
+            else return new Token(tkEOF, new Position(charPos, charPos, linePos));
         }
         public Token[] GetTokens()
         {
@@ -83,11 +82,11 @@ namespace alm.Core.SyntaxAnalysis
                 if (currentChar == '"')
                 {
                     GetNextChar();
-                    tokens.Add(new Token(tkQuote, new Position(charPos-1, charPos+1, linePos), CompilingFile.Path));
+                    tokens.Add(new Token(tkQuote, new Position(charPos-1, charPos+1, linePos)));
                     tokens.Add(RecognizeString());
                     if (currentChar == '"')
                     {
-                        tokens.Add(new Token(tkQuote, new Position(charPos-1, charPos, linePos), CompilingFile.Path));
+                        tokens.Add(new Token(tkQuote, new Position(charPos-1, charPos, linePos)));
                         GetNextChar();
                     }
                 }
@@ -121,8 +120,8 @@ namespace alm.Core.SyntaxAnalysis
             }
             int end = charPos;
             if (dot)
-                return new Token(tkFloatConst, new Position(start, end, linePos), CompilingFile.Path, num);
-            return new Token(tkIntConst, new Position(start, end, linePos), CompilingFile.Path, num);
+                return new Token(tkFloatConst, new Position(start, end, linePos), num);
+            return new Token(tkIntConst, new Position(start, end, linePos), num);
         }
         private Token RecognizeIdent()
         {
@@ -136,7 +135,7 @@ namespace alm.Core.SyntaxAnalysis
             }
             int end = charPos;
             if (!Token.IsNull(GetReservedExpr(ident))) return GetReservedExpr(ident);
-            return new Token(tkId, new Position(start, end, linePos), CompilingFile.Path, ident);
+            return new Token(tkId, new Position(start, end, linePos), ident);
         }
 
         private Token RecognizeString()
@@ -151,7 +150,7 @@ namespace alm.Core.SyntaxAnalysis
                 currCharIndex++;
                 GetNextChar();
             }
-            return new Token(tkStringConst, new Position(start, start+str.Length, line), CompilingFile.Path, str);
+            return new Token(tkStringConst, new Position(start, start+str.Length, line), str);
         }
 
         private Token RecognizeSymbol()
@@ -159,35 +158,35 @@ namespace alm.Core.SyntaxAnalysis
             switch (currentChar)
             {
                 case '=':
-                    if (reader.Peek() == '=') { GetNextChar(); return new Token(tkEqual, new Position(charPos, charPos+2, linePos), CompilingFile.Path); }
-                    return new Token(tkAssign, new Position(charPos, charPos+1, linePos), CompilingFile.Path);
+                    if (reader.Peek() == '=') { GetNextChar(); return new Token(tkEqual, new Position(charPos, charPos+2, linePos)); }
+                    return new Token(tkAssign, new Position(charPos, charPos+1, linePos));
 
                 case '!':
-                    if (reader.Peek() == '=') { GetNextChar(); return new Token(tkNotEqual, new Position(charPos, charPos+2, linePos), CompilingFile.Path); }
+                    if (reader.Peek() == '=') { GetNextChar(); return new Token(tkNotEqual, new Position(charPos, charPos+2, linePos)); }
                     return new Token(tkNull);
 
-                case ';': return new Token(tkSemicolon, new Position(charPos, charPos + 1, linePos), CompilingFile.Path);
-                case ':': return new Token(tkColon,     new Position(charPos, charPos + 1, linePos), CompilingFile.Path);
-                case '(': return new Token(tkLpar,      new Position(charPos, charPos + 1, linePos), CompilingFile.Path);
-                case ')': return new Token(tkRpar,      new Position(charPos, charPos + 1, linePos), CompilingFile.Path);
-                case '+': return new Token(tkPlus,      new Position(charPos, charPos + 1, linePos), CompilingFile.Path);
-                case '-': return new Token(tkMinus,     new Position(charPos, charPos + 1, linePos), CompilingFile.Path);
-                case '"': return new Token(tkQuote,     new Position(charPos, charPos + 1, linePos), CompilingFile.Path);
+                case ';': return new Token(tkSemicolon, new Position(charPos, charPos + 1, linePos));
+                case ':': return new Token(tkColon,     new Position(charPos, charPos + 1, linePos));
+                case '(': return new Token(tkLpar,      new Position(charPos, charPos + 1, linePos));
+                case ')': return new Token(tkRpar,      new Position(charPos, charPos + 1, linePos));
+                case '+': return new Token(tkPlus,      new Position(charPos, charPos + 1, linePos));
+                case '-': return new Token(tkMinus,     new Position(charPos, charPos + 1, linePos));
+                case '"': return new Token(tkQuote,     new Position(charPos, charPos + 1, linePos));
 
                 case '<':
-                    if (reader.Peek() == '=') { GetNextChar(); return new Token(tkEqualLess, new Position(charPos, charPos+2, linePos), CompilingFile.Path); }
-                    return new Token(tkLess, new Position(charPos, charPos+1, linePos), CompilingFile.Path);
+                    if (reader.Peek() == '=') { GetNextChar(); return new Token(tkEqualLess, new Position(charPos, charPos+2, linePos)); }
+                    return new Token(tkLess, new Position(charPos, charPos+1, linePos));
 
                 case '>':
-                    if (reader.Peek() == '=') { GetNextChar(); return new Token(tkEqualMore, new Position(charPos, charPos+2, linePos), CompilingFile.Path); }
-                    return new Token(tkMore, new Position(charPos, charPos+1, linePos), CompilingFile.Path);
+                    if (reader.Peek() == '=') { GetNextChar(); return new Token(tkEqualMore, new Position(charPos, charPos+2, linePos)); }
+                    return new Token(tkMore, new Position(charPos, charPos+1, linePos));
 
-                case '{': return new Token(tkLbra,  new Position(charPos, charPos + 1, linePos), CompilingFile.Path);
-                case '}': return new Token(tkRbra,  new Position(charPos, charPos + 1, linePos), CompilingFile.Path);
-                case '*': return new Token(tkMult,  new Position(charPos, charPos + 1, linePos), CompilingFile.Path);
-                case '/': return new Token(tkDiv,   new Position(charPos, charPos + 1, linePos), CompilingFile.Path);
-                case ',': return new Token(tkComma, new Position(charPos, charPos + 1, linePos), CompilingFile.Path);
-                case chEOF: return new Token(tkEOF, new Position(charPos, charPos + 1, linePos), CompilingFile.Path);
+                case '{': return new Token(tkLbra,  new Position(charPos, charPos + 1, linePos));
+                case '}': return new Token(tkRbra,  new Position(charPos, charPos + 1, linePos));
+                case '*': return new Token(tkMult,  new Position(charPos, charPos + 1, linePos));
+                case '/': return new Token(tkDiv,   new Position(charPos, charPos + 1, linePos));
+                case ',': return new Token(tkComma, new Position(charPos, charPos + 1, linePos));
+                case chEOF: return new Token(tkEOF, new Position(charPos, charPos + 1, linePos));
                 default: return new Token(tkNull);
             }
         }
@@ -195,28 +194,28 @@ namespace alm.Core.SyntaxAnalysis
         {
             switch (expr)
             {
-                case "while": return new Token(tkWhile, new Position(charPos - 5, charPos, linePos), CompilingFile.Path);
-                case "do":    return new Token(tkDo,    new Position(charPos - 2, charPos, linePos), CompilingFile.Path);
-                case "if":    return new Token(tkIf,    new Position(charPos - 2, charPos, linePos), CompilingFile.Path);
-                case "else":  return new Token(tkElse,  new Position(charPos - 4, charPos, linePos), CompilingFile.Path);
+                case "while": return new Token(tkWhile, new Position(charPos - 5, charPos, linePos));
+                case "do":    return new Token(tkDo,    new Position(charPos - 2, charPos, linePos));
+                case "if":    return new Token(tkIf,    new Position(charPos - 2, charPos, linePos));
+                case "else":  return new Token(tkElse,  new Position(charPos - 4, charPos, linePos));
 
-                case "not": return new Token(tkNot, new Position(charPos - 3, charPos, linePos), CompilingFile.Path);
-                case "or":  return new Token(tkOr,  new Position(charPos - 2, charPos, linePos), CompilingFile.Path);
-                case "and": return new Token(tkAnd, new Position(charPos - 3, charPos, linePos), CompilingFile.Path);
+                case "not": return new Token(tkNot, new Position(charPos - 3, charPos, linePos));
+                case "or":  return new Token(tkOr,  new Position(charPos - 2, charPos, linePos));
+                case "and": return new Token(tkAnd, new Position(charPos - 3, charPos, linePos));
 
-                case "function": return new Token(tkFunc, new Position(charPos - 8, charPos, linePos), CompilingFile.Path);
-                case "of":       return new Token(tkOf,   new Position(charPos - 2, charPos, linePos), CompilingFile.Path);
+                case "function": return new Token(tkFunc, new Position(charPos - 8, charPos, linePos));
+                case "of":       return new Token(tkOf,   new Position(charPos - 2, charPos, linePos));
 
-                case "integer": return new Token(tkType, new Position(charPos - 7, charPos, linePos), CompilingFile.Path, "integer");
-                case "boolean": return new Token(tkType, new Position(charPos - 7, charPos, linePos), CompilingFile.Path, "boolean");
-                case "string":  return new Token(tkType, new Position(charPos - 6, charPos, linePos), CompilingFile.Path, "string");
-                case "float" :  return new Token(tkType, new Position(charPos - 5, charPos, linePos), CompilingFile.Path, "float");
+                case "integer": return new Token(tkType, new Position(charPos - 7, charPos, linePos), "integer");
+                case "boolean": return new Token(tkType, new Position(charPos - 7, charPos, linePos), "boolean");
+                case "string":  return new Token(tkType, new Position(charPos - 6, charPos, linePos), "string");
+                case "float" :  return new Token(tkType, new Position(charPos - 5, charPos, linePos), "float");
 
-                case "import": return new Token(tkImport, new Position(charPos - 6, charPos, linePos), CompilingFile.Path);
+                case "import": return new Token(tkImport, new Position(charPos - 6, charPos, linePos));
 
-                case "return": return new Token(tkRet,   new Position(charPos - 6, charPos, linePos), CompilingFile.Path);
-                case "true":   return new Token(tkBooleanConst,  new Position(charPos - 4, charPos, linePos), CompilingFile.Path, "true");
-                case "false":  return new Token(tkBooleanConst,  new Position(charPos - 5, charPos, linePos), CompilingFile.Path, "false");
+                case "return": return new Token(tkRet,   new Position(charPos - 6, charPos, linePos));
+                case "true":   return new Token(tkBooleanConst,  new Position(charPos - 4, charPos, linePos), "true");
+                case "false":  return new Token(tkBooleanConst,  new Position(charPos - 5, charPos, linePos), "false");
                 default: return Token.GetNullToken();
             }
         }

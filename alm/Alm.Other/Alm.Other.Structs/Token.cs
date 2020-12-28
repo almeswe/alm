@@ -20,11 +20,11 @@ namespace alm.Other.Structs
             this.TokenType = TokenType;
             this.Context   = Context;
         }
-        public Token(TokenType TokenType, Position Position,string FilePath, string Value = null)
+        public Token(TokenType TokenType, Position Position, string Value = null)
         {
             this.Value     = Value;
             this.TokenType = TokenType;
-            this.Context   = new SourceContext(new Position(Position.Start,Position.Start,Position.Line),new Position(Position.End,Position.End,Position.Line),FilePath);
+            this.Context   = new SourceContext(new Position(Position.Start,Position.Start,Position.Line),new Position(Position.End,Position.End,Position.Line));
         }
         public static Token GetNullToken() => new Token(TokenType.tkNull);
         public static bool IsNull(Token Token)

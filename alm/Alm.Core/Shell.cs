@@ -95,7 +95,8 @@ namespace alm.Core.Shell
     internal static class ShellInfo
     {
         #if DEBUG
-        public static string SourcePath = @"C:\Users\Almes\source\repos\Compiler\compiler v.5\Alm\alm\Alm.Tests\TestScripts\AlmDebug.alm";
+        //public static string SourcePath = @"C:\Users\Almes\source\repos\Compiler\compiler v.5\Alm\alm\Alm.Tests\TestScripts\AlmDebug.alm";
+        public static string SourcePath = @"C:\Users\Almes\source\repos\Compiler\compiler v.5\Libs\main.alm";
         #endif
 
         #if !DEBUG

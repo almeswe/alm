@@ -4,9 +4,10 @@ using System.Reflection.Emit;
 using System.Collections.Generic;
 
 using alm.Other.Enums;
-using alm.Core.Compiler;
 using alm.Other.ConsoleStuff;
 using alm.Core.SyntaxAnalysis;
+
+using static alm.Core.Compiler.Compiler;
 
 namespace alm.Core.CodeGeneration.Emitter
 {
@@ -554,7 +555,7 @@ namespace alm.Core.CodeGeneration.Emitter
         {
             if (!IsLoaded)
             {
-                exeName = System.IO.Path.GetFileName(CompilingFile.DestinationPath);
+                exeName = System.IO.Path.GetFileName(CompilingDestinationPath);
 
                 AppDomain    domain  = System.Threading.Thread.GetDomain();
                 AssemblyName asmName = new AssemblyName(assemblyName);

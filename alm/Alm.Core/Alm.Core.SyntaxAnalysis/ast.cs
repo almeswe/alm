@@ -10,16 +10,14 @@ namespace alm.Core.SyntaxAnalysis
     {
         public bool Builded { get; private set; } = false;
         public bool Failure { get; private set; } = false;
-        public string Path  { get; private set; }
         public SyntaxTreeNode Root { get; private set; }
 
         public void BuildTree(string path)
         {
-            Path = path;
             Lexer lexer = new Lexer(path);
             lexer.GetTokens();
             Parser parser = new Parser(lexer);
-            this.Root = parser.Parse();
+            this.Root = parser.Parse(path);
             Builded = true;
             if (Diagnostics.SyntaxErrors.Count > 0) Failure = true;
         }

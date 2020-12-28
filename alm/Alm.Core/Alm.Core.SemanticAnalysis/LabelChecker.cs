@@ -1,7 +1,8 @@
 ﻿using alm.Core.Errors;
-using alm.Core.Compiler;
 using alm.Core.VariableTable;
 using alm.Core.SyntaxAnalysis;
+
+using static alm.Core.Compiler.Compiler;
 
 namespace alm.Core.SemanticAnalysis
 {
@@ -24,7 +25,7 @@ namespace alm.Core.SemanticAnalysis
         public static void ResolveMainFunction(FunctionDeclaration FuncDecl)
         {
             if (FuncDecl.Name == "main")
-                if (FuncDecl.SourceContext.FilePath == CompilingFile.Path)
+                if (FuncDecl.SourceContext.FilePath == CompilingSourceFile)
                     if (!IsMainDeclared) IsMainDeclared = true;
         }
 

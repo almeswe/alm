@@ -100,7 +100,7 @@ namespace alm.Core.Errors
     }
     public sealed class MissingSemi : SyntaxError
     {
-        public MissingSemi(Token Token) : base("Ожидался символ [;]", new SourceContext(new Position(Token.Context.StartsAt.Start+1, Token.Context.StartsAt.End+1, Token.Context.StartsAt.Line),Token.Context.EndsAt,Token.Context.FilePath)) { }
+        public MissingSemi(Token Token) : base("Ожидался символ [;]", new SourceContext(new Position(Token.Context.StartsAt.Start+1, Token.Context.StartsAt.End+1, Token.Context.StartsAt.Line),Token.Context.EndsAt)) { }
     }
     public sealed class MissingAssign : SyntaxError
     {
@@ -139,6 +139,16 @@ namespace alm.Core.Errors
     public sealed class WrongShortImport : SyntaxError
     {
         public WrongShortImport(SourceContext Context) : base($"Попытка импортирования несуществующего файла либо не лежащего в одной папке с запускаемым файлом.", Context) { }
+    }
+
+    public sealed class CannotImportThisFile : SyntaxError
+    {
+        public CannotImportThisFile(string Path, SourceContext Context) : base($"Файл \"{Path}\" нельзя импортировать.", Context) { }
+    }
+
+    public sealed class ThisFileAlreadyImported : SyntaxError
+    {
+        public ThisFileAlreadyImported(string Path,SourceContext Context) : base($"Файл \"{Path}\" уже импортирован.", Context) { }
     }
 
     public sealed class WrongImportExtension : SyntaxError

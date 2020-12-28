@@ -13,10 +13,7 @@ namespace alm.Core.Compiler
 {
     public sealed class Compiler
     {
-        //public static readonly string version = "v.1.0.0";   //21.12.2020
-        //public static readonly string version = "v.1.0.1";   //24.12.2020
-        //public static readonly string version = "v.1.1.0";   //25.12.2020
-        public static readonly string version = "v.1.1.1";     //27.12.2020
+        public static readonly string version = "v.1.1.1";
 
         public bool ErrorsOccured = false;
 

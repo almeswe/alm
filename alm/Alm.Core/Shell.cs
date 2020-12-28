@@ -49,6 +49,7 @@ namespace alm.Core.Shell
                 new Recompile(),
                 new File(),
                 new OpenFile(),
+                new OpDir(),
                 new CreateFile(),
                 new Cls(),
                 new Exit()
@@ -66,7 +67,7 @@ namespace alm.Core.Shell
         private bool IsCommand(string sub)
         {
             //shtree доступна только в DEBUG
-            string[] allCommands = new string[] { "?","c","rec","file","opfl","crfl","cls","exit","shtree" };
+            string[] allCommands = new string[] { "?","c","rec","file","opfl","opdir","crfl","cls","exit","shtree" };
 
             for (int i = 0; i < allCommands.Length; i++)
                 if (allCommands[i] == sub && !IsBlocked(allCommands[i])) return true;
@@ -130,6 +131,8 @@ namespace alm.Core.Shell
             {
                 if (this.Value == "this")
                     this.Value = ShellInfo.SourcePath;
+                if (this.Value == "here")
+                    this.Value = Environment.CurrentDirectory;
                 else this.Value = SubstractSymbol(this.Value, '"');
                 return this.Value;
             }
@@ -137,7 +140,7 @@ namespace alm.Core.Shell
         }
         public Type DefineType()
         {
-            if ((Value[0] == '"' && Value[Value.Length - 1] == '"') || Value == "this")
+            if ((Value[0] == '"' && Value[Value.Length - 1] == '"') || Value == "this" || Value == "here")
                 return typeof(string);
             else if (Value == "1" || Value == "0") return typeof(bool);
             else return typeof(void);
@@ -206,6 +209,7 @@ namespace alm.Core.Shell
             ColorizedPrint("\t-"); ColorizedPrint("rec", ConsoleColor.Red);  ColorizedPrint(" [null]", ConsoleColor.Yellow);  ColorizedPrintln(" :"); ColorizedPrintln("\t\tПроизводит компиляцию с аргументами указанными в последнем вызове команды [c].");
             ColorizedPrint("\t-"); ColorizedPrint("file", ConsoleColor.Red); ColorizedPrint(" [path {str}]", ConsoleColor.DarkCyan); ColorizedPrintln(" :"); ColorizedPrintln("\t\tЗадает путь к файлу с которым будут взаимодействовать команды компиляции.");
             ColorizedPrint("\t-"); ColorizedPrint("opfl", ConsoleColor.Red); ColorizedPrint(" [path {str}]", ConsoleColor.DarkCyan); ColorizedPrintln(" :"); ColorizedPrintln("\t\tОткрывает файл в блокноте по указанному пути,или если использовать в качестве аргумента \"this\", то окроется файл указанный в команде [file].");
+            ColorizedPrint("\t-"); ColorizedPrint("opdir", ConsoleColor.Red); ColorizedPrint(" [dirpath {str}]", ConsoleColor.DarkCyan); ColorizedPrintln(" :"); ColorizedPrintln("\t\tОткрывает папку в проводнике по указанному пути,или если использовать в качестве аргумента \"here\", то окроется папка где находится оболочка.");
             ColorizedPrint("\t-"); ColorizedPrint("crfl", ConsoleColor.Red); ColorizedPrint(" [path {str}]", ConsoleColor.DarkCyan); ColorizedPrintln(" :"); ColorizedPrintln("\t\tСоздает файл по указанному пути, и задает значение команды [file] как указанный путь.");
             ColorizedPrint("\t-"); ColorizedPrint("cls", ConsoleColor.Red);  ColorizedPrint(" [null]", ConsoleColor.Yellow); ColorizedPrintln(" :"); ColorizedPrintln("\t\tОчищает консоль.");
             ColorizedPrint("\t-"); ColorizedPrint("exit", ConsoleColor.Red); ColorizedPrint(" [null]", ConsoleColor.Yellow); ColorizedPrintln(" :"); ColorizedPrintln("\t\tЗакрывает оболочку.");
@@ -305,6 +309,34 @@ namespace alm.Core.Shell
             }
             catch (Exception e){ ColorizedPrintln($"Возникла ошибка при создании файла.[{e.Message}]",ConsoleColor.DarkRed); }
 
+        }
+    }
+
+    internal sealed class OpDir : Command
+    {
+        public OpDir()
+        {
+            this.Name = "opdir";
+            this.ArgumentCount = 1;
+        }
+
+        //filePath
+        public override void Execute(string[] arguments)
+        {
+            this.Arguments = new CommandArgument[] { new CommandArgument("dirPath", arguments[1], typeof(string)) };
+            if (!ArgumentTypesCorrect()) return;
+
+
+            string dirPath = (string)this.Arguments[0].DefineValue();
+            if (System.IO.Directory.Exists(dirPath))
+            {
+                try 
+                {
+                    System.Diagnostics.Process.Start(dirPath);
+                }
+                catch (Exception e) { ColorizedPrintln($"Возникла ошибка при открытии папки.[{e.Message}]", ConsoleColor.DarkRed); }
+            }
+            else ColorizedPrintln($"Папка по указанному пути не существует.", ConsoleColor.DarkRed);
         }
     }
 

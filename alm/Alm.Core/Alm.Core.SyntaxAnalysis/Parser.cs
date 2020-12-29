@@ -250,7 +250,7 @@ namespace alm.Core.SyntaxAnalysis
             if (Match(tkAssign))
             {
                 Lexer.GetNextToken();
-                assign = new AssignmentExpression(id, ParseExpression());
+                assign = new AssignmentExpression(id,Operator.Assignment, ParseExpression());
            
                 if (!Match(tkSemicolon)) return new DeclarationExpression(new MissingSemi(Lexer.PreviousToken));
                 Lexer.GetNextToken();
@@ -268,9 +268,15 @@ namespace alm.Core.SyntaxAnalysis
             if (!Match(tkId)) return new AssignmentExpression(new IdentifierExpected(Lexer.CurrentToken));
             IdentifierExpression id = new IdentifierCall(Lexer.CurrentToken);
             Lexer.GetNextToken();
-            if (!Match(tkAssign)) return new AssignmentExpression(new ReservedSymbolExpected("=", Lexer.CurrentToken));
+            if (!Match(tkAssign)     &&
+                !Match(tkAddAssign) &&
+                !Match(tkMultAssign) &&
+                !Match(tkDivAssign)  &&
+                !Match(tkSubAssign)) 
+                return new AssignmentExpression(new ReservedSymbolExpected("=,+=,-=,*=,/=", Lexer.CurrentToken));
+
             Lexer.GetNextToken();
-            AssignmentExpression assign = new AssignmentExpression(id, ParseExpression());
+            AssignmentExpression assign = new AssignmentExpression(id,GetOperatorFromTokenType(Lexer.PreviousToken.TokenType),ParseExpression());
 
             if (!Match(tkSemicolon)) return new AssignmentExpression(new MissingSemi(Lexer.PreviousToken));
             Lexer.GetNextToken();
@@ -600,7 +606,13 @@ namespace alm.Core.SyntaxAnalysis
                 case tkMinus:return Operator.Minus;
                 case tkMult: return Operator.Multiplication;
                 case tkDiv:  return Operator.Division;
-                default: return Operator.As;
+
+                case tkAssign:     return Operator.Assignment;
+                case tkAddAssign:  return Operator.AssignmentAddition;
+                case tkDivAssign:  return Operator.AssignmentDivision;
+                case tkSubAssign:  return Operator.AssignmentSubtraction;
+                case tkMultAssign: return Operator.AssignmentMultiplication;
+                default: throw new Exception($"??[{type}]");
             }
         }
     }
@@ -1145,15 +1157,30 @@ namespace alm.Core.SyntaxAnalysis
     {
         public override NodeType NodeType => NodeType.Assignment;
 
-        public AssignmentExpression(SyntaxTreeNode left, SyntaxTreeNode right)
+        public AssignmentExpression(SyntaxTreeNode left,Operator assignType, SyntaxTreeNode right)
         {
-            this.SetSourceContext(left, right);
-
+            this.Op = assignType;
             this.Left = left;
-            this.Op = Operator.Assignment;
-            this.Right = right;
+            switch (assignType)
+            {
+                case Operator.Assignment:
+                    this.Right = right;
+                    break;
+                case Operator.AssignmentAddition:
+                    this.Right = new BinaryExpression(left,Operator.Plus,right);
+                    break;
+                case Operator.AssignmentSubtraction:
+                    this.Right = new BinaryExpression(left, Operator.Minus, right);
+                    break;
+                case Operator.AssignmentMultiplication:
+                    this.Right = new BinaryExpression(left, Operator.Multiplication, right);
+                    break;
+                case Operator.AssignmentDivision:
+                    this.Right = new BinaryExpression(left, Operator.Division, right);
+                    break;
+            }
+            this.SetSourceContext(this.Left, this.Right);
             this.AddNodes(left, right);
-
         }
 
         public AssignmentExpression(SyntaxError error)

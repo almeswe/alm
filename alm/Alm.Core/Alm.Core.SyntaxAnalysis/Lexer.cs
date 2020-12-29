@@ -157,41 +157,85 @@ namespace alm.Core.SyntaxAnalysis
             switch (currentChar)
             {
                 case '=':
-                    if (reader.Peek() == '=') { GetNextChar(); return new Token(tkEqual, new Position(charPos, charPos+2, linePos)); }
+                    if (reader.Peek() == '=')
+                    {
+                        GetNextChar();
+                        return new Token(tkEqual, new Position(charPos, charPos+2, linePos));
+                    }
                     return new Token(tkAssign, new Position(charPos, charPos+1, linePos));
 
                 case '!':
-                    if (reader.Peek() == '=') { GetNextChar(); return new Token(tkNotEqual, new Position(charPos, charPos+2, linePos)); }
+                    if (reader.Peek() == '=')
+                    {
+                        GetNextChar();
+                        return new Token(tkNotEqual, new Position(charPos, charPos+2, linePos));
+                    }
                     return new Token(tkNull);
+
+                case '<':
+                    if (reader.Peek() == '=')
+                    { 
+                        GetNextChar();
+                        return new Token(tkEqualLess, new Position(charPos, charPos + 2, linePos));
+                    }
+                    return new Token(tkLess, new Position(charPos, charPos + 1, linePos));
+
+                case '>':
+                    if (reader.Peek() == '=') 
+                    {
+                        GetNextChar(); 
+                        return new Token(tkEqualGreater, new Position(charPos, charPos + 2, linePos));
+                    }
+                    return new Token(tkGreater, new Position(charPos, charPos + 1, linePos));
+
+                case '+':
+                    if (reader.Peek() == '=')
+                    {
+                        GetNextChar();
+                        return new Token(tkAddAssign, new Position(charPos, charPos + 2, linePos));
+                    }
+                    return new Token(tkPlus,  new Position(charPos, charPos + 1, linePos));
+
+                case '-':
+                    if (reader.Peek() == '=')
+                    {
+                        GetNextChar();
+                        return new Token(tkSubAssign, new Position(charPos, charPos + 2, linePos));
+                    }
+                    return new Token(tkMinus, new Position(charPos, charPos + 1, linePos));
+
+                case '*':
+                    if (reader.Peek() == '=')
+                    {
+                        GetNextChar();
+                        return new Token(tkMultAssign, new Position(charPos, charPos + 2, linePos));
+                    }
+                    return new Token(tkMult,  new Position(charPos, charPos + 1, linePos));
+
+                case '/':
+                    if (reader.Peek() == '=')
+                    {
+                        GetNextChar();
+                        return new Token(tkDivAssign, new Position(charPos, charPos + 2, linePos));
+                    }
+                    return new Token(tkDiv,   new Position(charPos, charPos + 1, linePos));
 
                 case ';': return new Token(tkSemicolon, new Position(charPos, charPos + 1, linePos));
                 case ':': return new Token(tkColon,     new Position(charPos, charPos + 1, linePos));
                 case '(': return new Token(tkLpar,      new Position(charPos, charPos + 1, linePos));
                 case ')': return new Token(tkRpar,      new Position(charPos, charPos + 1, linePos));
-                case '+': return new Token(tkPlus,      new Position(charPos, charPos + 1, linePos));
-                case '-': return new Token(tkMinus,     new Position(charPos, charPos + 1, linePos));
-                case '"': return new Token(tkQuote,     new Position(charPos, charPos + 1, linePos));
-
-                case '<':
-                    if (reader.Peek() == '=') { GetNextChar(); return new Token(tkEqualLess, new Position(charPos, charPos+2, linePos)); }
-                    return new Token(tkLess, new Position(charPos, charPos+1, linePos));
-
-                case '>':
-                    if (reader.Peek() == '=') { GetNextChar(); return new Token(tkEqualGreater, new Position(charPos, charPos+2, linePos)); }
-                    return new Token(tkGreater, new Position(charPos, charPos+1, linePos));
 
                 case '{': return new Token(tkLbra,  new Position(charPos, charPos + 1, linePos));
                 case '}': return new Token(tkRbra,  new Position(charPos, charPos + 1, linePos));
-                case '*': return new Token(tkMult,  new Position(charPos, charPos + 1, linePos));
-                case '/': return new Token(tkDiv,   new Position(charPos, charPos + 1, linePos));
+                case '"': return new Token(tkQuote, new Position(charPos, charPos + 1, linePos));
                 case ',': return new Token(tkComma, new Position(charPos, charPos + 1, linePos));
                 case chEOF: return new Token(tkEOF, new Position(charPos, charPos + 1, linePos));
                 default: return new Token(tkNull);
             }
         }
-        private Token GetReservedWord(string expr)
+        private Token GetReservedWord(string word)
         {
-            switch (expr)
+            switch (word)
             {
                 case "while": return new Token(tkWhile, new Position(charPos - 5, charPos, linePos));
                 case "do":    return new Token(tkDo,    new Position(charPos - 2, charPos, linePos));
@@ -213,9 +257,9 @@ namespace alm.Core.SyntaxAnalysis
                 case "import": return new Token(tkImport, new Position(charPos - 6, charPos, linePos));
                 case "global": return new Token(tkGlobal, new Position(charPos - 6, charPos, linePos));
 
-                case "return": return new Token(tkRet,   new Position(charPos - 6, charPos, linePos));
-                case "true":   return new Token(tkBooleanConst,  new Position(charPos - 4, charPos, linePos), "true");
-                case "false":  return new Token(tkBooleanConst,  new Position(charPos - 5, charPos, linePos), "false");
+                case "return": return new Token(tkRet,          new Position(charPos - 6, charPos, linePos));
+                case "true":   return new Token(tkBooleanConst, new Position(charPos - 4, charPos, linePos), "true");
+                case "false":  return new Token(tkBooleanConst, new Position(charPos - 5, charPos, linePos), "false");
                 default: return Token.GetNullToken();
             }
         }
@@ -226,8 +270,8 @@ namespace alm.Core.SyntaxAnalysis
             else
             {
                 currentChar = (char)reader.Read();
-                currCharIndex++;
                 charPos++;
+                currCharIndex++;
                 if (currentChar == chNewLn)
                 {
                     charPos = 0;

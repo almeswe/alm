@@ -133,7 +133,7 @@ namespace alm.Core.SyntaxAnalysis
                 GetNextChar();
             }
             int end = charPos;
-            if (!Token.IsNull(GetReservedExpr(ident))) return GetReservedExpr(ident);
+            if (!Token.IsNull(GetReservedWord(ident))) return GetReservedWord(ident);
             return new Token(tkId, new Position(start, end, linePos), ident);
         }
 
@@ -189,7 +189,7 @@ namespace alm.Core.SyntaxAnalysis
                 default: return new Token(tkNull);
             }
         }
-        private Token GetReservedExpr(string expr)
+        private Token GetReservedWord(string expr)
         {
             switch (expr)
             {
@@ -222,16 +222,10 @@ namespace alm.Core.SyntaxAnalysis
         private void GetNextChar()
         {
             if (reader.Peek() == EOF)
-            {
                 currentChar = chEOF;
-                return;
-            }
             else
             {
                 currentChar = (char)reader.Read();
-                //Комментарий
-                CheckCommentary();
-                //
                 currCharIndex++;
                 charPos++;
                 if (currentChar == chNewLn)
@@ -241,14 +235,32 @@ namespace alm.Core.SyntaxAnalysis
                     GetNextChar();
                 }
             }
+            CheckCommentary();
         }
 
         private void CheckCommentary()
         {
             int line = linePos;
-            if (currentChar == '#')
-                while (currentChar == chEOF || linePos == line)
+            if (currentChar == '/')
+            {
+                //Проверка на однострочный комментарий
+                if (reader.Peek() == '/')
+                {
+                    reader.Read();
+                    while (linePos == line)
+                        GetNextChar();
+                }
+                //Проверка на многострочный комментарий
+                if (reader.Peek() == '*')
+                {
+                    reader.Read();
+                    while (currentChar != '*' && reader.Peek() != '/')
+                        GetNextChar();
                     GetNextChar();
+                    GetNextChar();
+                }
+            }
+
         }
     }
 }

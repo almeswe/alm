@@ -13,6 +13,9 @@ namespace alm.Core.SemanticAnalysis
         public static void ResolveProgram(AbstractSyntaxTree Ast)
         {
             IsMainDeclared = false;
+            //foreach (GlobalDeclarationExpression globalDeclarationExpression in Ast.Root.GetChildsByType("GlobalDeclarationExpression", true))
+            //    ResolveGlobalDeclarationExpression(globalDeclarationExpression, GlobalTable.Table);
+
             foreach (FunctionDeclaration function in Ast.Root.GetChildsByType("FunctionDeclaration", true))
             {
                 ResolveMainFunction(function);
@@ -199,6 +202,13 @@ namespace alm.Core.SemanticAnalysis
                 if (ResolveFunctionCall(testFunc, Table) == 1) failed = true;
 
             if (!failed) Table.SetLocalBlockInitialization((IdentifierExpression)AssignmentExpression.Left,Block);
+        }
+
+        public static void ResolveGlobalDeclarationExpression(GlobalDeclarationExpression globalDeclarationExpression, Table Table)
+        {
+            DeclarationExpression declarationExpression = (DeclarationExpression)globalDeclarationExpression.Right;
+            if (declarationExpression.Right is IdentifierExpression)      ResolveIdExression((IdentifierExpression)declarationExpression.Right, Table,true);
+            else if (declarationExpression.Right is AssignmentExpression) ResolveAssignmentExpression((AssignmentExpression)declarationExpression.Right, Table);
         }
 
         public static void ResolveDeclarationExpression(DeclarationExpression DeclarationExpression, Table Table)

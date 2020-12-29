@@ -17,12 +17,14 @@ namespace alm.Core.CodeGeneration.Emitter
     {
         private static string exeName;
         private static bool IsLoaded = false;
+        public static ModuleBuilder module;
         public static AssemblyBuilder assembly;
-        public static ModuleBuilder   module;
 
-        private static List<MethodInfo>                      methods      = new List<MethodInfo>();
-        private static Dictionary<string, int>               methodArgs   = new Dictionary<string, int>();
+        private static List<MethodInfo> methods = new List<MethodInfo>();
+        private static Dictionary<string, int> methodArgs = new Dictionary<string, int>();
+        private static Dictionary<string, LocalVariableInfo> globals = new Dictionary<string, LocalVariableInfo>();
         private static Dictionary<string, LocalVariableInfo> methodLocals = new Dictionary<string, LocalVariableInfo>();
+
 
         private static void EmitBinaryExpression(ILGenerator methodIL, BinaryExpression binexpr)
         {
@@ -83,7 +85,6 @@ namespace alm.Core.CodeGeneration.Emitter
         }
         private static void EmitDeclarationExpression(ILGenerator methodIL, DeclarationExpression declarationExpression)
         {
-
             if (declarationExpression.Right is AssignmentExpression)
             {
                 EmitIdentifierDeclaration(methodIL,(IdentifierExpression)((AssignmentExpression)declarationExpression.Right).Left);
@@ -91,6 +92,18 @@ namespace alm.Core.CodeGeneration.Emitter
             }
             else if (declarationExpression.Right is IdentifierExpression) EmitIdentifierDeclaration(methodIL, (IdentifierExpression)declarationExpression.Right);
         }
+
+        /*private static void EmitGlobalDeclarationExpression(ILGenerator methodIL,GlobalDeclarationExpression globalDeclarationExpression)
+        {
+            DeclarationExpression declarationExpression = (DeclarationExpression)globalDeclarationExpression.Right;
+            if (declarationExpression.Right is AssignmentExpression)
+            {
+                EmitIdentifierDeclaration(methodIL, (IdentifierExpression)((AssignmentExpression)declarationExpression.Right).Left,true);
+                EmitAssignmentExpression(methodIL, (AssignmentExpression)declarationExpression.Right);
+            }
+            else if (declarationExpression.Right is IdentifierExpression) EmitIdentifierDeclaration(methodIL, (IdentifierExpression)declarationExpression.Right,true);
+        }*/
+
         private static void EmitConstExpression(ILGenerator methodIL, ConstExpression constExpression)
         {
             if (constExpression.Type.GetEquivalence() == typeof(int))
@@ -127,7 +140,7 @@ namespace alm.Core.CodeGeneration.Emitter
         }
         private static void EmitFunctionCall(ILGenerator methodIL ,FunctionCall functionCall)
         {
-            if (EmitIfIntegratedFunction(methodIL, functionCall)) return;
+            if (EmitBaseFunction(methodIL, functionCall)) return;
 
             MethodInfo method = GetCreatedMethod(functionCall.Name);
 
@@ -172,27 +185,6 @@ namespace alm.Core.CodeGeneration.Emitter
             else if (statement is DoWhileStatement) EmitDoWhileStatement(methodIL, (DoWhileStatement)statement);
         }
 
-        private static void Debug(ILGenerator methodIL, IfStatement ifStatement)
-        {
-            Label toIfBody = methodIL.DefineLabel();
-            Label toEndOfIf = methodIL.DefineLabel();
-
-            methodIL.EmitCall(OpCodes.Call, typeof(Console).GetMethod("ReadLine", new Type[0]), null);
-            methodIL.EmitCall(OpCodes.Call, typeof(Console).GetMethod("ReadLine", new Type[0]), null);
-
-            methodIL.EmitCall(OpCodes.Call, typeof(string).GetMethod("Equals", new Type[] { typeof(string), typeof(string) }), null);
-            methodIL.Emit(OpCodes.Brtrue, toIfBody);
-
-            if (ifStatement.ElseBody != null)
-                EmitBody(methodIL, ifStatement.ElseBody);
-            methodIL.Emit(OpCodes.Br, toEndOfIf);
-
-            methodIL.MarkLabel(toIfBody);
-            EmitBody(methodIL, ifStatement.Body);
-            methodIL.Emit(OpCodes.Br, toEndOfIf);
-
-            methodIL.MarkLabel(toEndOfIf);
-        }
         private static void EmitIfStatement(ILGenerator methodIL, IfStatement ifStatement)
         {
             Label toIfBody  = methodIL.DefineLabel();
@@ -276,14 +268,14 @@ namespace alm.Core.CodeGeneration.Emitter
 
             methodIL.MarkLabel(toEnd);
         }
-        private static void EmitGreaterThan(ILGenerator methodIL, BooleanExpression booleanExpression)
+        private static void EmitLessThan(ILGenerator methodIL, BooleanExpression booleanExpression)
         {
             Label toTrueCase = methodIL.DefineLabel();
             Label toFalseCase = methodIL.DefineLabel();
             Label toEnd = methodIL.DefineLabel();
 
-            EmitExpression(methodIL, (Expression)booleanExpression.Right);
             EmitExpression(methodIL, (Expression)booleanExpression.Left);
+            EmitExpression(methodIL, (Expression)booleanExpression.Right);
             methodIL.Emit(OpCodes.Blt, toTrueCase);
 
             methodIL.MarkLabel(toFalseCase);
@@ -295,15 +287,53 @@ namespace alm.Core.CodeGeneration.Emitter
 
             methodIL.MarkLabel(toEnd);
         }
-        private static void EmitLessThan(ILGenerator methodIL, BooleanExpression booleanExpression)
+        private static void EmitGreaterThan(ILGenerator methodIL, BooleanExpression booleanExpression)
         {
             Label toTrueCase  = methodIL.DefineLabel();
             Label toFalseCase = methodIL.DefineLabel();
             Label toEnd       = methodIL.DefineLabel();
 
-            EmitExpression(methodIL, (Expression)booleanExpression.Right);
             EmitExpression(methodIL, (Expression)booleanExpression.Left);
+            EmitExpression(methodIL, (Expression)booleanExpression.Right);
+            methodIL.Emit(OpCodes.Bgt, toTrueCase);
+
+            methodIL.MarkLabel(toFalseCase);
+            methodIL.Emit(OpCodes.Ldc_I4, 0);
+            methodIL.Emit(OpCodes.Br, toEnd);
+
+            methodIL.MarkLabel(toTrueCase);
+            methodIL.Emit(OpCodes.Ldc_I4, 1);
+
+            methodIL.MarkLabel(toEnd);
+        }
+        private static void EmitGreaterEqualThan(ILGenerator methodIL, BooleanExpression booleanExpression)
+        {
+            Label toTrueCase = methodIL.DefineLabel();
+            Label toFalseCase = methodIL.DefineLabel();
+            Label toEnd = methodIL.DefineLabel();
+
+            EmitExpression(methodIL, (Expression)booleanExpression.Left);
+            EmitExpression(methodIL, (Expression)booleanExpression.Right);
             methodIL.Emit(OpCodes.Bge, toTrueCase);
+
+            methodIL.MarkLabel(toFalseCase);
+            methodIL.Emit(OpCodes.Ldc_I4, 0);
+            methodIL.Emit(OpCodes.Br, toEnd);
+
+            methodIL.MarkLabel(toTrueCase);
+            methodIL.Emit(OpCodes.Ldc_I4, 1);
+
+            methodIL.MarkLabel(toEnd);
+        }
+        private static void EmitLessEqualThan(ILGenerator methodIL, BooleanExpression booleanExpression)
+        {
+            Label toTrueCase = methodIL.DefineLabel();
+            Label toFalseCase = methodIL.DefineLabel();
+            Label toEnd = methodIL.DefineLabel();
+
+            EmitExpression(methodIL, (Expression)booleanExpression.Left);
+            EmitExpression(methodIL, (Expression)booleanExpression.Right);
+            methodIL.Emit(OpCodes.Ble, toTrueCase);
 
             methodIL.MarkLabel(toFalseCase);
             methodIL.Emit(OpCodes.Ldc_I4, 0);
@@ -381,13 +411,15 @@ namespace alm.Core.CodeGeneration.Emitter
             if      (booleanExpression is BooleanConst)         EmitConstExpression(methodIL, (ConstExpression)booleanExpression);
             else if (booleanExpression is IdentifierExpression) EmitIdentifierCall(methodIL, (IdentifierCall)booleanExpression);
             else if (booleanExpression is FunctionCall)         EmitFunctionCall(methodIL, (FunctionCall)booleanExpression);
-            else if (booleanExpression.Op == Operator.Equal)      EmitEqual(methodIL, (BooleanExpression)booleanExpression);
-            else if (booleanExpression.Op == Operator.NotEqual)   EmitNotEqual(methodIL, (BooleanExpression)booleanExpression);
-            else if (booleanExpression.Op == Operator.Less)       EmitLessThan(methodIL, (BooleanExpression)booleanExpression);
-            else if (booleanExpression.Op == Operator.Greater)    EmitGreaterThan(methodIL, (BooleanExpression)booleanExpression);
-            else if (booleanExpression.Op == Operator.LogicalAND) EmitAnd(methodIL, (BooleanExpression)booleanExpression);
-            else if (booleanExpression.Op == Operator.LogicalOR)  EmitOr(methodIL, (BooleanExpression)booleanExpression);
-            else if (booleanExpression.Op == Operator.LogicalNOT) EmitNot(methodIL, (BooleanExpression)booleanExpression);
+            else if (booleanExpression.Op == Operator.Equal)       EmitEqual(methodIL, (BooleanExpression)booleanExpression);
+            else if (booleanExpression.Op == Operator.NotEqual)    EmitNotEqual(methodIL, (BooleanExpression)booleanExpression);
+            else if (booleanExpression.Op == Operator.Less)        EmitLessThan(methodIL, (BooleanExpression)booleanExpression);
+            else if (booleanExpression.Op == Operator.Greater)     EmitGreaterThan(methodIL, (BooleanExpression)booleanExpression);
+            else if (booleanExpression.Op == Operator.LessEqual)   EmitLessEqualThan(methodIL, (BooleanExpression)booleanExpression);
+            else if (booleanExpression.Op == Operator.GreaterEqual)EmitGreaterEqualThan(methodIL, (BooleanExpression)booleanExpression);
+            else if (booleanExpression.Op == Operator.LogicalAND)  EmitAnd(methodIL, (BooleanExpression)booleanExpression);
+            else if (booleanExpression.Op == Operator.LogicalOR)   EmitOr(methodIL, (BooleanExpression)booleanExpression);
+            else if (booleanExpression.Op == Operator.LogicalNOT)  EmitNot(methodIL, (BooleanExpression)booleanExpression);
         }
 
         private static void EmitBody(ILGenerator methodIL,Body body)
@@ -396,6 +428,19 @@ namespace alm.Core.CodeGeneration.Emitter
                 if      (node is Expression) EmitExpression(methodIL,(Expression)node);
                 else if (node is Statement)  EmitStatement(methodIL, (Statement)node);
         }
+        /*private static void EmitMethodWithGlobals(AbstractSyntaxTree ast)
+        {
+            string Name = "Locals";
+            Type returnType = typeof(void);
+            Type[] argTypes =  new Type[0];
+
+            MethodBuilder method = module.DefineGlobalMethod(Name, MethodAttributes.Public | MethodAttributes.Static, returnType, argTypes);
+            ILGenerator methodIL = method.GetILGenerator();
+
+            methods.Add(method);
+            foreach (GlobalDeclarationExpression global in ast.Root.GetChildsByType("GlobalDeclarationExpression", true))
+                EmitGlobalDeclarationExpression(methodIL,global);
+        }*/
         public static void EmitAST(AbstractSyntaxTree ast)
         {
             foreach (FunctionDeclaration func in ast.Root.GetChildsByType("FunctionDeclaration",true))
@@ -411,7 +456,7 @@ namespace alm.Core.CodeGeneration.Emitter
         }
 
         //
-        private static bool EmitIfIntegratedFunction(ILGenerator methodIL, FunctionCall functionCall)
+        private static bool EmitBaseFunction(ILGenerator methodIL, FunctionCall functionCall)
         {
             switch(functionCall.Name)
             {
@@ -527,6 +572,8 @@ namespace alm.Core.CodeGeneration.Emitter
         private static LocalVariableInfo GetCreatedLocal(string localName)
         {
             LocalVariableInfo local = null;
+            //foreach (var l in globals)
+            //    if (localName == l.Key) local = l.Value;
             foreach (var l in methodLocals)
                 if (localName == l.Key) local = l.Value;
             return local;

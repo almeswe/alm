@@ -3,7 +3,6 @@ using System.Linq;
 using System.Collections.Generic;
 
 using alm.Other.Structs;
-using alm.Core.Compiler;
 
 using static alm.Other.Enums.TokenType;
 
@@ -178,8 +177,8 @@ namespace alm.Core.SyntaxAnalysis
                     return new Token(tkLess, new Position(charPos, charPos+1, linePos));
 
                 case '>':
-                    if (reader.Peek() == '=') { GetNextChar(); return new Token(tkEqualMore, new Position(charPos, charPos+2, linePos)); }
-                    return new Token(tkMore, new Position(charPos, charPos+1, linePos));
+                    if (reader.Peek() == '=') { GetNextChar(); return new Token(tkEqualGreater, new Position(charPos, charPos+2, linePos)); }
+                    return new Token(tkGreater, new Position(charPos, charPos+1, linePos));
 
                 case '{': return new Token(tkLbra,  new Position(charPos, charPos + 1, linePos));
                 case '}': return new Token(tkRbra,  new Position(charPos, charPos + 1, linePos));
@@ -212,6 +211,7 @@ namespace alm.Core.SyntaxAnalysis
                 case "float" :  return new Token(tkType, new Position(charPos - 5, charPos, linePos), "float");
 
                 case "import": return new Token(tkImport, new Position(charPos - 6, charPos, linePos));
+                case "global": return new Token(tkGlobal, new Position(charPos - 6, charPos, linePos));
 
                 case "return": return new Token(tkRet,   new Position(charPos - 6, charPos, linePos));
                 case "true":   return new Token(tkBooleanConst,  new Position(charPos - 4, charPos, linePos), "true");

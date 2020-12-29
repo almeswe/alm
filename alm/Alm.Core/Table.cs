@@ -89,7 +89,12 @@ namespace alm.Core.VariableTable
         public void SetLocalBlockInitialization(IdentifierExpression id,Body Block)
         {
             Identifier identifier = FetchIdentifier(id);
-            if (identifier != null) identifier.InitializedBlocks.Add(Block);
+            if (identifier != null)
+            {
+                if (Block == null)
+                    identifier.IsGloballyInitialized = true;
+                else identifier.InitializedBlocks.Add(Block);
+            }
         }
 
         public bool IsGloballyInitialized(IdentifierExpression id)

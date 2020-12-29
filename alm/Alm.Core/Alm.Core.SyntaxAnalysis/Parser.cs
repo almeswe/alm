@@ -476,12 +476,12 @@ namespace alm.Core.SyntaxAnalysis
         public SyntaxTreeNode ParseBooleanFactor()
         {
             SyntaxTreeNode node;
-            node = ParseExpression();
             switch (Lexer.CurrentToken.TokenType)
             {
                 case tkLpar:
                     return ParseBooleanParentisizedExpression();
                 default:
+                    node = ParseExpression();
                     switch (Lexer.CurrentToken.TokenType)
                     {
                         case tkLess:    Lexer.GetNextToken(); node = new BooleanExpression(node, Operator.Less, ParseExpression()); break;
@@ -495,16 +495,6 @@ namespace alm.Core.SyntaxAnalysis
             }
         }
 
-        public SyntaxTreeNode ParseBooleanRelation()
-        {
-            SyntaxTreeNode node = ParseExpression();
-            switch (Lexer.CurrentToken.TokenType)
-            {
-                case tkLess: Lexer.GetNextToken(); return new BooleanExpression(node, Operator.Less, ParseBooleanRelation());
-                case tkGreater: Lexer.GetNextToken(); return new BooleanExpression(node, Operator.Greater, ParseBooleanRelation());
-            }
-            return node;
-        }
         public SyntaxTreeNode ParseBooleanParentisizedExpression()
         {
             if (!Match(tkLpar)) return new BooleanExpression(new MissingLpar(Lexer.CurrentToken));

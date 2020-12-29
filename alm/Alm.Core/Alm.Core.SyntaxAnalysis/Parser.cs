@@ -109,14 +109,18 @@ namespace alm.Core.SyntaxAnalysis
         public SyntaxTreeNode ParseProgram(string Path)
         {
             SyntaxTreeNode Root = new Root(Path);
-            if (Match(tkImport))
+
+            while (Match(tkImport))
             {
-                while (Match(tkImport))
-                {
-                    Root.AddNode(((ImportExpression)ParseImportExpression()));
-                    if (Root.Nodes.Last().Errored) break;
-                }
+                Root.AddNode(ParseImportExpression());
+                if (Root.Nodes.Last().Errored) break;
             }
+
+            /*while (Match(tkGlobal))
+            {
+                Root.AddNode(ParseGlobalDeclaration());
+                if (Root.Nodes.Last().Errored) break;
+            }*/
 
             while (!Match(tkEOF))
             {
@@ -223,14 +227,22 @@ namespace alm.Core.SyntaxAnalysis
             Lexer.GetNextToken();
             return new FunctionDeclaration(funcname, args, functype, funcbody, funccontext);
         }
+
+        public SyntaxTreeNode ParseGlobalDeclaration()
+        {
+            if (!Match(tkGlobal)) return new GlobalDeclarationExpression(new ReservedWordExpected("global",Lexer.CurrentToken));
+            Lexer.GetNextToken();
+            return new GlobalDeclarationExpression(ParseVariableDeclaration());
+        }
+
         public SyntaxTreeNode ParseVariableDeclaration()
         {
             if (!Match(tkType)) return new DeclarationExpression(new TypeExpected(Lexer.CurrentToken));
-            TypeExpression idtype = new TypeExpression(Lexer.CurrentToken);
+            TypeExpression idType = new TypeExpression(Lexer.CurrentToken);
             Lexer.GetNextToken();
             if (!Match(tkId)) return new DeclarationExpression(new IdentifierExpected(Lexer.CurrentToken));
 
-            IdentifierExpression id = new IdentifierDeclaration(Lexer.CurrentToken, idtype.Type);
+            IdentifierExpression id = new IdentifierDeclaration(Lexer.CurrentToken, idType.Type);
 
             Lexer.GetNextToken();
             AssignmentExpression assign;
@@ -242,12 +254,12 @@ namespace alm.Core.SyntaxAnalysis
            
                 if (!Match(tkSemicolon)) return new DeclarationExpression(new MissingSemi(Lexer.PreviousToken));
                 Lexer.GetNextToken();
-                return new DeclarationExpression(idtype, assign);
+                return new DeclarationExpression(idType, assign);
             }
             else if (Match(tkSemicolon))
             {
                 Lexer.GetNextToken();
-                return new DeclarationExpression(idtype, id);
+                return new DeclarationExpression(idType, id);
             }
             else return new DeclarationExpression(new OnlyDebug("Ожидался символ [=] или [;]", Lexer.CurrentToken));
         }
@@ -472,10 +484,12 @@ namespace alm.Core.SyntaxAnalysis
                 default:
                     switch (Lexer.CurrentToken.TokenType)
                     {
-                        case tkLess:  Lexer.GetNextToken(); node = new BooleanExpression(node, Operator.Less, ParseExpression()); break;
-                        case tkMore:  Lexer.GetNextToken(); node = new BooleanExpression(node, Operator.Greater, ParseExpression()); break;
-                        case tkEqual: Lexer.GetNextToken(); node = new BooleanExpression(node, Operator.Equal, ParseExpression()); break;
-                        case tkNotEqual: Lexer.GetNextToken(); node = new BooleanExpression(node, Operator.NotEqual, ParseExpression()); break;
+                        case tkLess:    Lexer.GetNextToken(); node = new BooleanExpression(node, Operator.Less, ParseExpression()); break;
+                        case tkGreater: Lexer.GetNextToken(); node = new BooleanExpression(node, Operator.Greater, ParseExpression()); break;
+                        case tkEqual:   Lexer.GetNextToken(); node = new BooleanExpression(node, Operator.Equal, ParseExpression()); break;
+                        case tkNotEqual:  Lexer.GetNextToken();   node = new BooleanExpression(node, Operator.NotEqual, ParseExpression()); break;
+                        case tkEqualLess: Lexer.GetNextToken();   node = new BooleanExpression(node, Operator.LessEqual, ParseExpression());break;
+                        case tkEqualGreater: Lexer.GetNextToken();node = new BooleanExpression(node, Operator.GreaterEqual, ParseExpression()); break;
                     }
                     return node;
             }
@@ -487,7 +501,7 @@ namespace alm.Core.SyntaxAnalysis
             switch (Lexer.CurrentToken.TokenType)
             {
                 case tkLess: Lexer.GetNextToken(); return new BooleanExpression(node, Operator.Less, ParseBooleanRelation());
-                case tkMore: Lexer.GetNextToken(); return new BooleanExpression(node, Operator.Greater, ParseBooleanRelation());
+                case tkGreater: Lexer.GetNextToken(); return new BooleanExpression(node, Operator.Greater, ParseBooleanRelation());
             }
             return node;
         }
@@ -505,22 +519,23 @@ namespace alm.Core.SyntaxAnalysis
             SyntaxTreeNode node = ParseTerm();
             switch (Lexer.CurrentToken.TokenType)
             {
-                case tkMinus: Lexer.GetNextToken(); node = new BinaryExpression(node, Operator.Minus, ParseExpression()); break;
-                case tkPlus: Lexer.GetNextToken();  node = new BinaryExpression(node, Operator.Plus, ParseExpression()); break;
+                case tkMinus: Lexer.GetNextToken();  node = new BinaryExpression(node, Operator.Minus, ParseExpression()); break;
+                case tkPlus:  Lexer.GetNextToken();  node = new BinaryExpression(node, Operator.Plus, ParseExpression()); break;
             }
             return node;
         }
         public SyntaxTreeNode ParseTerm()
         {
-            SyntaxTreeNode node = ParseSignedFactor();
+            SyntaxTreeNode node = ParseFactor();
             switch (Lexer.CurrentToken.TokenType)
             {
                 case tkMult: Lexer.GetNextToken(); node = new BinaryExpression(node, Operator.Multiplication, ParseTerm()); break;
-                case tkDiv: Lexer.GetNextToken(); node = new BinaryExpression(node, Operator.Division, ParseTerm()); break;
+                case tkDiv: Lexer.GetNextToken();  node = new BinaryExpression(node,  Operator.Division, ParseTerm());      break;
             }
             return node;
         }
-        public SyntaxTreeNode ParseSignedFactor()
+
+        public SyntaxTreeNode ParseFactor()
         {
             SyntaxTreeNode node;
             switch (Lexer.CurrentToken.TokenType)
@@ -550,10 +565,10 @@ namespace alm.Core.SyntaxAnalysis
 
                 case tkQuote:
                     Lexer.GetNextToken();
-                    if (!Match(tkStringConst)) return new ReturnExpression(new OnlyDebug("Ожидалась строка", Lexer.CurrentToken));
+                    if (!Match(tkStringConst)) return new BinaryExpression(new OnlyDebug("Ожидалась строка", Lexer.CurrentToken));
                     node = new StringConst(Lexer.CurrentToken);
                     Lexer.GetNextToken();
-                    if (!Match(tkQuote)) return new AssignmentExpression(new ReservedSymbolExpected("\"", Lexer.CurrentToken));
+                    if (!Match(tkQuote)) return new BinaryExpression(new ReservedSymbolExpected("\"", Lexer.CurrentToken));
                     Lexer.GetNextToken();
                     return node;
 
@@ -617,7 +632,6 @@ namespace alm.Core.SyntaxAnalysis
         public void SetSourceContext(SyntaxTreeNode lnode, SyntaxTreeNode rnode) => this.SourceContext = GetSourceContext(lnode,rnode, CurrentParsingFile);
 
         public virtual string ToConsoleString() => $"{NodeType}";
-        //public virtual string ToConsoleString() => $"{NodeType} {this.SourceContext}";
 
         public void AddNode(SyntaxTreeNode node)
         {
@@ -948,10 +962,12 @@ namespace alm.Core.SyntaxAnalysis
 
         public override InnerType Type => new Float();
 
-        public FloatConst(Token token)
+        public FloatConst(Token token, bool unaryMinus = false)
         {
             this.SetSourceContext(token);
-            this.Value = token.Value;
+            if (unaryMinus)
+                this.Value = string.Concat("-", token.Value);
+            else this.Value = token.Value;
         }
 
         public FloatConst(SyntaxError error)
@@ -967,10 +983,12 @@ namespace alm.Core.SyntaxAnalysis
 
         public override InnerType Type => new Integer32();
 
-        public IntegerConst(Token token)
+        public IntegerConst(Token token,bool unaryMinus = false)
         {
             this.SetSourceContext(token);
-            this.Value = token.Value;
+            if (unaryMinus)
+                this.Value = string.Concat("-", token.Value);
+            else this.Value = token.Value;
         }
 
         public IntegerConst(SyntaxError error)
@@ -992,8 +1010,6 @@ namespace alm.Core.SyntaxAnalysis
         {
             if      (token.Value == "true")  _type = NodeType.True;
             else if (token.Value == "false") _type = NodeType.False;
-
-            else throw new Exception("Либо true,либо false:" + token.Value);
 
             this.SetSourceContext(token);
             this.Value = token.Value;
@@ -1069,6 +1085,14 @@ namespace alm.Core.SyntaxAnalysis
             this.Op = op;
             this.Right = right;
             this.AddNodes(left, right);
+        }
+
+        public BinaryExpression(Operator op, SyntaxTreeNode right)
+        {
+            this.SetSourceContext(right);
+            this.Op = op;
+            this.Right = right;
+            this.AddNodes(right);
         }
 
         public BinaryExpression(SyntaxError error)
@@ -1148,6 +1172,25 @@ namespace alm.Core.SyntaxAnalysis
             Diagnostics.SyntaxErrors.Add(error);
         }
     }
+
+    public sealed class GlobalDeclarationExpression : Expression
+    {
+        public override NodeType NodeType => NodeType.Declaration;
+
+        public GlobalDeclarationExpression(SyntaxTreeNode declarationExpression)
+        {
+            this.SetSourceContext(declarationExpression);
+            this.Right = declarationExpression;
+            this.AddNodes(Right);
+        }
+
+        public GlobalDeclarationExpression(SyntaxError error)
+        {
+            this.Errored = true;
+            Diagnostics.SyntaxErrors.Add(error);
+        }
+    }
+
     public sealed class DeclarationExpression : Expression
     {
         public override NodeType NodeType => NodeType.Declaration;

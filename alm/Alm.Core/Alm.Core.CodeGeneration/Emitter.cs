@@ -22,9 +22,7 @@ namespace alm.Core.CodeGeneration.Emitter
 
         private static List<MethodInfo> methods = new List<MethodInfo>();
         private static Dictionary<string, int> methodArgs = new Dictionary<string, int>();
-        private static Dictionary<string, LocalVariableInfo> globals = new Dictionary<string, LocalVariableInfo>();
         private static Dictionary<string, LocalVariableInfo> methodLocals = new Dictionary<string, LocalVariableInfo>();
-
 
         private static void EmitBinaryExpression(ILGenerator methodIL, BinaryExpression binexpr)
         {
@@ -92,18 +90,6 @@ namespace alm.Core.CodeGeneration.Emitter
             }
             else if (declarationExpression.Right is IdentifierExpression) EmitIdentifierDeclaration(methodIL, (IdentifierExpression)declarationExpression.Right);
         }
-
-        /*private static void EmitGlobalDeclarationExpression(ILGenerator methodIL,GlobalDeclarationExpression globalDeclarationExpression)
-        {
-            DeclarationExpression declarationExpression = (DeclarationExpression)globalDeclarationExpression.Right;
-            if (declarationExpression.Right is AssignmentExpression)
-            {
-                EmitIdentifierDeclaration(methodIL, (IdentifierExpression)((AssignmentExpression)declarationExpression.Right).Left,true);
-                EmitAssignmentExpression(methodIL, (AssignmentExpression)declarationExpression.Right);
-            }
-            else if (declarationExpression.Right is IdentifierExpression) EmitIdentifierDeclaration(methodIL, (IdentifierExpression)declarationExpression.Right,true);
-        }*/
-
         private static void EmitConstExpression(ILGenerator methodIL, ConstExpression constExpression)
         {
             if (constExpression.Type.GetEquivalence() == typeof(int))
@@ -428,19 +414,6 @@ namespace alm.Core.CodeGeneration.Emitter
                 if      (node is Expression) EmitExpression(methodIL,(Expression)node);
                 else if (node is Statement)  EmitStatement(methodIL, (Statement)node);
         }
-        /*private static void EmitMethodWithGlobals(AbstractSyntaxTree ast)
-        {
-            string Name = "Locals";
-            Type returnType = typeof(void);
-            Type[] argTypes =  new Type[0];
-
-            MethodBuilder method = module.DefineGlobalMethod(Name, MethodAttributes.Public | MethodAttributes.Static, returnType, argTypes);
-            ILGenerator methodIL = method.GetILGenerator();
-
-            methods.Add(method);
-            foreach (GlobalDeclarationExpression global in ast.Root.GetChildsByType("GlobalDeclarationExpression", true))
-                EmitGlobalDeclarationExpression(methodIL,global);
-        }*/
         public static void EmitAST(AbstractSyntaxTree ast)
         {
             foreach (FunctionDeclaration func in ast.Root.GetChildsByType("FunctionDeclaration",true))

@@ -211,8 +211,6 @@ namespace alm.Core.SemanticAnalysis
         {
             InnerType ExpectedType, Type = null;
 
-            TryToCastFunctionArguments(functionCall);
-
             for (int i = 0; i < functionCall.Arguments.Nodes.Count; i++)
             {
                 ExpectedType = GlobalTable.Table.FetchFunction(functionCall).Arguments[i].Type;
@@ -246,8 +244,11 @@ namespace alm.Core.SemanticAnalysis
             foreach (var Condition in ast.Root.GetChildsByType("Condition", true))            ResolveConditionType((Condition)Condition);
             foreach (var Return    in ast.Root.GetChildsByType("ReturnExpression", true))     ResolveReturnExpressionType((ReturnExpression)Return);
             foreach (var Body      in ast.Root.GetChildsByType("Body", true)) 
-                foreach (var Functest in Body.GetChildsByType("FunctionCall"))
-                    ResolveFunctionCallType((FunctionCall)Functest);
+                foreach (var Func in Body.GetChildsByType("FunctionCall"))
+                {
+                    TryToCastFunctionArguments((FunctionCall)Func);
+                    ResolveFunctionCallType((FunctionCall)Func);
+                }
         }
 
         private static bool NeedCastToFloat(Expression expression)
@@ -304,7 +305,7 @@ namespace alm.Core.SemanticAnalysis
 
         private static void TryToCastAssignmentExpression(AssignmentExpression assignmentExpression)
         {
-            IdentifierDeclaration identifierDeclaration = (IdentifierDeclaration)assignmentExpression.Left;
+            IdentifierExpression identifierDeclaration = (IdentifierExpression)assignmentExpression.Left;
             if (identifierDeclaration.Type is Float)
             {
                 if (assignmentExpression.Right is IntegerConst)
@@ -336,23 +337,25 @@ namespace alm.Core.SemanticAnalysis
 
         private static void TryToCastFunctionArguments(FunctionCall functionCall)
         {
-            foreach (var arg in functionCall.Arguments.Nodes)
+            if (!NeedCastToFloat(functionCall)) return;
+            for (int i = 0; i < functionCall.Arguments.Nodes.Count; i++)
             {
+                SyntaxTreeNode arg = functionCall.Arguments.Nodes[i];
                 if (arg is IntegerConst)
-                    TryToCastIntegerConst(functionCall, (IntegerConst)arg);
+                    TryToCastIntegerConst(functionCall.Arguments, (IntegerConst)arg, i);
                 else if (arg is BinaryExpression)
                     TryToCastBinaryExpression((BinaryExpression)arg, true);
-                else if (arg is IdentifierCall)
-                    TryToCastIdentifierCall(functionCall, (IdentifierCall)arg);
                 else if (arg is FunctionCall)
-                    TryToCastFunctionCall(functionCall, (FunctionCall)arg);
+                    TryToCastFunctionCall(functionCall.Arguments, (FunctionCall)arg, i);
+                else if (arg is IdentifierCall)
+                    TryToCastIdentifierCall(functionCall.Arguments, (IdentifierCall)arg, i);
             }
         }
 
         private static void TryToCastFunctionCall(BinaryExpression binaryExpression, FunctionCall functionCall, bool left = false)
         {
             TryToCastFunctionArguments(functionCall);
-            if (functionCall.Type is Float) return;
+            if (!(functionCall.Type is Integer32)) return;
             int index = left ? 0 : 1;
             FunctionCall pointFucntionCall = new FunctionCall("point", new Arguments(functionCall), functionCall.SourceContext);
             pointFucntionCall.Type = new Float();
@@ -366,16 +369,25 @@ namespace alm.Core.SemanticAnalysis
         private static void TryToCastFunctionCall(Expression expression, FunctionCall functionCall)
         {
             TryToCastFunctionArguments(functionCall);
-            if (functionCall.Type is Float) return;
+            if (!(functionCall.Type is Integer32)) return;
             FunctionCall pointFucntionCall = new FunctionCall("point", new Arguments(functionCall), functionCall.SourceContext);
             pointFucntionCall.Type = new Float();
             expression.Right = pointFucntionCall;
             expression.Nodes[expression.Nodes.Count - 1] = pointFucntionCall;
         }
 
+        private static void TryToCastFunctionCall(Arguments arguments, FunctionCall functionCall, int index)
+        {
+            TryToCastFunctionArguments(functionCall);
+            if (!(functionCall.Type is Integer32)) return;
+            FunctionCall pointFucntionCall = new FunctionCall("point", new Arguments(functionCall), functionCall.SourceContext);
+            pointFucntionCall.Type = new Float();
+            arguments.Nodes[index] = pointFucntionCall;
+        }
+
         private static void TryToCastIdentifierCall(BinaryExpression binaryExpression, IdentifierCall identifierCall, bool left = false)
         {
-            if (identifierCall.Type is Float) return;
+            if (!(identifierCall.Type is Integer32)) return;
             int index = left ? 0 : 1;
             FunctionCall pointFucntionCall = new FunctionCall("point", new Arguments(identifierCall), identifierCall.SourceContext);
             pointFucntionCall.Type = new Float();
@@ -388,11 +400,19 @@ namespace alm.Core.SemanticAnalysis
 
         private static void TryToCastIdentifierCall(Expression expression, IdentifierCall identifierCall)
         {
-            if (identifierCall.Type is Float) return;
-            FunctionCall pointFucntionCall = new FunctionCall("point", new Arguments(identifierCall), identifierCall.SourceContext);
-            pointFucntionCall.Type = new Float();
-            expression.Right = pointFucntionCall;
-            expression.Nodes[expression.Nodes.Count - 1] = pointFucntionCall;
+            if (!(identifierCall.Type is Integer32)) return;
+            FunctionCall pointFunctionCall = new FunctionCall("point", new Arguments(identifierCall), identifierCall.SourceContext);
+            pointFunctionCall.Type = new Float();
+            expression.Right = pointFunctionCall;
+            expression.Nodes[expression.Nodes.Count - 1] = pointFunctionCall;
+        }
+
+        private static void TryToCastIdentifierCall(Arguments arguments, IdentifierCall identifierCall, int index)
+        {
+            if (!(identifierCall.Type is Integer32)) return;
+            FunctionCall pointFunctionCall = new FunctionCall("point", new Arguments(identifierCall), identifierCall.SourceContext);
+            pointFunctionCall.Type = new Float();
+            arguments.Nodes[index] = pointFunctionCall;
         }
 
         private static void TryToCastIntegerConst(BinaryExpression binaryExpression, IntegerConst integerConst, bool left = false)
@@ -407,6 +427,7 @@ namespace alm.Core.SemanticAnalysis
                 binaryExpression.Right = floatConst;
             binaryExpression.Nodes[index] = floatConst;
         }
+
         private static void TryToCastIntegerConst(Expression expression, IntegerConst integerConst)
         {
             FloatConst floatConst = new FloatConst(integerConst.Value + ",0");
@@ -414,6 +435,14 @@ namespace alm.Core.SemanticAnalysis
             floatConst.SourceContext = integerConst.SourceContext;
             expression.Right = floatConst;
             expression.Nodes[expression.Nodes.Count-1] = floatConst;
+        }
+
+        private static void TryToCastIntegerConst(Arguments arguments, IntegerConst integerConst, int index)
+        {
+            FloatConst floatConst = new FloatConst(integerConst.Value + ",0");
+            floatConst.Parent = integerConst.Parent;
+            floatConst.SourceContext = integerConst.SourceContext;
+            arguments.Nodes[index] = floatConst;
         }
     }
 }

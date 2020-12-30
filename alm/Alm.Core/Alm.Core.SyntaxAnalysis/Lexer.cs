@@ -298,7 +298,7 @@ namespace alm.Core.SyntaxAnalysis
                 if (reader.Peek() == '*')
                 {
                     reader.Read();
-                    while (currentChar != '*' && reader.Peek() != '/')
+                    while (currentChar != '*' || reader.Peek() != '/')
                         GetNextChar();
                     GetNextChar();
                     GetNextChar();

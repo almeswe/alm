@@ -311,12 +311,15 @@ namespace alm.Core.SemanticAnalysis
                 if (assignmentExpression.Right is IntegerConst)
                     TryToCastIntegerConst(assignmentExpression, (IntegerConst)assignmentExpression.Right);
                 else if (assignmentExpression.Right is BinaryExpression)
-                    TryToCastBinaryExpression((BinaryExpression)assignmentExpression.Right,true);
+                    TryToCastBinaryExpression((BinaryExpression)assignmentExpression.Right, true);
                 else if (assignmentExpression.Right is IdentifierCall)
                     TryToCastIdentifierCall(assignmentExpression, (IdentifierCall)assignmentExpression.Right);
                 else if (assignmentExpression.Right is FunctionCall)
                     TryToCastFunctionCall(assignmentExpression, (FunctionCall)assignmentExpression.Right);
             }
+            else
+                foreach (var funcCall in assignmentExpression.Right.GetChildsByType("FunctionCall"))
+                    TryToCastFunctionArguments((FunctionCall)funcCall);
         }
 
         private static void TryToCastReturnExpression(ReturnExpression returnExpression)
@@ -333,11 +336,13 @@ namespace alm.Core.SemanticAnalysis
                 else if (returnExpression.Right is FunctionCall)
                     TryToCastFunctionCall(returnExpression, (FunctionCall)returnExpression.Right);
             }
+            else
+                foreach (var funcCall in returnExpression.Right.GetChildsByType("FunctionCall"))
+                    TryToCastFunctionArguments((FunctionCall)funcCall);
         }
 
         private static void TryToCastFunctionArguments(FunctionCall functionCall)
         {
-            if (!NeedCastToFloat(functionCall)) return;
             for (int i = 0; i < functionCall.Arguments.Nodes.Count; i++)
             {
                 SyntaxTreeNode arg = functionCall.Arguments.Nodes[i];

@@ -161,7 +161,7 @@ namespace alm.Core.SyntaxAnalysis
         {
             SourceContext funccontext = new SourceContext();
 
-            if (!Match(tkFunc)) return new FunctionDeclaration(new ReservedWordExpected("function", Lexer.CurrentToken));
+            if (!Match(tkFunc)) return new FunctionDeclaration(new ReservedWordExpected("func", Lexer.CurrentToken));
             funccontext.StartsAt = new Position(Lexer.CurrentToken);
             Lexer.GetNextToken();
             if (!Match(tkId)) return new FunctionDeclaration(new IdentifierExpected(Lexer.CurrentToken));
@@ -204,7 +204,7 @@ namespace alm.Core.SyntaxAnalysis
             argscontext.EndsAt = new Position(Lexer.CurrentToken);
             args.SourceContext = argscontext;
             Lexer.GetNextToken();
-            if (!Match(tkOf)) return new FunctionDeclaration(new ReservedWordExpected("of", Lexer.CurrentToken));
+            if (!Match(tkColon)) return new FunctionDeclaration(new ReservedSymbolExpected(":", Lexer.CurrentToken));
             Lexer.GetNextToken();
             if (!Match(tkType)) return new FunctionDeclaration(new TypeExpected(Lexer.CurrentToken));
             TypeExpression functype = new TypeExpression(Lexer.CurrentToken);

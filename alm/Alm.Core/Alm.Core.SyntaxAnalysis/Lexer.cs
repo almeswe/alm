@@ -21,13 +21,13 @@ namespace alm.Core.SyntaxAnalysis
 
         public char currentChar;
 
-        private int currTokenIndex;
-        private int currCharIndex;
+        private int currentTokenIndex;
+        private int currentCharIndex;
         private TextReader reader;
 
         private bool tokensCreated = false;
 
-        private Token[] _tokens;
+        private Token[] tokens;
 
         public string Path { get; private set; }
         public Token CurrentToken => Peek(0);
@@ -37,8 +37,8 @@ namespace alm.Core.SyntaxAnalysis
         {
             this.Path = path;
             reader = new StreamReader(path);
-            currCharIndex = -1;
-            currTokenIndex = -1;
+            currentCharIndex = -1;
+            currentTokenIndex = -1;
             charPos = 0;
             linePos = 1;
         }
@@ -46,19 +46,14 @@ namespace alm.Core.SyntaxAnalysis
         public Token GetNextToken()
         {
             Token token;
-            currTokenIndex++;
+            currentTokenIndex++;
             if (tokensCreated)
             {
-                if (currTokenIndex < _tokens.Length)
-                {
-                    token = _tokens[currTokenIndex];
-                    return token;
-                }
+                if (currentTokenIndex < tokens.Length)
+                    token = tokens[currentTokenIndex];
                 else
-                {
                     token = new Token(tkEOF, new Position(charPos, charPos, linePos));
-                    return token;
-                }
+                return token;
             }
             else
             {
@@ -68,8 +63,8 @@ namespace alm.Core.SyntaxAnalysis
         }
         public Token Peek(int offset)
         {
-            if (currTokenIndex + offset < _tokens.Length) return _tokens[currTokenIndex + offset];
-            else if (currTokenIndex + offset < 0) return new Token(tkNull);
+            if (currentTokenIndex + offset < tokens.Length) return tokens[currentTokenIndex + offset];
+            else if (currentTokenIndex + offset < 0) return new Token(tkNull);
             else return new Token(tkEOF, new Position(charPos, charPos, linePos));
         }
         public Token[] GetTokens()
@@ -96,8 +91,8 @@ namespace alm.Core.SyntaxAnalysis
             }
             reader.Close();
             if (!tokensCreated) tokensCreated = true;
-            _tokens = tokens.ToArray();
-            return _tokens;
+            this.tokens = tokens.ToArray();
+            return this.tokens;
         }
         private Token RecognizeConst()
         {
@@ -114,7 +109,7 @@ namespace alm.Core.SyntaxAnalysis
                 }
                 else
                     num += currentChar.ToString();
-                currCharIndex++;
+                currentCharIndex++;
                 GetNextChar();
             }
             int end = charPos;
@@ -129,7 +124,7 @@ namespace alm.Core.SyntaxAnalysis
             while (char.IsDigit(currentChar) || char.IsLetter(currentChar) || currentChar == 95)
             {
                 ident += currentChar.ToString();
-                currCharIndex++;
+                currentCharIndex++;
                 GetNextChar();
             }
             int end = charPos;
@@ -146,7 +141,7 @@ namespace alm.Core.SyntaxAnalysis
             {
                 if (line != this.linePos) break;
                 str += currentChar.ToString();
-                currCharIndex++;
+                currentCharIndex++;
                 GetNextChar();
             }
             return new Token(tkStringConst, new Position(start, start+str.Length, line), str);
@@ -246,13 +241,13 @@ namespace alm.Core.SyntaxAnalysis
                 case "or":  return new Token(tkOr,  new Position(charPos - 2, charPos, linePos));
                 case "and": return new Token(tkAnd, new Position(charPos - 3, charPos, linePos));
 
-                case "function": return new Token(tkFunc, new Position(charPos - 8, charPos, linePos));
-                case "of":       return new Token(tkOf,   new Position(charPos - 2, charPos, linePos));
+                case "func": return new Token(tkFunc, new Position(charPos - 4, charPos, linePos));
+                case "of":   return new Token(tkOf,   new Position(charPos - 2, charPos, linePos));
 
-                case "integer": return new Token(tkType, new Position(charPos - 7, charPos, linePos), "integer");
-                case "boolean": return new Token(tkType, new Position(charPos - 7, charPos, linePos), "boolean");
+                case "float":   return new Token(tkType, new Position(charPos - 5, charPos, linePos), "float");
                 case "string":  return new Token(tkType, new Position(charPos - 6, charPos, linePos), "string");
-                case "float" :  return new Token(tkType, new Position(charPos - 5, charPos, linePos), "float");
+                case "boolean": return new Token(tkType, new Position(charPos - 7, charPos, linePos), "boolean");
+                case "integer": return new Token(tkType, new Position(charPos - 7, charPos, linePos), "integer");
 
                 case "import": return new Token(tkImport, new Position(charPos - 6, charPos, linePos));
                 case "global": return new Token(tkGlobal, new Position(charPos - 6, charPos, linePos));
@@ -260,6 +255,7 @@ namespace alm.Core.SyntaxAnalysis
                 case "return": return new Token(tkRet,          new Position(charPos - 6, charPos, linePos));
                 case "true":   return new Token(tkBooleanConst, new Position(charPos - 4, charPos, linePos), "true");
                 case "false":  return new Token(tkBooleanConst, new Position(charPos - 5, charPos, linePos), "false");
+
                 default: return Token.GetNullToken();
             }
         }
@@ -271,7 +267,7 @@ namespace alm.Core.SyntaxAnalysis
             {
                 currentChar = (char)reader.Read();
                 charPos++;
-                currCharIndex++;
+                currentCharIndex++;
                 if (currentChar == chNewLn)
                 {
                     charPos = 0;

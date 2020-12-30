@@ -51,12 +51,12 @@ namespace alm.Core.SemanticAnalysis
             }
             return type;
         }
-        private static InnerType ResolveConditionType(Condition Condition)
+        private static InnerType ResolveConditionType(Condition condition)
         {
             InnerType ConditionType;
             InnerType ExpectedType = new Boolean();
 
-            SyntaxTreeNode Node = Condition.Nodes[0];
+            SyntaxTreeNode Node = condition.Nodes[0];
 
             if (Node is BooleanConst) return ((BooleanConst)Node).Type;
 
@@ -69,7 +69,7 @@ namespace alm.Core.SemanticAnalysis
             if (!ErrorShownForBoolean) Diagnostics.SemanticErrors.Add(new IncompatibleConditionType(ConditionType,Node.SourceContext));
             return ConditionType;
         }
-        private static InnerType ResolveBooleanExpressionType(BooleanExpression BoolExpr, bool first = false)
+        private static InnerType ResolveBooleanExpressionType(BooleanExpression booleanExpression, bool first = false)
         {
             InnerType LeftType;
             InnerType RightType;
@@ -77,7 +77,7 @@ namespace alm.Core.SemanticAnalysis
 
             if (first) ErrorShownForBoolean = false;
 
-            switch (BoolExpr.Op)
+            switch (booleanExpression.Op)
             {
                 case Less:
                 case LessEqual:
@@ -88,23 +88,23 @@ namespace alm.Core.SemanticAnalysis
                     ExpectedType = null;break;
             }    
 
-            if      (BoolExpr.Left is BinaryExpression)   LeftType = ResolveBinaryExpressionType((BinaryExpression)BoolExpr.Left,false);
-            else if (BoolExpr.Left is BooleanExpression)  LeftType = ResolveBooleanExpressionType((BooleanExpression)BoolExpr.Left,false);
-            else if (BoolExpr.Left is FunctionCall)       LeftType = ResolveFunctionCallType((FunctionCall)BoolExpr.Left);
-            else if (BoolExpr.Left is null)               LeftType = new Boolean();//for not operator 
-            else                                          LeftType = ResolveNodeType(BoolExpr.Left);
+            if      (booleanExpression.Left is BinaryExpression)   LeftType = ResolveBinaryExpressionType((BinaryExpression)booleanExpression.Left,false);
+            else if (booleanExpression.Left is BooleanExpression)  LeftType = ResolveBooleanExpressionType((BooleanExpression)booleanExpression.Left,false);
+            else if (booleanExpression.Left is FunctionCall)       LeftType = ResolveFunctionCallType((FunctionCall)booleanExpression.Left);
+            else if (booleanExpression.Left is null)               LeftType = new Boolean();//for not operator 
+            else                                                   LeftType = ResolveNodeType(booleanExpression.Left);
 
-            if      (BoolExpr.Right is BinaryExpression)  RightType = ResolveBinaryExpressionType((BinaryExpression)BoolExpr.Right,false);
-            else if (BoolExpr.Right is BooleanExpression) RightType = ResolveBooleanExpressionType((BooleanExpression)BoolExpr.Right,false);
-            else if (BoolExpr.Right is FunctionCall)      RightType = ResolveFunctionCallType((FunctionCall)BoolExpr.Right);
-            else                                          RightType = ResolveNodeType(BoolExpr.Right);
+            if      (booleanExpression.Right is BinaryExpression)  RightType = ResolveBinaryExpressionType((BinaryExpression)booleanExpression.Right,false);
+            else if (booleanExpression.Right is BooleanExpression) RightType = ResolveBooleanExpressionType((BooleanExpression)booleanExpression.Right,false);
+            else if (booleanExpression.Right is FunctionCall)      RightType = ResolveFunctionCallType((FunctionCall)booleanExpression.Right);
+            else                                                   RightType = ResolveNodeType(booleanExpression.Right);
 
             if (ExpectedType is null)
             {
-                if (BoolExpr.Op == Equal || BoolExpr.Op == NotEqual)
+                if (booleanExpression.Op == Equal || booleanExpression.Op == NotEqual)
                 {
                     if (LeftType == RightType ) return new Boolean();
-                    if (!ErrorShownForBoolean) Diagnostics.SemanticErrors.Add(new IncompatibleBooleanExpressionType(LeftType, RightType, BoolExpr.SourceContext));
+                    if (!ErrorShownForBoolean) Diagnostics.SemanticErrors.Add(new IncompatibleBooleanExpressionType(LeftType, RightType, booleanExpression.SourceContext));
                     ErrorShownForBoolean = true;
                     return RightType;
                 }
@@ -117,13 +117,13 @@ namespace alm.Core.SemanticAnalysis
 
             if (!(RightType is NumericType))
             {
-                if (!ErrorShownForBoolean) Diagnostics.SemanticErrors.Add(new IncompatibleBooleanExpressionType(ExpectedType, RightType, BoolExpr.Right.SourceContext));
+                if (!ErrorShownForBoolean) Diagnostics.SemanticErrors.Add(new IncompatibleBooleanExpressionType(ExpectedType, RightType, booleanExpression.Right.SourceContext));
                 ErrorShownForBoolean = true;
                 return RightType;
             }
             else if (!(LeftType is NumericType))
             {
-                if (!ErrorShownForBoolean) Diagnostics.SemanticErrors.Add(new IncompatibleBooleanExpressionType(ExpectedType, LeftType, BoolExpr.Left.SourceContext));
+                if (!ErrorShownForBoolean) Diagnostics.SemanticErrors.Add(new IncompatibleBooleanExpressionType(ExpectedType, LeftType, booleanExpression.Left.SourceContext));
                 ErrorShownForBoolean = true;
                 return LeftType;
             }
@@ -131,115 +131,289 @@ namespace alm.Core.SemanticAnalysis
             return new Underfined();
         }
 
-        private static InnerType ResolveAssignmentExpressionType(AssignmentExpression Assign)
+        private static InnerType ResolveAssignmentExpressionType(AssignmentExpression assignmentExpression)
         {
             InnerType RightType;
-            InnerType LeftType = ((IdentifierExpression)Assign.Left).Type;
+            InnerType LeftType = ((IdentifierExpression)assignmentExpression.Left).Type;
 
-            if      (Assign.Right is BinaryExpression)     RightType = ResolveBinaryExpressionType(((BinaryExpression)Assign.Right));
-            else if (Assign.Right is FunctionCall)         RightType = ResolveFunctionCallType((FunctionCall)Assign.Right);
-            else if (Assign.Right is IdentifierExpression) RightType = ((IdentifierExpression)Assign.Right).Type;
-            else                                           RightType = ResolveNodeType(Assign.Right);
+            TryToCastAssignmentExpression(assignmentExpression);
+
+            if      (assignmentExpression.Right is BinaryExpression)     RightType = ResolveBinaryExpressionType(((BinaryExpression)assignmentExpression.Right));
+            else if (assignmentExpression.Right is FunctionCall)         RightType = ResolveFunctionCallType((FunctionCall)assignmentExpression.Right);
+            else if (assignmentExpression.Right is IdentifierExpression) RightType = ((IdentifierExpression)assignmentExpression.Right).Type;
+            else                                                         RightType = ResolveNodeType(assignmentExpression.Right);
 
             if (RightType == LeftType) return LeftType;
-            Diagnostics.SemanticErrors.Add(new IncompatibleAssignmentType(RightType,LeftType,Assign.SourceContext));
+            Diagnostics.SemanticErrors.Add(new IncompatibleAssignmentType(RightType,LeftType,assignmentExpression.SourceContext));
             return new Underfined();
         }
-        private static InnerType ResolveBinaryExpressionType(BinaryExpression BinaryExpr,bool first = true)
+        private static InnerType ResolveBinaryExpressionType(BinaryExpression binaryExpression,bool first = true)
         {
             InnerType LeftType;
             InnerType RightType;
             InnerType ExpectedType = new NumericType();
 
+            //TryToCastBinaryExpression(binaryExpression);
+
             if (first) ErrorShownForBinary = false;
 
-            if      (BinaryExpr.Left is ConstExpression)      LeftType = ((ConstExpression)BinaryExpr.Left).Type;
-            else if (BinaryExpr.Left is IdentifierExpression) LeftType = ((IdentifierExpression)BinaryExpr.Left).Type;
-            else if (BinaryExpr.Left is FunctionCall)         LeftType = ResolveFunctionCallType((FunctionCall)BinaryExpr.Left);
-            else if (BinaryExpr.Left is BinaryExpression)     LeftType = ResolveBinaryExpressionType((BinaryExpression)BinaryExpr.Left,false);
-            else                                              LeftType = ResolveNodeType(BinaryExpr.Left);
+            if      (binaryExpression.Left is ConstExpression)      LeftType = ((ConstExpression)binaryExpression.Left).Type;
+            else if (binaryExpression.Left is IdentifierExpression) LeftType = ((IdentifierExpression)binaryExpression.Left).Type;
+            else if (binaryExpression.Left is FunctionCall)         LeftType = ResolveFunctionCallType((FunctionCall)binaryExpression.Left);
+            else if (binaryExpression.Left is BinaryExpression)     LeftType = ResolveBinaryExpressionType((BinaryExpression)binaryExpression.Left,false);
+            else                                                    LeftType = ResolveNodeType(binaryExpression.Left);
 
-            if      (BinaryExpr.Right is ConstExpression)      RightType = ((ConstExpression)BinaryExpr.Right).Type;
-            else if (BinaryExpr.Right is IdentifierExpression) RightType = ((IdentifierExpression)BinaryExpr.Right).Type;
-            else if (BinaryExpr.Right is FunctionCall)         RightType = ResolveFunctionCallType((FunctionCall)BinaryExpr.Right);
-            else if (BinaryExpr.Right is BinaryExpression)     RightType = ResolveBinaryExpressionType((BinaryExpression)BinaryExpr.Right,false);
-            else                                               RightType = ResolveNodeType(BinaryExpr.Right);
+            if      (binaryExpression.Right is ConstExpression)      RightType = ((ConstExpression)binaryExpression.Right).Type;
+            else if (binaryExpression.Right is IdentifierExpression) RightType = ((IdentifierExpression)binaryExpression.Right).Type;
+            else if (binaryExpression.Right is FunctionCall)         RightType = ResolveFunctionCallType((FunctionCall)binaryExpression.Right);
+            else if (binaryExpression.Right is BinaryExpression)     RightType = ResolveBinaryExpressionType((BinaryExpression)binaryExpression.Right,false);
+            else                                                     RightType = ResolveNodeType(binaryExpression.Right);
 
             if (RightType is NumericType && LeftType is NumericType) return RightType;
 
             if (!(RightType is NumericType))
             {
-                if (!ErrorShownForBinary) Diagnostics.SemanticErrors.Add(new IncompatibleBinaryExpressionType(ExpectedType, RightType,BinaryExpr.SourceContext));
+                if (!ErrorShownForBinary) Diagnostics.SemanticErrors.Add(new IncompatibleBinaryExpressionType(ExpectedType, RightType,binaryExpression.SourceContext));
                 ErrorShownForBinary = true;
                 return RightType;
             }
             else if (!(LeftType is NumericType))
             {
-                if (!ErrorShownForBinary) Diagnostics.SemanticErrors.Add(new IncompatibleBinaryExpressionType(ExpectedType, LeftType, BinaryExpr.SourceContext));
+                if (!ErrorShownForBinary) Diagnostics.SemanticErrors.Add(new IncompatibleBinaryExpressionType(ExpectedType, LeftType, binaryExpression.SourceContext));
                 ErrorShownForBinary = true;
                 return LeftType;
             }
 
             return new Underfined();
         }
-        private static InnerType ResolveReturnExpressionType(ReturnExpression ReturnExpr)
+        private static InnerType ResolveReturnExpressionType(ReturnExpression returnExpression)
         {
-            InnerType ExpectedType = ((FunctionDeclaration)ReturnExpr.GetParentByType("FunctionDeclaration")).Type;
+            InnerType ExpectedType = ((FunctionDeclaration)returnExpression.GetParentByType("FunctionDeclaration")).Type;
             InnerType RightType;
 
-            if      (ReturnExpr.Right is ConstExpression)      RightType = ((ConstExpression)ReturnExpr.Right).Type;
-            else if (ReturnExpr.Right is BinaryExpression)     RightType = ResolveBinaryExpressionType(((BinaryExpression)ReturnExpr.Right));
-            else if (ReturnExpr.Right is FunctionCall)         RightType = ResolveFunctionCallType((FunctionCall)ReturnExpr.Right);
-            else if (ReturnExpr.Right is IdentifierExpression) RightType = ((IdentifierExpression)ReturnExpr.Right).Type;
-            else                                               RightType = ResolveNodeType(ReturnExpr.Right);
+            TryToCastReturnExpression(returnExpression);
+
+            if      (returnExpression.Right is ConstExpression)      RightType = ((ConstExpression)returnExpression.Right).Type;
+            else if (returnExpression.Right is BinaryExpression)     RightType = ResolveBinaryExpressionType(((BinaryExpression)returnExpression.Right));
+            else if (returnExpression.Right is FunctionCall)         RightType = ResolveFunctionCallType((FunctionCall)returnExpression.Right);
+            else if (returnExpression.Right is IdentifierExpression) RightType = ((IdentifierExpression)returnExpression.Right).Type;
+            else                                                     RightType = ResolveNodeType(returnExpression.Right);
 
             if (ExpectedType != RightType)
             {
-                Diagnostics.SemanticErrors.Add(new IncompatibleReturnType(ExpectedType, RightType, ReturnExpr.SourceContext));
+                Diagnostics.SemanticErrors.Add(new IncompatibleReturnType(ExpectedType, RightType, returnExpression.SourceContext));
                 return RightType;
             }
             return ExpectedType;
         }
 
-        private static InnerType ResolveFunctionCallType(FunctionCall FunctionCall)
+        private static InnerType ResolveFunctionCallType(FunctionCall functionCall)
         {
             InnerType ExpectedType, Type = null;
 
-            for (int i = 0; i < FunctionCall.Arguments.Nodes.Count; i++)
+            TryToCastFunctionArguments(functionCall);
+
+            for (int i = 0; i < functionCall.Arguments.Nodes.Count; i++)
             {
-                ExpectedType = GlobalTable.Table.FetchFunction(FunctionCall).Arguments[i].Type;
+                ExpectedType = GlobalTable.Table.FetchFunction(functionCall).Arguments[i].Type;
 
-                if (FunctionCall.Arguments.Nodes[i] is BinaryExpression)
-                    Type = ResolveBinaryExpressionType((BinaryExpression)FunctionCall.Arguments.Nodes[i]);
+                if (functionCall.Arguments.Nodes[i] is BinaryExpression)
+                    Type = ResolveBinaryExpressionType((BinaryExpression)functionCall.Arguments.Nodes[i]);
 
-                else if (FunctionCall.Arguments.Nodes[i] is FunctionCall)
-                    Type = ResolveFunctionCallType((FunctionCall)FunctionCall.Arguments.Nodes[i]);
+                else if (functionCall.Arguments.Nodes[i] is FunctionCall)
+                    Type = ResolveFunctionCallType((FunctionCall)functionCall.Arguments.Nodes[i]);
 
-                else if (FunctionCall.Arguments.Nodes[i] is IdentifierExpression)
-                    Type = ((IdentifierExpression)FunctionCall.Arguments.Nodes[i]).Type;
+                else if (functionCall.Arguments.Nodes[i] is IdentifierExpression)
+                    Type = ((IdentifierExpression)functionCall.Arguments.Nodes[i]).Type;
 
-                else if (FunctionCall.Arguments.Nodes[i] is ConstExpression)
-                    Type = ((ConstExpression)FunctionCall.Arguments.Nodes[i]).Type;
+                else if (functionCall.Arguments.Nodes[i] is ConstExpression)
+                    Type = ((ConstExpression)functionCall.Arguments.Nodes[i]).Type;
 
                 if (ExpectedType != Type)
-                    Diagnostics.SemanticErrors.Add(new IncompatibleArgumentType(Type, ExpectedType, FunctionCall.Arguments.Nodes[i].SourceContext));
+                    Diagnostics.SemanticErrors.Add(new IncompatibleArgumentType(Type, ExpectedType, functionCall.Arguments.Nodes[i].SourceContext));
             }
 
-            return FunctionCall.Type;
+            return functionCall.Type;
         }
 
 
-        public static void ResolveTypes(AbstractSyntaxTree Ast)
+        public static void ResolveTypes(AbstractSyntaxTree ast)
         {
             ErrorShownForBoolean = false;
             ErrorShownForBinary  = false;
 
-            foreach (var Assign    in Ast.Root.GetChildsByType("AssignmentExpression", true)) ResolveAssignmentExpressionType((AssignmentExpression)Assign);
-            foreach (var Condition in Ast.Root.GetChildsByType("Condition", true))            ResolveConditionType((Condition)Condition);
-            foreach (var Return    in Ast.Root.GetChildsByType("ReturnExpression", true))     ResolveReturnExpressionType((ReturnExpression)Return);
-            foreach (var Body      in Ast.Root.GetChildsByType("Body", true)) 
+            foreach (var Assign    in ast.Root.GetChildsByType("AssignmentExpression", true)) ResolveAssignmentExpressionType((AssignmentExpression)Assign);
+            foreach (var Condition in ast.Root.GetChildsByType("Condition", true))            ResolveConditionType((Condition)Condition);
+            foreach (var Return    in ast.Root.GetChildsByType("ReturnExpression", true))     ResolveReturnExpressionType((ReturnExpression)Return);
+            foreach (var Body      in ast.Root.GetChildsByType("Body", true)) 
                 foreach (var Functest in Body.GetChildsByType("FunctionCall"))
                     ResolveFunctionCallType((FunctionCall)Functest);
+        }
+
+        private static bool NeedCastToFloat(Expression expression)
+        {
+            bool needCast = false;
+
+            foreach (var var in expression.GetChildsByType("IdentifierCall", true))
+                if (((IdentifierCall)var).Type is Float)
+                    needCast = true;
+
+            foreach (var func in expression.GetChildsByType("FunctionCall", true))
+                if (((FunctionCall)func).Type is Float)
+                    needCast = true;
+
+            if (expression.GetChildsByType("FloatConst", true).Length > 0)
+                needCast = true;
+
+            return needCast ? true : false; 
+        }
+
+        private static void TryToCastBinaryExpression(BinaryExpression binaryExpression, bool castItAnyway = false)
+        {
+            bool needCast;
+            if (castItAnyway)
+                needCast = true;
+            else needCast = NeedCastToFloat(binaryExpression);
+
+            if (!needCast) return;
+
+            if (binaryExpression.Left is IntegerConst)
+                TryToCastIntegerConst(binaryExpression, (IntegerConst)binaryExpression.Left, true);
+
+            else if (binaryExpression.Left is FunctionCall)
+                TryToCastFunctionCall(binaryExpression, (FunctionCall)binaryExpression.Left, true);
+
+            else if (binaryExpression.Left is IdentifierCall)
+                TryToCastIdentifierCall(binaryExpression, (IdentifierCall)binaryExpression.Left, true);
+
+            else if (binaryExpression.Left is BinaryExpression)
+                TryToCastBinaryExpression((BinaryExpression)binaryExpression.Left, castItAnyway);
+
+            if (binaryExpression.Right is IntegerConst)
+                TryToCastIntegerConst(binaryExpression, (IntegerConst)binaryExpression.Right);
+
+            else if (binaryExpression.Right is FunctionCall)
+                TryToCastFunctionCall(binaryExpression, (FunctionCall)binaryExpression.Right);
+
+            else if (binaryExpression.Right is IdentifierCall)
+                TryToCastIdentifierCall(binaryExpression, (IdentifierCall)binaryExpression.Right);
+
+            else if (binaryExpression.Right is BinaryExpression)
+                TryToCastBinaryExpression((BinaryExpression)binaryExpression.Right,castItAnyway);
+        }
+
+        private static void TryToCastAssignmentExpression(AssignmentExpression assignmentExpression)
+        {
+            IdentifierDeclaration identifierDeclaration = (IdentifierDeclaration)assignmentExpression.Left;
+            if (identifierDeclaration.Type is Float)
+            {
+                if (assignmentExpression.Right is IntegerConst)
+                    TryToCastIntegerConst(assignmentExpression, (IntegerConst)assignmentExpression.Right);
+                else if (assignmentExpression.Right is BinaryExpression)
+                    TryToCastBinaryExpression((BinaryExpression)assignmentExpression.Right,true);
+                else if (assignmentExpression.Right is IdentifierCall)
+                    TryToCastIdentifierCall(assignmentExpression, (IdentifierCall)assignmentExpression.Right);
+                else if (assignmentExpression.Right is FunctionCall)
+                    TryToCastFunctionCall(assignmentExpression, (FunctionCall)assignmentExpression.Right);
+            }
+        }
+
+        private static void TryToCastReturnExpression(ReturnExpression returnExpression)
+        {
+            FunctionDeclaration func = (FunctionDeclaration)returnExpression.GetParentByType("FunctionDeclaration");
+            if (func.Type is Float)
+            {
+                if (returnExpression.Right is IntegerConst)
+                    TryToCastIntegerConst(returnExpression, (IntegerConst)returnExpression.Right);
+                else if (returnExpression.Right is BinaryExpression)
+                    TryToCastBinaryExpression((BinaryExpression)returnExpression.Right,true);
+                else if (returnExpression.Right is IdentifierCall)
+                    TryToCastIdentifierCall(returnExpression, (IdentifierCall)returnExpression.Right);
+                else if (returnExpression.Right is FunctionCall)
+                    TryToCastFunctionCall(returnExpression, (FunctionCall)returnExpression.Right);
+            }
+        }
+
+        private static void TryToCastFunctionArguments(FunctionCall functionCall)
+        {
+            foreach (var arg in functionCall.Arguments.Nodes)
+            {
+                if (arg is IntegerConst)
+                    TryToCastIntegerConst(functionCall, (IntegerConst)arg);
+                else if (arg is BinaryExpression)
+                    TryToCastBinaryExpression((BinaryExpression)arg, true);
+                else if (arg is IdentifierCall)
+                    TryToCastIdentifierCall(functionCall, (IdentifierCall)arg);
+                else if (arg is FunctionCall)
+                    TryToCastFunctionCall(functionCall, (FunctionCall)arg);
+            }
+        }
+
+        private static void TryToCastFunctionCall(BinaryExpression binaryExpression, FunctionCall functionCall, bool left = false)
+        {
+            TryToCastFunctionArguments(functionCall);
+            if (functionCall.Type is Float) return;
+            int index = left ? 0 : 1;
+            FunctionCall pointFucntionCall = new FunctionCall("point", new Arguments(functionCall), functionCall.SourceContext);
+            pointFucntionCall.Type = new Float();
+            if (left)
+                binaryExpression.Left = pointFucntionCall;
+            else
+                binaryExpression.Right = pointFucntionCall;
+            binaryExpression.Nodes[index] = pointFucntionCall;
+        }
+
+        private static void TryToCastFunctionCall(Expression expression, FunctionCall functionCall)
+        {
+            TryToCastFunctionArguments(functionCall);
+            if (functionCall.Type is Float) return;
+            FunctionCall pointFucntionCall = new FunctionCall("point", new Arguments(functionCall), functionCall.SourceContext);
+            pointFucntionCall.Type = new Float();
+            expression.Right = pointFucntionCall;
+            expression.Nodes[expression.Nodes.Count - 1] = pointFucntionCall;
+        }
+
+        private static void TryToCastIdentifierCall(BinaryExpression binaryExpression, IdentifierCall identifierCall, bool left = false)
+        {
+            if (identifierCall.Type is Float) return;
+            int index = left ? 0 : 1;
+            FunctionCall pointFucntionCall = new FunctionCall("point", new Arguments(identifierCall), identifierCall.SourceContext);
+            pointFucntionCall.Type = new Float();
+            if (left)
+                binaryExpression.Left = pointFucntionCall;
+            else
+                binaryExpression.Right = pointFucntionCall;
+            binaryExpression.Nodes[index] = pointFucntionCall;
+        }
+
+        private static void TryToCastIdentifierCall(Expression expression, IdentifierCall identifierCall)
+        {
+            if (identifierCall.Type is Float) return;
+            FunctionCall pointFucntionCall = new FunctionCall("point", new Arguments(identifierCall), identifierCall.SourceContext);
+            pointFucntionCall.Type = new Float();
+            expression.Right = pointFucntionCall;
+            expression.Nodes[expression.Nodes.Count - 1] = pointFucntionCall;
+        }
+
+        private static void TryToCastIntegerConst(BinaryExpression binaryExpression, IntegerConst integerConst, bool left = false)
+        {
+            int index = left ? 0 : 1;
+            FloatConst floatConst = new FloatConst(integerConst.Value + ",0");
+            floatConst.Parent = integerConst.Parent;
+            floatConst.SourceContext = integerConst.SourceContext;
+            if (left)
+                binaryExpression.Left = floatConst;
+            else
+                binaryExpression.Right = floatConst;
+            binaryExpression.Nodes[index] = floatConst;
+        }
+        private static void TryToCastIntegerConst(Expression expression, IntegerConst integerConst)
+        {
+            FloatConst floatConst = new FloatConst(integerConst.Value + ",0");
+            floatConst.Parent = integerConst.Parent;
+            floatConst.SourceContext = integerConst.SourceContext;
+            expression.Right = floatConst;
+            expression.Nodes[expression.Nodes.Count-1] = floatConst;
         }
     }
 }

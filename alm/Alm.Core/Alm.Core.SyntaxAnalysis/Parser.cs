@@ -228,12 +228,12 @@ namespace alm.Core.SyntaxAnalysis
             return new FunctionDeclaration(funcname, args, functype, funcbody, funccontext);
         }
 
-        public SyntaxTreeNode ParseGlobalDeclaration()
+        /*public SyntaxTreeNode ParseGlobalDeclaration()
         {
             if (!Match(tkGlobal)) return new GlobalDeclarationExpression(new ReservedWordExpected("global",Lexer.CurrentToken));
             Lexer.GetNextToken();
             return new GlobalDeclarationExpression(ParseVariableDeclaration());
-        }
+        }*/
 
         public SyntaxTreeNode ParseVariableDeclaration()
         {
@@ -269,7 +269,7 @@ namespace alm.Core.SyntaxAnalysis
             IdentifierExpression id = new IdentifierCall(Lexer.CurrentToken);
             Lexer.GetNextToken();
             if (!Match(tkAssign)     &&
-                !Match(tkAddAssign) &&
+                !Match(tkAddAssign)  &&
                 !Match(tkMultAssign) &&
                 !Match(tkDivAssign)  &&
                 !Match(tkSubAssign)) 
@@ -286,12 +286,12 @@ namespace alm.Core.SyntaxAnalysis
         {
             switch (Lexer.CurrentToken.TokenType)
             {
-                case tkId: return ParseIdentifierExpression();
-                case tkIf: return ParseIfStatement();
-                case tkWhile: return ParseWhileStatement();
-                case tkDo: return ParseDoWhileStatement();
+                case tkId:   return ParseIdentifierExpression();
+                case tkIf:   return ParseIfStatement();
+                case tkWhile:return ParseWhileStatement();
+                case tkDo:   return ParseDoWhileStatement();
                 case tkType: return ParseVariableDeclaration();
-                case tkRet: return ParseReturnExpression();
+                case tkRet:  return ParseReturnExpression();
 
                 default: return new ReturnExpression(new OnlyDebug("Ожидалось выражение", Lexer.CurrentToken));
             }
@@ -522,12 +522,20 @@ namespace alm.Core.SyntaxAnalysis
         }
         public SyntaxTreeNode ParseTerm()
         {
-            SyntaxTreeNode node = ParseFactor();
+            SyntaxTreeNode node = ParseSignedFactor();
             switch (Lexer.CurrentToken.TokenType)
             {
-                case tkMult: Lexer.GetNextToken(); node = new BinaryExpression(node, Operator.Multiplication, ParseTerm()); break;
+                case tkMult: Lexer.GetNextToken(); node = new BinaryExpression(node,  Operator.Multiplication, ParseTerm()); break;
                 case tkDiv: Lexer.GetNextToken();  node = new BinaryExpression(node,  Operator.Division, ParseTerm());      break;
             }
+            return node;
+        }
+
+        public SyntaxTreeNode ParseSignedFactor()
+        {
+            SyntaxTreeNode node = ParseFactor();
+            if (Match(tkMinus))
+                node = new BinaryExpression(node,Operator.Plus,ParseFactor());
             return node;
         }
 
@@ -543,6 +551,11 @@ namespace alm.Core.SyntaxAnalysis
                         node = new IdentifierCall(Lexer.CurrentToken);
                     Lexer.GetNextToken();
                     return node;
+
+                case tkMinus:
+                    if (Match(tkMinus, -1)) return new BinaryExpression(new OnlyDebug("Возможно добавление только одного унарного минуса.",Lexer.CurrentToken));
+                    Lexer.GetNextToken();
+                    return new BinaryExpression(new IntegerConst("-1"), Operator.Multiplication, ParseFactor());
 
                 case tkIntConst:
                     node = new IntegerConst(Lexer.CurrentToken);
@@ -644,7 +657,6 @@ namespace alm.Core.SyntaxAnalysis
         {
             foreach (SyntaxTreeNode node in nodes) AddNode(node);
         }
-
         public SyntaxTreeNode GetParentByType(string typeString)
         {
             for (SyntaxTreeNode Parent = this.Parent; Parent != null; Parent = Parent.Parent)
@@ -652,7 +664,6 @@ namespace alm.Core.SyntaxAnalysis
                     return Parent;
             return null;
         }
-
         public SyntaxTreeNode[] GetChildsByType(string typeString, bool recursive = false, bool once = true)
         {
             List<SyntaxTreeNode> Childs = new List<SyntaxTreeNode>();
@@ -898,9 +909,9 @@ namespace alm.Core.SyntaxAnalysis
 
     public abstract class Expression : SyntaxTreeNode
     {
-        public SyntaxTreeNode Left { get; protected set; }
-        public Operator Op { get; protected set; }
-        public SyntaxTreeNode Right { get; protected set; }
+        public SyntaxTreeNode Left  { get; set; }
+        public Operator Op          { get; protected set; }
+        public SyntaxTreeNode Right { get; set; }
         public override ConsoleColor Color => ConsoleColor.DarkCyan;
     }
     public class IdentifierExpression : Expression, ITypeable
@@ -964,12 +975,15 @@ namespace alm.Core.SyntaxAnalysis
 
         public override InnerType Type => new Float();
 
-        public FloatConst(Token token, bool unaryMinus = false)
+        public FloatConst(string value)
+        {
+            this.Value = value;
+        }
+
+        public FloatConst(Token token)
         {
             this.SetSourceContext(token);
-            if (unaryMinus)
-                this.Value = string.Concat("-", token.Value);
-            else this.Value = token.Value;
+            this.Value = token.Value;
         }
 
         public FloatConst(SyntaxError error)
@@ -985,12 +999,15 @@ namespace alm.Core.SyntaxAnalysis
 
         public override InnerType Type => new Integer32();
 
-        public IntegerConst(Token token,bool unaryMinus = false)
+        public IntegerConst(string value)
+        {
+            this.Value = value;
+        }
+
+        public IntegerConst(Token token)
         {
             this.SetSourceContext(token);
-            if (unaryMinus)
-                this.Value = string.Concat("-", token.Value);
-            else this.Value = token.Value;
+            this.Value = token.Value;
         }
 
         public IntegerConst(SyntaxError error)
@@ -1064,6 +1081,25 @@ namespace alm.Core.SyntaxAnalysis
 
         public override string ToConsoleString() => $"{Type}";
     }
+
+    /*public sealed class UnaryExpression : Expression
+    {
+        public override NodeType NodeType => NodeType.UnaryExpression;
+
+        public UnaryExpression(Operator op, SyntaxTreeNode right)
+        {
+            this.Op = op;
+            switch(op)
+            {
+                case Operator.UnaryMinus:
+                    this.Right = new BinaryExpression(new IntegerConst("-1"),Operator.Multiplication,right);
+                    break;
+            }
+            this.SetSourceContext(right);
+            this.AddNode(right);
+        }
+    }*/
+
     public sealed class BinaryExpression : Expression
     {
         private NodeType _type;

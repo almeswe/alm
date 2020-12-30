@@ -40,6 +40,7 @@
         Condition,
         Arguments,
         Return,
+        UnaryExpression,
         BinaryExpression,
         BooleanExpression
     };

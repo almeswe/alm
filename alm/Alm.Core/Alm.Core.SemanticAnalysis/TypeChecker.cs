@@ -377,7 +377,7 @@ namespace alm.Core.SemanticAnalysis
                 CastConstExpression(binaryExpression, (IntegerConst)binaryExpression.Right, toType, castCase);
 
             else if (binaryExpression.Right is FunctionCall)
-                CastFunctionCall(binaryExpression, (FunctionCall)binaryExpression.Left, toType, castCase);
+                CastFunctionCall(binaryExpression, (FunctionCall)binaryExpression.Right, toType, castCase);
 
             else if (binaryExpression.Right is IdentifierCall)
                 CastIdentifierCall(binaryExpression, (IdentifierCall)binaryExpression.Right, toType, castCase);

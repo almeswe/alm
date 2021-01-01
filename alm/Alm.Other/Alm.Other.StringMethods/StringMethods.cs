@@ -9,6 +9,11 @@
                 reversedstr += String[i];
             return reversedstr;
         }
+        public static string UpperCaseFirstChar(string String)
+        {
+            char fchar = String[0];
+            return fchar.ToString().ToUpper() + String.Substring(1,String.Length-1);
+        }
         public static string LastAfterDot(string String)
         {
             string TypeWithoutNameSpace = string.Empty;

@@ -116,12 +116,6 @@ namespace alm.Core.SyntaxAnalysis
                 if (Root.Nodes.Last().Errored) break;
             }
 
-            /*while (Match(tkGlobal))
-            {
-                Root.AddNode(ParseGlobalDeclaration());
-                if (Root.Nodes.Last().Errored) break;
-            }*/
-
             while (!Match(tkEOF))
             {
                 Root.AddNode(ParseFunctionDeclaration());
@@ -157,9 +151,69 @@ namespace alm.Core.SyntaxAnalysis
 
             else return new ImportExpression(new ExpectedCorrectImport(Lexer.CurrentToken.Context));
         }
+        public SyntaxTreeNode ParseExternalFunctionDeclaration()
+        {
+            SourceContext funccontext = new SourceContext();
+            Lexer.GetNextToken();
+            StringConst packageName = ParseStringConst();
+            if (!Match(tkFunc)) return new FunctionDeclaration(new ReservedWordExpected("func", Lexer.CurrentToken));
+            funccontext.StartsAt = new Position(Lexer.CurrentToken);
+            Lexer.GetNextToken();
+            if (!Match(tkId)) return new FunctionDeclaration(new IdentifierExpected(Lexer.CurrentToken));
+            IdentifierExpression funcname = new IdentifierExpression(Lexer.CurrentToken);
+            funccontext = Lexer.CurrentToken.Context;
+            Lexer.GetNextToken();
+            if (!Match(tkLpar)) return new FunctionDeclaration(new MissingLpar(Lexer.CurrentToken));
+            Lexer.GetNextToken();
+            TypeExpression argtype;
+            IdentifierExpression argname;
+            ArgumentDeclaration arg;
+            Arguments args = new Arguments();
+            SourceContext argscontext = new SourceContext();
+            argscontext.FilePath = CurrentParsingFile;
+            argscontext.StartsAt = new Position(Lexer.CurrentToken);
+
+            while (!Match(tkRpar))
+            {
+                if (!Match(tkType)) return new FunctionDeclaration(new TypeExpected(Lexer.CurrentToken));
+                argtype = new TypeExpression(Lexer.CurrentToken);
+                Lexer.GetNextToken();
+                argname = new IdentifierDeclaration(Lexer.CurrentToken);
+                argname.Type = argtype.Type;
+
+                Lexer.GetNextToken();
+                if (!Match(tkComma))
+                {
+                    if (Match(tkRpar))
+                    {
+                        arg = new ArgumentDeclaration(argtype, argname);
+                        args.AddNode(arg);
+                        continue;
+                    }
+                    else return new FunctionDeclaration(new ReservedSymbolExpected(",", Lexer.CurrentToken));
+                }
+                Lexer.GetNextToken();
+                arg = new ArgumentDeclaration(argtype, argname);
+                args.AddNode(arg);
+            }
+            argscontext.EndsAt = new Position(Lexer.CurrentToken);
+            args.SourceContext = argscontext;
+            Lexer.GetNextToken();
+            if (!Match(tkColon)) return new FunctionDeclaration(new ReservedSymbolExpected(":", Lexer.CurrentToken));
+            Lexer.GetNextToken();
+            if (!Match(tkType)) return new FunctionDeclaration(new TypeExpected(Lexer.CurrentToken));
+            TypeExpression functype = new TypeExpression(Lexer.CurrentToken);
+            Lexer.GetNextToken();
+            if(!Match(tkSemicolon)) return new FunctionDeclaration(new ReservedSymbolExpected(";", Lexer.CurrentToken));
+            Lexer.GetNextToken();
+            return new FunctionDeclaration(funcname, args, functype, packageName.Value, funccontext);
+        }
+
         public SyntaxTreeNode ParseFunctionDeclaration()
         {
             SourceContext funccontext = new SourceContext();
+
+            if (Match(tkExternalProp)) return ParseExternalFunctionDeclaration();
 
             if (!Match(tkFunc)) return new FunctionDeclaration(new ReservedWordExpected("func", Lexer.CurrentToken));
             funccontext.StartsAt = new Position(Lexer.CurrentToken);
@@ -573,13 +627,7 @@ namespace alm.Core.SyntaxAnalysis
                     return node;
 
                 case tkQuote:
-                    Lexer.GetNextToken();
-                    if (!Match(tkStringConst)) return new BinaryExpression(new OnlyDebug("Ожидалась строка", Lexer.CurrentToken));
-                    node = new StringConst(Lexer.CurrentToken);
-                    Lexer.GetNextToken();
-                    if (!Match(tkQuote)) return new BinaryExpression(new ReservedSymbolExpected("\"", Lexer.CurrentToken));
-                    Lexer.GetNextToken();
-                    return node;
+                    return ParseStringConst();
 
                 case tkLpar: return ParseParentisizedExpression();
 
@@ -594,6 +642,18 @@ namespace alm.Core.SyntaxAnalysis
             if (!Match(tkRpar)) return new BinaryExpression(new MissingRpar(Lexer.CurrentToken));
             Lexer.GetNextToken();
             return node;
+        }
+
+        public StringConst ParseStringConst()
+        {
+            if (!Match(tkQuote)) return new StringConst(new ReservedSymbolExpected("\"", Lexer.CurrentToken));
+            Lexer.GetNextToken();
+            if (!Match(tkStringConst)) return new StringConst(new OnlyDebug("Ожидалась строка", Lexer.CurrentToken));
+            StringConst stringConst = new StringConst(Lexer.CurrentToken);
+            Lexer.GetNextToken();
+            if (!Match(tkQuote)) return new StringConst(new ReservedSymbolExpected("\"", Lexer.CurrentToken));
+            Lexer.GetNextToken();
+            return stringConst;
         }
 
         public bool Match(TokenType expectedType, int offset = 0)
@@ -724,19 +784,37 @@ namespace alm.Core.SyntaxAnalysis
         public Arguments Arguments { get; private set; }
         public InnerType Type { get; private set; }
 
+        public bool External { get; protected set; }
+        public string Package { get; protected set; }
+
         public override NodeType NodeType => NodeType.Function;
         public override ConsoleColor Color => ConsoleColor.DarkYellow;
 
-        public FunctionDeclaration(IdentifierExpression id, Arguments arguments, TypeExpression type, Body body, SourceContext context)
+        public FunctionDeclaration(IdentifierExpression identifierExpression, Arguments arguments, TypeExpression type, Body body, SourceContext context)
         {
+            this.External = false;
             this.Body = body;
-            this.Name = id.Name;
+            this.Name = identifierExpression.Name;
             this.Type = type.Type;
             this.Arguments = arguments;
             this.SourceContext = context;
             this.ArgumentCount = arguments.Nodes.Count;
 
             this.AddNodes(arguments, body);
+        }
+
+        //External case
+        public FunctionDeclaration(IdentifierExpression identifierExpression, Arguments arguments, TypeExpression type,string package, SourceContext context)
+        {
+            this.External = true;
+            this.Package = package;
+            this.Name = identifierExpression.Name;
+            this.Type = type.Type;
+            this.Arguments = arguments;
+            this.SourceContext = context;
+            this.ArgumentCount = arguments.Nodes.Count;
+
+            this.AddNodes(arguments);
         }
 
         public FunctionDeclaration(SyntaxError error)

@@ -85,7 +85,7 @@ namespace alm.Core.SyntaxAnalysis
                     }
                 }
                 else if (char.IsDigit(currentChar)) tokens.Add(RecognizeConst());
-                else if (char.IsLetter(currentChar)) tokens.Add(RecognizeIdent());
+                else if (char.IsLetter(currentChar) || currentChar == 64) tokens.Add(RecognizeIdent());
                 else if (char.IsWhiteSpace(currentChar)) GetNextChar();
                 else { tokens.Add(RecognizeSymbol()); GetNextChar(); }
             }
@@ -121,7 +121,7 @@ namespace alm.Core.SyntaxAnalysis
         {
             string ident = string.Empty;
             int start = charPos;
-            while (char.IsDigit(currentChar) || char.IsLetter(currentChar) || currentChar == 95)
+            while (char.IsDigit(currentChar) || char.IsLetter(currentChar) || currentChar == 95 || currentChar == 64)
             {
                 ident += currentChar.ToString();
                 currentCharIndex++;
@@ -244,6 +244,7 @@ namespace alm.Core.SyntaxAnalysis
                 case "func": return new Token(tkFunc, new Position(charPos - 4, charPos, linePos));
                 case "of":   return new Token(tkOf,   new Position(charPos - 2, charPos, linePos));
 
+                case "void":    return new Token(tkType, new Position(charPos - 4, charPos, linePos), "void");
                 case "float":   return new Token(tkType, new Position(charPos - 5, charPos, linePos), "float");
                 case "string":  return new Token(tkType, new Position(charPos - 6, charPos, linePos), "string");
                 case "boolean": return new Token(tkType, new Position(charPos - 7, charPos, linePos), "boolean");
@@ -251,6 +252,8 @@ namespace alm.Core.SyntaxAnalysis
 
                 case "import": return new Token(tkImport, new Position(charPos - 6, charPos, linePos));
                 case "global": return new Token(tkGlobal, new Position(charPos - 6, charPos, linePos));
+
+                case "@external": return new Token(tkExternalProp, new Position(charPos - 9, charPos, linePos));
 
                 case "return": return new Token(tkRet,          new Position(charPos - 6, charPos, linePos));
                 case "true":   return new Token(tkBooleanConst, new Position(charPos - 4, charPos, linePos), "true");

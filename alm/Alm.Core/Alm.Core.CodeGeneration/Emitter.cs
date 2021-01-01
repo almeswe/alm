@@ -11,8 +11,6 @@ using static alm.Core.Compiler.Compiler;
 
 namespace alm.Core.CodeGeneration.Emitter
 {
-    //10.12.20 yra bl9t'
-
     public sealed class Emitter
     {
         private static string exeName;
@@ -22,6 +20,7 @@ namespace alm.Core.CodeGeneration.Emitter
 
         private static List<MethodInfo> methods = new List<MethodInfo>();
         private static Dictionary<string, int> methodArgs = new Dictionary<string, int>();
+        private static Dictionary<FunctionDeclaration, string> externalMethods = new Dictionary<FunctionDeclaration, string>();
         private static Dictionary<string, LocalVariableInfo> methodLocals = new Dictionary<string, LocalVariableInfo>();
 
         private static void EmitBinaryExpression(ILGenerator methodIL, BinaryExpression binexpr)
@@ -130,10 +129,18 @@ namespace alm.Core.CodeGeneration.Emitter
 
             MethodInfo method = GetCreatedMethod(functionCall.Name);
 
-            foreach (var arg in functionCall.Arguments.Nodes) EmitExpression(methodIL, (Expression)arg);
+            foreach (var arg in functionCall.Arguments.Nodes) 
+                EmitExpression(methodIL, (Expression)arg);
 
-            methodIL.EmitCall(OpCodes.Call, method, null);
-            if (ReturnValueIsUseless(functionCall)) methodIL.Emit(OpCodes.Pop);
+            if (IsMethodExternal(functionCall.Name))
+                EmitExternalFunctionCall(methodIL, functionCall);
+
+            else 
+                methodIL.EmitCall(OpCodes.Call, method, null);
+            if (functionCall.Type.GetEquivalence() != typeof(void))
+                if (ReturnValueIsUseless(functionCall)) 
+                    methodIL.Emit(OpCodes.Pop);
+            //System.Math.Pow
         }
         private static void EmitFunctionDeclaration(FunctionDeclaration functionDeclaration)
         {
@@ -145,13 +152,21 @@ namespace alm.Core.CodeGeneration.Emitter
                 argTypes[i] = ((ArgumentDeclaration)functionDeclaration.Arguments.Nodes[i]).Type.GetEquivalence();
 
             MethodBuilder method  = module.DefineGlobalMethod(Name,MethodAttributes.Public | MethodAttributes.Static,returnType,argTypes);
-            methods.Add(method);
             ILGenerator methodIL = method.GetILGenerator();
+
+            methods.Add(method);
 
             for (int i = 0; i < functionDeclaration.Arguments.Nodes.Count; i++)
                 methodArgs.Add(((ArgumentDeclaration)functionDeclaration.Arguments.Nodes[i]).Name, i);
 
-            EmitBody(methodIL, functionDeclaration.Body);
+            if (!functionDeclaration.External)
+                EmitBody(methodIL, functionDeclaration.Body);
+            else
+                externalMethods.Add(functionDeclaration, functionDeclaration.Package);
+
+            methodIL.Emit(OpCodes.Nop);
+            if (returnType == typeof(void) || !functionDeclaration.External)
+                methodIL.Emit(OpCodes.Ret);
 
             methodArgs.Clear();
             methodLocals.Clear();
@@ -431,6 +446,15 @@ namespace alm.Core.CodeGeneration.Emitter
         }
 
         //
+        private static void EmitExternalFunctionCall(ILGenerator methodIL, FunctionCall functionCall)
+        {
+            Type type = Type.GetType(GetPackage(functionCall.Name));
+            FunctionDeclaration func = GetExternalMethod(functionCall.Name);
+            Type[] argTypes = new Type[func.ArgumentCount];
+            for (int i = 0; i < func.ArgumentCount;i++)
+                argTypes[i] = ((ArgumentDeclaration)func.Arguments.Nodes[i]).Type.GetEquivalence();
+            methodIL.EmitCall(OpCodes.Call,type.GetMethod(functionCall.Name,argTypes),null);
+        }
         private static bool EmitBaseFunction(ILGenerator methodIL, FunctionCall functionCall)
         {
             switch(functionCall.Name)
@@ -531,6 +555,34 @@ namespace alm.Core.CodeGeneration.Emitter
                     return arg.Value;
             return -1;
         }
+
+        private static bool IsMethodExternal(string methodName)
+        {
+            foreach (var name in externalMethods)
+                if (methodName == name.Key.Name)
+                    return true;
+
+            return false;
+        }
+
+        private static string GetPackage(string methodName)
+        {
+            foreach (var name in externalMethods)
+                if (methodName == name.Key.Name)
+                    return name.Value;
+
+            return string.Empty;
+        }
+
+        private static FunctionDeclaration GetExternalMethod(string methodName)
+        {
+            foreach (var name in externalMethods)
+                if (methodName == name.Key.Name)
+                    return name.Key;
+
+            return null;
+        }
+
         private static MethodInfo GetCreatedMethod(string methodName)
         {
             MethodInfo method = null;

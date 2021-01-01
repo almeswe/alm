@@ -36,7 +36,6 @@
         tkWhile,
         tkImport,
 
-
         tkLbra,
         tkRbra,
         tkLpar,
@@ -50,6 +49,7 @@
         tkColon,
         tkGlobal,
         tkSemicolon,
+        tkExternalProp,
 
         tkNull,
         tkEOF

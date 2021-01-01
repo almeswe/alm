@@ -388,18 +388,12 @@ namespace alm.Core.SemanticAnalysis
 
         public static void CastConstExpression(SyntaxTreeNode parent, ConstExpression constExpression, InnerType toType, CastCase castCase)
         {
-            if (castCase == CastCase.IntegerToFloat)
-            {
-                if (!CanCast(constExpression.Type, toType, false))
-                    return;
+            if (!CanCast(constExpression.Type, toType, false))
+                return;
 
-                IntegerConst integerConst = (IntegerConst)constExpression;
-                FloatConst floatConst = new FloatConst(integerConst.Value + ",0");
-                floatConst.Parent = integerConst.Parent;
-                floatConst.SourceContext = integerConst.SourceContext;
-                Replace(parent,integerConst,floatConst);
-            }
-            else throw new System.Exception($"??[{castCase}]");
+            FunctionCall pointFunctionCall = new FunctionCall(GetCastFunctionName(castCase), new Arguments(constExpression), constExpression.SourceContext);
+            pointFunctionCall.Type = toType;
+            Replace(parent, constExpression, pointFunctionCall);
         }
 
         public static void CastIdentifierCall(SyntaxTreeNode parent, IdentifierCall identifierCall, InnerType toType, CastCase castCase)

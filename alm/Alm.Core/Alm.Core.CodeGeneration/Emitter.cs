@@ -141,16 +141,18 @@ namespace alm.Core.CodeGeneration.Emitter
             Type returnType = functionDeclaration.Type.GetEquivalence();
             Type[] argTypes = functionDeclaration.ArgumentCount == 0? new Type[0] : new Type[functionDeclaration.ArgumentCount];
 
-            for (int i = 0; i < functionDeclaration.ArgumentCount; i++) argTypes[i] = ((ArgumentDeclaration)functionDeclaration.Arguments.Nodes[i]).Type.GetEquivalence();
+            for (int i = 0; i < functionDeclaration.ArgumentCount; i++) 
+                argTypes[i] = ((ArgumentDeclaration)functionDeclaration.Arguments.Nodes[i]).Type.GetEquivalence();
 
             MethodBuilder method  = module.DefineGlobalMethod(Name,MethodAttributes.Public | MethodAttributes.Static,returnType,argTypes);
+            methods.Add(method);
             ILGenerator methodIL = method.GetILGenerator();
 
-            for (int i = 0; i < functionDeclaration.Arguments.Nodes.Count; i++) methodArgs.Add(((ArgumentDeclaration)functionDeclaration.Arguments.Nodes[i]).Name, i);
+            for (int i = 0; i < functionDeclaration.Arguments.Nodes.Count; i++)
+                methodArgs.Add(((ArgumentDeclaration)functionDeclaration.Arguments.Nodes[i]).Name, i);
 
             EmitBody(methodIL, functionDeclaration.Body);
 
-            methods.Add(method);
             methodArgs.Clear();
             methodLocals.Clear();
         }

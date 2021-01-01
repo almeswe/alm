@@ -9,8 +9,8 @@
 
     public abstract class InnerType
     {
-        public virtual int Bytes => 0;
         public abstract string Representation { get; }
+
         public static InnerType GetFromString(string StringType)
         {
             switch (StringType.ToLower())
@@ -35,13 +35,6 @@
         }
         public override string ToString() => this.Representation;
 
-        public override bool Equals(object obj)
-        {
-            return obj is InnerType type &&
-                   Bytes == type.Bytes &&
-                   Representation == type.Representation;
-        }
-
         public static bool operator !=(InnerType fType, InnerType sType)
         {
             if (fType is null || sType is null) return false;
@@ -56,42 +49,42 @@
         }
     }
 
-    public class NumericType : InnerType
+    public abstract class NumericType : InnerType
     {
+        public abstract int CastPriority { get; }
+        public bool CanCast(NumericType toThisType)
+        {
+            if (this.CastPriority <= toThisType.CastPriority)
+                return true;
+            return false;
+        }
         public override string Representation => "numeric";
     }
 
     public sealed class Integer32 : NumericType
     {
-        public override int Bytes => 4;
+        public override int CastPriority => 1;
         public override string Representation => "integer";
-        public const int MaxValue = System.Int32.MaxValue;
-        public const int MinValue = System.Int32.MinValue;
     }
     public sealed class Float : NumericType
     {
-        public override int Bytes => 4;
+        public override int CastPriority => 2;
         public override string Representation => "float";
     }
     public sealed class String : InnerType
     {
-        private int _len;
-        public override int Bytes => _len;
         public override string Representation => "string";
     }
     public sealed class Boolean : InnerType
     {
-        public override int Bytes => 4;
         public override string Representation => "boolean";
     }
     public sealed class Void : InnerType
     {
-        public override int Bytes => 0;
         public override string Representation => "void";
     }
     public sealed class Underfined : InnerType
     {
-        public override int Bytes => 0;
         public override string Representation => "underfined";
     }
 }

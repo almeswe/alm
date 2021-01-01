@@ -1,10 +1,8 @@
 ﻿namespace alm.Other.InnerTypes
 {
-
     public interface IType
     {
         string Representation { get; set; }
-
     }
 
     public abstract class InnerType
@@ -19,7 +17,9 @@
                 case "boolean": return new Boolean();
                 case "string" : return new String();
                 case "float"  : return new Float();
-                default: return new Underfined();
+                case "void"   : return new Void();
+                default: 
+                    throw new System.Exception("");
             }
         }
         public System.Type GetEquivalence()
@@ -30,7 +30,9 @@
                 case "integer": return typeof(int);
                 case "boolean": return typeof(bool);
                 case "float"  : return typeof(float);
-                default : return null;
+                case "void"   : return typeof(void);
+                default :
+                    throw new System.Exception("");
             }
         }
         public override string ToString() => this.Representation;

@@ -10,13 +10,13 @@ namespace alm.Core.SemanticAnalysis
     {
         private static bool IsMainDeclared = false;
 
-        public static void ResolveProgram(AbstractSyntaxTree Ast)
+        public static void ResolveProgram(AbstractSyntaxTree ast)
         {
             IsMainDeclared = false;
             //foreach (GlobalDeclarationExpression globalDeclarationExpression in Ast.Root.GetChildsByType("GlobalDeclarationExpression", true))
             //    ResolveGlobalDeclarationExpression(globalDeclarationExpression, GlobalTable.Table);
 
-            foreach (FunctionDeclaration function in Ast.Root.GetChildsByType("FunctionDeclaration", true))
+            foreach (FunctionDeclaration function in ast.Root.GetChildsByType("FunctionDeclaration", true))
             {
                 ResolveMainFunction(function);
                 ResolveFunctionDeclaration(function, GlobalTable.Table);
@@ -25,23 +25,28 @@ namespace alm.Core.SemanticAnalysis
             if (!IsMainDeclared) Diagnostics.SemanticErrors.Add(new InExexutableFileMainExprected());
         }
 
-        public static void ResolveMainFunction(FunctionDeclaration FuncDecl)
+        public static void ResolveMainFunction(FunctionDeclaration functionDeclaration)
         {
-            if (FuncDecl.Name == "main")
-                if (FuncDecl.SourceContext.FilePath == CompilingSourceFile)
+            if (functionDeclaration.Name == "main")
+                if (functionDeclaration.SourceContext.FilePath == CompilingSourceFile)
                     if (!IsMainDeclared) IsMainDeclared = true;
         }
 
-        public static void ResolveFunctionDeclaration(FunctionDeclaration FuncDecl, Table Table)
+        public static void ResolveFunctionDeclaration(FunctionDeclaration functionDeclaration, Table Table)
         {
             Table ThisTable = Table.CreateTable(Table);
-            if (Table.PushFunction(FuncDecl))
+            if (Table.PushFunction(functionDeclaration))
             {
-                ResolveArguments(FuncDecl.Arguments, ThisTable);
-                ResolveBody(FuncDecl.Body, ThisTable);
-                if (!ResolveBlockForReturn(FuncDecl.Body)) Diagnostics.SemanticErrors.Add(new NotAllCodePathsReturnValue(FuncDecl.SourceContext));
+                ResolveArguments(functionDeclaration.Arguments, ThisTable);
+                if (!functionDeclaration.External)
+                {
+                    ResolveBody(functionDeclaration.Body, ThisTable);
+                    if (functionDeclaration.Type.GetEquivalence() != typeof(void))
+                        if (!ResolveBlockForReturn(functionDeclaration.Body)) 
+                            Diagnostics.SemanticErrors.Add(new NotAllCodePathsReturnValue(functionDeclaration.SourceContext));
+                }
             }
-            else Diagnostics.SemanticErrors.Add(new ThisFunctionAlreadyDeclared(FuncDecl.Name, FuncDecl.SourceContext));
+            else Diagnostics.SemanticErrors.Add(new ThisFunctionAlreadyDeclared(functionDeclaration.Name, functionDeclaration.SourceContext));
         }
 
         public static void ResolveBody(Body Body,Table Table)

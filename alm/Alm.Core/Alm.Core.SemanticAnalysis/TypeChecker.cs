@@ -65,6 +65,62 @@ namespace alm.Core.SemanticAnalysis
             if (!ErrorShownForBoolean) Diagnostics.SemanticErrors.Add(new IncompatibleConditionType(ConditionType,Node.SourceContext));
             return ConditionType;
         }
+
+        private static InnerType ResolveEqualityType(BooleanExpression booleanExpression, bool first = false, bool alreadyCasted = false)
+        {
+            InnerType LeftType = ResolveExpressionType((Expression)booleanExpression.Left);
+            InnerType RightType = ResolveExpressionType((Expression)booleanExpression.Right);
+
+            if (LeftType == RightType)
+                return new Boolean();
+            else
+            {
+                if (!alreadyCasted)
+                {
+                    TypeCaster.CastBooleanExpression(booleanExpression, TypeCaster.HigherPriorityType(RightType, LeftType), TypeCaster.DefineCastCase(RightType, LeftType));
+                    return ResolveEqualityType(booleanExpression, first, true);
+                }
+                if (!ErrorShownForBoolean) Diagnostics.SemanticErrors.Add(new IncompatibleBinaryExpressionType(LeftType, RightType, booleanExpression.SourceContext));
+                ErrorShownForBoolean = true;
+                return LeftType;
+            }
+        }
+
+        private static InnerType ResolveRelationType(BooleanExpression booleanExpression, bool first = false, bool alreadyCasted = false)
+        {
+            InnerType LeftType  = ResolveExpressionType((Expression)booleanExpression.Left);
+            InnerType RightType = ResolveExpressionType((Expression)booleanExpression.Right);
+
+            if (LeftType is NumericType && RightType is NumericType)
+                if (RightType == LeftType)
+                    return new Boolean();
+                else
+                {
+                    if (!alreadyCasted)
+                    {
+                        TypeCaster.CastBooleanExpression(booleanExpression, TypeCaster.HigherPriorityType(RightType, LeftType), TypeCaster.DefineCastCase(RightType, LeftType));
+                        return ResolveRelationType(booleanExpression, first, true);
+                    }
+                    if (!ErrorShownForBinary) Diagnostics.SemanticErrors.Add(new IncompatibleBinaryExpressionType(LeftType, RightType, booleanExpression.SourceContext));
+                    ErrorShownForBinary = true;
+                    return LeftType;
+                }
+
+            if (!(RightType is NumericType))
+            {
+                if (!ErrorShownForBoolean) Diagnostics.SemanticErrors.Add(new IncompatibleBooleanExpressionType(RightType, booleanExpression.Right.SourceContext));
+                ErrorShownForBoolean = true;
+                return RightType;
+            }
+            if (!(LeftType is NumericType))
+            {
+                if (!ErrorShownForBoolean) Diagnostics.SemanticErrors.Add(new IncompatibleBooleanExpressionType(LeftType, booleanExpression.Left.SourceContext));
+                ErrorShownForBoolean = true;
+                return LeftType;
+            }
+            return new Underfined();
+        }
+
         private static InnerType ResolveBooleanExpressionType(BooleanExpression booleanExpression, bool first = false)
         {
             InnerType LeftType;
@@ -92,33 +148,11 @@ namespace alm.Core.SemanticAnalysis
             if (ExpectedType is null)
             {
                 if (booleanExpression.Op == Equal || booleanExpression.Op == NotEqual)
-                {
-                    if (LeftType == RightType ) return new Boolean();
-                    if (!ErrorShownForBoolean) Diagnostics.SemanticErrors.Add(new IncompatibleBooleanExpressionType(LeftType, RightType, booleanExpression.SourceContext));
-                    ErrorShownForBoolean = true;
-                    return RightType;
-                }
+                    return ResolveEqualityType(booleanExpression,first);
                 ExpectedType = new Boolean();
                 if (LeftType == ExpectedType && RightType == ExpectedType) return new Boolean();
-
             }
-
-            if (LeftType is NumericType && RightType is NumericType) return new Boolean();
-
-            if (!(RightType is NumericType))
-            {
-                if (!ErrorShownForBoolean) Diagnostics.SemanticErrors.Add(new IncompatibleBooleanExpressionType(ExpectedType, RightType, booleanExpression.Right.SourceContext));
-                ErrorShownForBoolean = true;
-                return RightType;
-            }
-            else if (!(LeftType is NumericType))
-            {
-                if (!ErrorShownForBoolean) Diagnostics.SemanticErrors.Add(new IncompatibleBooleanExpressionType(ExpectedType, LeftType, booleanExpression.Left.SourceContext));
-                ErrorShownForBoolean = true;
-                return LeftType;
-            }
-
-            return new Underfined();
+            return ResolveRelationType(booleanExpression, first);
         }
 
         private static InnerType ResolveBinaryExpressionType(BinaryExpression binaryExpression,bool first = true,bool alreadyCasted = false)
@@ -140,7 +174,7 @@ namespace alm.Core.SemanticAnalysis
                     if (!alreadyCasted)
                     {
                         TypeCaster.CastBinaryExpression(binaryExpression,TypeCaster.HigherPriorityType(RightType,LeftType),TypeCaster.DefineCastCase(RightType, LeftType));
-                        return ResolveBinaryExpressionType(binaryExpression,true,true);
+                        return ResolveBinaryExpressionType(binaryExpression,first,true);
                     }
                     if (!ErrorShownForBinary) Diagnostics.SemanticErrors.Add(new IncompatibleBinaryExpressionType(LeftType, RightType, binaryExpression.SourceContext));
                     ErrorShownForBinary = true;
@@ -149,14 +183,14 @@ namespace alm.Core.SemanticAnalysis
 
             if (!(RightType is NumericType))
             {
-                if (!ErrorShownForBinary) Diagnostics.SemanticErrors.Add(new IncompatibleBinaryExpressionType(RightType,binaryExpression.SourceContext));
+                if (!ErrorShownForBinary) Diagnostics.SemanticErrors.Add(new IncompatibleBinaryExpressionType(RightType,binaryExpression.Right.SourceContext));
                 ErrorShownForBinary = true;
                 return RightType;
             }
-            else if (!(LeftType is NumericType))
+            if (!(LeftType is NumericType))
             {
-                if (!ErrorShownForBinary) Diagnostics.SemanticErrors.Add(new IncompatibleBinaryExpressionType(LeftType, binaryExpression.SourceContext));
-                ErrorShownForBinary = true;
+                if (!ErrorShownForBoolean) Diagnostics.SemanticErrors.Add(new IncompatibleBinaryExpressionType(LeftType, binaryExpression.Left.SourceContext));
+                ErrorShownForBoolean = true;
                 return LeftType;
             }
             return new Underfined();
@@ -168,6 +202,7 @@ namespace alm.Core.SemanticAnalysis
             else if (expression is IdentifierExpression) return ((IdentifierExpression)expression).Type;
             else if (expression is FunctionCall)         return ResolveFunctionCallType((FunctionCall)expression);
             else if (expression is BinaryExpression)     return ResolveBinaryExpressionType((BinaryExpression)expression, false);
+            else if (expression is BooleanExpression)    return ResolveBooleanExpressionType((BooleanExpression)expression,false);
             else                                         return ResolveNodeType(expression);
         }
 
@@ -197,7 +232,9 @@ namespace alm.Core.SemanticAnalysis
             InnerType ExpectedType = ((FunctionDeclaration)returnExpression.GetParentByType("FunctionDeclaration")).Type;
             InnerType RightType;
 
-            RightType = ResolveExpressionType((Expression)returnExpression.Right);
+            if (returnExpression.Right == null)
+                RightType = new Void();
+            else RightType = ResolveExpressionType((Expression)returnExpression.Right);
 
             if (ExpectedType != RightType)
             {
@@ -361,29 +398,14 @@ namespace alm.Core.SemanticAnalysis
 
         public static void CastBinaryExpression(BinaryExpression binaryExpression, InnerType toType, CastCase castCase)
         {
-            if (binaryExpression.Left is ConstExpression)
-                CastConstExpression(binaryExpression, (ConstExpression)binaryExpression.Left, toType, castCase);
+            CastExpression(binaryExpression.Left, toType, castCase);
+            CastExpression(binaryExpression.Right, toType, castCase);
+        }
 
-            else if (binaryExpression.Left is FunctionCall)
-                CastFunctionCall(binaryExpression, (FunctionCall)binaryExpression.Left, toType, castCase);
-
-            else if (binaryExpression.Left is IdentifierCall)
-                CastIdentifierCall(binaryExpression, (IdentifierCall)binaryExpression.Left,toType,castCase);
-
-            else if (binaryExpression.Left is BinaryExpression)
-                CastBinaryExpression((BinaryExpression)binaryExpression.Left, toType, castCase);
-
-            if (binaryExpression.Right is IntegerConst)
-                CastConstExpression(binaryExpression, (IntegerConst)binaryExpression.Right, toType, castCase);
-
-            else if (binaryExpression.Right is FunctionCall)
-                CastFunctionCall(binaryExpression, (FunctionCall)binaryExpression.Right, toType, castCase);
-
-            else if (binaryExpression.Right is IdentifierCall)
-                CastIdentifierCall(binaryExpression, (IdentifierCall)binaryExpression.Right, toType, castCase);
-
-            else if (binaryExpression.Right is BinaryExpression)
-                CastBinaryExpression((BinaryExpression)binaryExpression.Right, toType, castCase);
+        public static void CastBooleanExpression(BooleanExpression booleanExpression, InnerType toType, CastCase castCase)
+        {
+            CastExpression(booleanExpression.Left, toType, castCase);
+            CastExpression(booleanExpression.Right, toType, castCase);
         }
 
         public static void CastConstExpression(SyntaxTreeNode parent, ConstExpression constExpression, InnerType toType, CastCase castCase)

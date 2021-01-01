@@ -181,6 +181,7 @@ namespace alm.Core.Errors
     public sealed class IncompatibleBinaryExpressionType: SemanticError
     {
         public IncompatibleBinaryExpressionType(InnerType ExpectedType, InnerType Type, SourceContext Context) : base($"Несовместимые типы в бинарной операции, ожидался тип {ExpectedType.Representation}, а встеречен {Type.Representation}", Context) { }
+        public IncompatibleBinaryExpressionType(InnerType Type, SourceContext Context) : base($"Несовместимые типы в бинарной операции, ожидался числовой тип, а встеречен {Type.Representation}", Context) { }
     }
     public sealed class IncompatibleBooleanExpressionType : SemanticError
     {

@@ -59,10 +59,10 @@ namespace alm.Core.SemanticAnalysis
 
             SyntaxTreeNode Node = condition.Nodes[0];
 
-            ConditionType = ResolveBooleanExpressionType((BooleanExpression)condition.Nodes[0]);
+            ConditionType = ResolveExpressionType((Expression)condition.Nodes[0]);
 
             if (ConditionType == ExpectedType) return ExpectedType;
-            if (!ErrorShownForBoolean) Diagnostics.SemanticErrors.Add(new IncompatibleConditionType(ConditionType,Node.SourceContext));
+            if (!ErrorShownForBoolean) Diagnostics.SemanticErrors.Add(new IncompatibleConditionType(Node.SourceContext));
             return ConditionType;
         }
 
@@ -80,7 +80,7 @@ namespace alm.Core.SemanticAnalysis
                     TypeCaster.CastBooleanExpression(booleanExpression, TypeCaster.HigherPriorityType(RightType, LeftType), TypeCaster.DefineCastCase(RightType, LeftType));
                     return ResolveEqualityType(booleanExpression, first, true);
                 }
-                if (!ErrorShownForBoolean) Diagnostics.SemanticErrors.Add(new IncompatibleBinaryExpressionType(LeftType, RightType, booleanExpression.SourceContext));
+                if (!ErrorShownForBoolean) Diagnostics.SemanticErrors.Add(new IncompatibleBooleanExpressionType(LeftType, RightType, booleanExpression.SourceContext));
                 ErrorShownForBoolean = true;
                 return LeftType;
             }
@@ -101,7 +101,7 @@ namespace alm.Core.SemanticAnalysis
                         TypeCaster.CastBooleanExpression(booleanExpression, TypeCaster.HigherPriorityType(RightType, LeftType), TypeCaster.DefineCastCase(RightType, LeftType));
                         return ResolveRelationType(booleanExpression, first, true);
                     }
-                    if (!ErrorShownForBinary) Diagnostics.SemanticErrors.Add(new IncompatibleBinaryExpressionType(LeftType, RightType, booleanExpression.SourceContext));
+                    if (!ErrorShownForBinary) Diagnostics.SemanticErrors.Add(new IncompatibleBooleanExpressionType(LeftType, RightType, booleanExpression.SourceContext));
                     ErrorShownForBinary = true;
                     return LeftType;
                 }

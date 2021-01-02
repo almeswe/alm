@@ -13,7 +13,7 @@ namespace alm.Core.Compiler
 {
     public sealed class Compiler
     {
-        public static readonly string version = "v.1.1.1";
+        public static readonly string version = "v.1.2.0";
 
         public bool ErrorsOccured = false;
 
@@ -21,7 +21,7 @@ namespace alm.Core.Compiler
         public static string CompilingSourceFile;
         public static string CompilingDestinationPath;
 
-        public void CompileThis(string sourcePath, string binaryPath, bool run = true)
+        public void Compile(string sourcePath, string binaryPath, bool run = true)
         {
             CompilingSourceFile = CurrentParsingFile = sourcePath;
             CompilingDestinationPath = binaryPath;
@@ -34,7 +34,6 @@ namespace alm.Core.Compiler
 
                 AbstractSyntaxTree ast = new AbstractSyntaxTree();
                 ast.BuildTree(sourcePath);
-
                 CheckForErrors();
 
                 if (!ErrorsOccured)
@@ -77,7 +76,7 @@ namespace alm.Core.Compiler
         }
         private void CheckForErrors()
         {
-            if (Errors.Diagnostics.SyntaxErrors.Count != 0 || Errors.Diagnostics.SemanticErrors.Count != 0)
+            if (Errors.Diagnostics.SyntaxAnalysisFailed || Errors.Diagnostics.SemanticAnalysisFailed)
                 ErrorsOccured = true;
         }
     }

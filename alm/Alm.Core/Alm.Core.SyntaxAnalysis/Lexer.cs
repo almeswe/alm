@@ -84,10 +84,10 @@ namespace alm.Core.SyntaxAnalysis
                         GetNextChar();
                     }
                 }
-                else if (char.IsDigit(currentChar)) tokens.Add(RecognizeConst());
-                else if (char.IsLetter(currentChar) || currentChar == 64) tokens.Add(RecognizeIdent());
+                else if (CharForNumber()) tokens.Add(RecognizeConst());
+                else if (CharForIdentifier(true)) tokens.Add(RecognizeIdentifier());
                 else if (char.IsWhiteSpace(currentChar)) GetNextChar();
-                else { tokens.Add(RecognizeSymbol()); GetNextChar(); }
+                else    { tokens.Add(RecognizeSymbol()); GetNextChar(); }
             }
             reader.Close();
             if (!tokensCreated) tokensCreated = true;
@@ -99,7 +99,7 @@ namespace alm.Core.SyntaxAnalysis
             string num = string.Empty;
             int start = charPos;
             bool dot  = false;
-            while (char.IsDigit(currentChar) || currentChar == 46)
+            while (CharForNumber())
             {
                 if (currentChar == 46)
                 {
@@ -117,11 +117,11 @@ namespace alm.Core.SyntaxAnalysis
                 return new Token(tkFloatConst, new Position(start, end, linePos), num);
             return new Token(tkIntConst, new Position(start, end, linePos), num);
         }
-        private Token RecognizeIdent()
+        private Token RecognizeIdentifier()
         {
             string ident = string.Empty;
-            int start = charPos;
-            while (char.IsDigit(currentChar) || char.IsLetter(currentChar) || currentChar == 95 || currentChar == 64)
+            int start    = charPos;
+            while (CharForIdentifier())
             {
                 ident += currentChar.ToString();
                 currentCharIndex++;
@@ -131,22 +131,19 @@ namespace alm.Core.SyntaxAnalysis
             if (!Token.IsNull(GetReservedWord(ident))) return GetReservedWord(ident);
             return new Token(tkId, new Position(start, end, linePos), ident);
         }
-
         private Token RecognizeString()
         {
             string str = string.Empty;
-            int line = this.linePos;
+            int line = linePos;
             int start = charPos;
-            while (currentChar != 34 && currentChar != chEOF)
+            while (CharForString(line))
             {
-                if (line != this.linePos) break;
                 str += currentChar.ToString();
                 currentCharIndex++;
                 GetNextChar();
             }
             return new Token(tkStringConst, new Position(start, start+str.Length, line), str);
         }
-
         private Token RecognizeSymbol()
         {
             switch (currentChar)
@@ -215,6 +212,7 @@ namespace alm.Core.SyntaxAnalysis
                     }
                     return new Token(tkDiv,   new Position(charPos, charPos + 1, linePos));
 
+                case '@': return new Token(tkAt,        new Position(charPos, charPos + 1, linePos));
                 case ';': return new Token(tkSemicolon, new Position(charPos, charPos + 1, linePos));
                 case ':': return new Token(tkColon,     new Position(charPos, charPos + 1, linePos));
                 case '(': return new Token(tkLpar,      new Position(charPos, charPos + 1, linePos));
@@ -253,7 +251,7 @@ namespace alm.Core.SyntaxAnalysis
                 case "import": return new Token(tkImport, new Position(charPos - 6, charPos, linePos));
                 case "global": return new Token(tkGlobal, new Position(charPos - 6, charPos, linePos));
 
-                case "@external": return new Token(tkExternalProp, new Position(charPos - 9, charPos, linePos));
+                case "external": return new Token(tkExternalProp, new Position(charPos - 8, charPos, linePos));
 
                 case "return": return new Token(tkRet,          new Position(charPos - 6, charPos, linePos));
                 case "true":   return new Token(tkBooleanConst, new Position(charPos - 4, charPos, linePos), "true");
@@ -304,6 +302,30 @@ namespace alm.Core.SyntaxAnalysis
                 }
             }
 
+        }
+
+        public bool CharForIdentifier(bool isFirstSymbol = false)
+        {
+            if (char.IsDigit(currentChar))
+                if (!isFirstSymbol)
+                    return true;
+            if (char.IsLetter(currentChar) || currentChar == '_')
+                return true;
+            return false;
+        }
+
+        public bool CharForNumber()
+        {
+           return (char.IsDigit(currentChar) || currentChar == '.') ? true : false;
+        }
+
+        public bool CharForString(int linePos,bool firstQuote = false)
+        {
+            if (currentChar == '"' && !firstQuote) 
+                return false;
+            if (this.linePos != linePos)
+                return false;
+            return true;
         }
     }
 }

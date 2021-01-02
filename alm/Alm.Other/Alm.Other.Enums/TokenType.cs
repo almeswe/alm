@@ -36,19 +36,20 @@
         tkWhile,
         tkImport,
 
+        tkAt, //@
         tkLbra,
         tkRbra,
         tkLpar,
         tkRpar,
-
-        tkId,
-        tkOf,
         tkFunc,
         tkComma,
         tkQuote,
         tkColon,
-        tkGlobal,
         tkSemicolon,
+
+        tkId,
+        tkOf,
+        tkGlobal,
         tkExternalProp,
 
         tkNull,

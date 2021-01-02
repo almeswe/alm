@@ -17,9 +17,9 @@ namespace alm.Core.VariableTable
 
         private static IReadOnlyList<Function> BaseFunctions = new List<Function>()
         {
-            new Function("println",new Integer32(),new Argument[]{ new Argument("message",new String(),1) }, 1),
+            /*new Function("println",new Integer32(),new Argument[]{ new Argument("message",new String(),1) }, 1),
             new Function("print",new Integer32(),new Argument[]{ new Argument("message", new String(),1) }, 1),
-            new Function("input",new String(),new Argument[]{ }, 1),
+            new Function("input",new String(),new Argument[]{ }, 1),*/
 
             new Function("tostr",new String(),new Argument[]{ new Argument("num", new Integer32(),1) }, 1),
             new Function("tostrf",new String(),new Argument[]{ new Argument("num", new Float(),1) }, 1),
@@ -29,142 +29,142 @@ namespace alm.Core.VariableTable
             new Function("toint",new Integer32(),new Argument[]{ new Argument("str", new String(),1) }, 1),
         };
 
-        public Table(Table PuttedIn, int Level)
+        public Table(Table puttedIn, int level)
         {
-            this.PuttedIn = PuttedIn;
-            this.Level = Level;
+            this.PuttedIn = puttedIn;
+            this.Level = level;
         }
 
-        public bool PushIdentifier(IdentifierExpression id)
+        public bool PushIdentifier(IdentifierExpression identifierExpression)
         {
-            if (!CheckIdentifier(id))
+            if (!CheckIdentifier(identifierExpression))
             {
-                this.Identifiers.Add(new Identifier(id.Name, id.Type, this.Level));
+                this.Identifiers.Add(new Identifier(identifierExpression.Name, identifierExpression.Type, this.Level));
                 return true;
             }
             return false;
         }
-        public bool PushFunction(FunctionDeclaration func)
+        public bool PushFunction(FunctionDeclaration functionDeclaration)
         {
-            if (!CheckFunction(func))
+            if (!CheckFunction(functionDeclaration))
             {
                 List<Argument> Args = new List<Argument>();
-                for (int i = 0;i < func.Arguments.Nodes.Count; i++)
-                    Args.Add(new Argument(((ArgumentDeclaration)func.Arguments.Nodes[i]).Name,((ArgumentDeclaration)func.Arguments.Nodes[i]).Type,i+1));
+                for (int i = 0;i < functionDeclaration.Arguments.Nodes.Count; i++)
+                    Args.Add(new Argument(((ArgumentDeclaration)functionDeclaration.Arguments.Nodes[i]).Name,((ArgumentDeclaration)functionDeclaration.Arguments.Nodes[i]).Type,i+1));
 
-                Functions.Add(new Function(func.Name,func.Type,Args.ToArray(),this.Level));
+                Functions.Add(new Function(functionDeclaration.Name,functionDeclaration.Type,Args.ToArray(),this.Level));
                 return true;
             }
             return false;
         }
 
-        public Function FetchFunction(FunctionCall func)
+        public Function FetchFunction(FunctionCall functionCall)
         {
             for (Table table = this; table != null; table = table.PuttedIn)
                 foreach (Function Function in table.Functions)
-                    if (Function.Name == func.Name) return Function;
+                    if (Function.Name == functionCall.Name) return Function;
             return null;
         }
-        public Function FetchFunction(Function func)
+        public Function FetchFunction(Function functionCall)
         {
             for (Table table = this; table != null; table = table.PuttedIn)
                 foreach (Function Function in table.Functions)
-                    if (Function.Name == func.Name) return Function;
+                    if (Function.Name == functionCall.Name) return Function;
             return null;
         }
-        public Identifier FetchIdentifier(IdentifierExpression id)
+        public Identifier FetchIdentifier(IdentifierExpression identifierExpression)
         {
             for (Table table = this; table != null; table = table.PuttedIn)
                 foreach (Identifier var in table.Identifiers)
-                    if (var.Name == id.Name) return var;
+                    if (var.Name == identifierExpression.Name) return var;
             return null;
         }
 
-        public void SetGlobalInitialization(IdentifierExpression id)
+        public void SetGlobalInitialization(IdentifierExpression identifierExpression)
         {
-            Identifier identifier = FetchIdentifier(id);
+            Identifier identifier = FetchIdentifier(identifierExpression);
             if (identifier != null) identifier.IsGloballyInitialized = true;
         }
 
-        public void SetLocalBlockInitialization(IdentifierExpression id,Body Block)
+        public void SetLocalBlockInitialization(IdentifierExpression identifierExpression,Body block)
         {
-            Identifier identifier = FetchIdentifier(id);
+            Identifier identifier = FetchIdentifier(identifierExpression);
             if (identifier != null)
             {
-                if (Block == null)
+                if (block == null)
                     identifier.IsGloballyInitialized = true;
-                else identifier.InitializedBlocks.Add(Block);
+                else identifier.InitializedBlocks.Add(block);
             }
         }
 
-        public bool IsGloballyInitialized(IdentifierExpression id)
+        public bool IsGloballyInitialized(IdentifierExpression identifierExpression)
         {
-            return this.FetchIdentifier(id).IsGloballyInitialized ? true : false;
+            return this.FetchIdentifier(identifierExpression).IsGloballyInitialized ? true : false;
         }
 
-        public bool IsInitializedInBlock(IdentifierExpression id,Body Block)
+        public bool IsInitializedInBlock(IdentifierExpression identifierExpression,Body block)
         {
-            Identifier identifier = this.FetchIdentifier(id);
+            Identifier identifier = this.FetchIdentifier(identifierExpression);
             if (identifier.IsGloballyInitialized) return true;
-            return identifier.InitializedBlocks.Contains(Block) ? true : false;
+            return identifier.InitializedBlocks.Contains(block) ? true : false;
         }
 
-        public void AddTable(Table Table) => this.ThisContains.Add(Table);
+        public void AddTable(Table table) => this.ThisContains.Add(table);
 
-        public bool CheckFunction(FunctionCall func)
+        public bool CheckFunction(FunctionCall functionCall)
         {
             foreach (Function Function in BaseFunctions)
-                if (Function.Name == func.Name) return true;
+                if (Function.Name == functionCall.Name) return true;
             for (Table table = this; table != null; table = table.PuttedIn)
                 foreach (Function Function in table.Functions)
-                    if (Function.Name == func.Name) return true;
+                    if (Function.Name == functionCall.Name) return true;
             return false;
         }
-        public bool CheckFunction(FunctionDeclaration func)
+        public bool CheckFunction(FunctionDeclaration functionDeclaration)
         {
             foreach (Function Function in BaseFunctions)
-                if (Function.Name == func.Name) return true;
+                if (Function.Name == functionDeclaration.Name) return true;
             for (Table table = this; table != null; table = table.PuttedIn)
                 foreach (Function Function in table.Functions)
-                    if (Function.Name == func.Name) return true;
+                    if (Function.Name == functionDeclaration.Name) return true;
             return false;
         }
-        public bool CheckFunction(Function func)
+        public bool CheckFunction(Function functionCall)
         {
             foreach (Function Function in BaseFunctions)
-                if (Function.Name == func.Name) return true;
+                if (Function.Name == functionCall.Name) return true;
             for (Table table = this; table != null; table = table.PuttedIn)
                 foreach (Function Function in table.Functions)
-                    if (Function.Name == func.Name) return true;
+                    if (Function.Name == functionCall.Name) return true;
             return false;
         }
 
-        public bool CheckIdentifier(IdentifierExpression id)
+        public bool CheckIdentifier(IdentifierExpression identifierExpression)
         {
             for (Table table = this; table != null; table = table.PuttedIn)
                 foreach (Identifier var in table.Identifiers)
-                    if (var.Name == id.Name) return true;
+                    if (var.Name == identifierExpression.Name) return true;
             return false;
         }
-        public bool CheckIdentifier(Identifier id)
+        public bool CheckIdentifier(Identifier identifier)
         {
             for (Table table = this; table != null; table = table.PuttedIn)
                 foreach (Identifier var in table.Identifiers)
-                    if (var.Name == id.Name) return true;
+                    if (var.Name == identifier.Name) return true;
             return false;
         }
 
-        public static Table CreateTable(Table PuttedIn, int Level)
+        public static Table CreateTable(Table puttedIn, int level)
         {
             // level = 1 принимается как глобалтная таблица
-            Table table = new Table(PuttedIn, Level);
-            if (Level == 1) table.Functions.AddRange(BaseFunctions);
+            Table table = new Table(puttedIn, level);
+            if (level == 1) table.Functions.AddRange(BaseFunctions);
             return table;
         }
-        public static Table CreateTable(Table PuttedIn)
+        public static Table CreateTable(Table puttedIn)
         {
-            Table table = new Table(PuttedIn, PuttedIn.Level + 1);
-            PuttedIn.AddTable(table);
+            Table table = new Table(puttedIn, puttedIn.Level + 1);
+            puttedIn.AddTable(table);
             return table;
         }
     }
@@ -178,43 +178,42 @@ namespace alm.Core.VariableTable
         public bool IsGloballyInitialized   { get; set; } = false;
         public List<Body> InitializedBlocks { get; set; } = new List<Body>();
 
-        public Identifier(string Name, InnerType Type, int Level)
+        public Identifier(string name, InnerType type, int level)
         {
-            this.Name  = Name;
-            this.Type  = Type;
-            this.Level = Level;
+            this.Name  = name;
+            this.Type  = type;
+            this.Level = level;
         }
     }
     public sealed class Function
     {
         public int Level    { get; private set; }
         public int ArgumentCount { get; private set; }
-
         public string Name  { get; private set; }
 
         public InnerType ReturnType      { get; private set; }
         public Argument[] Arguments { get; private set; }
 
-        public Function(string Name, InnerType ReturnType, Argument[] Arguments, int Level)
+        public Function(string name, InnerType type, Argument[] arguments, int level)
         {
-            this.Name       = Name;
-            this.Level      = Level;
-            this.Arguments  = Arguments;
-            this.ReturnType = ReturnType;
-            this.ArgumentCount = Arguments.Length;
+            this.Name       = name;
+            this.Level      = level;
+            this.Arguments  = arguments;
+            this.ReturnType = type;
+            this.ArgumentCount = arguments.Length;
         }
     }
     public sealed class Argument
     {
         public InnerType Type { get; set; }
-        public int Position { get; private set; } // Позиция по счету, хз нужна ли будет
+        public int Position { get; private set; } 
         public string Name { get; private set; }
 
-        public Argument(string Name, InnerType Type, int Position)
+        public Argument(string name, InnerType type, int position)
         {
-            this.Type = Type;
-            this.Name = Name;
-            this.Position = Position;
+            this.Type = type;
+            this.Name = name;
+            this.Position = position;
         }
     }
 

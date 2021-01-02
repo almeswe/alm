@@ -1,4 +1,6 @@
-﻿namespace alm.Other.InnerTypes
+﻿using System;
+
+namespace alm.Other.InnerTypes
 {
     public interface IType
     {
@@ -8,7 +10,21 @@
     public abstract class InnerType
     {
         public abstract string Representation { get; }
+        public virtual bool PossibleAsVariableType { get; protected set; } = true;
 
+        public Type GetEquivalence()
+        {
+            switch (this.Representation.ToLower())
+            {
+                case "string": return typeof(string);
+                case "integer": return typeof(int);
+                case "boolean": return typeof(bool);
+                case "float": return typeof(float);
+                case "void": return typeof(void);
+                default:
+                    throw new System.Exception("");
+            }
+        }
         public static InnerType GetFromString(string StringType)
         {
             switch (StringType.ToLower())
@@ -22,19 +38,7 @@
                     throw new System.Exception("");
             }
         }
-        public System.Type GetEquivalence()
-        {
-            switch(this.Representation.ToLower())
-            {
-                case "string" : return typeof(string);
-                case "integer": return typeof(int);
-                case "boolean": return typeof(bool);
-                case "float"  : return typeof(float);
-                case "void"   : return typeof(void);
-                default :
-                    throw new System.Exception("");
-            }
-        }
+
         public override string ToString() => this.Representation;
 
         public static bool operator !=(InnerType fType, InnerType sType)
@@ -54,12 +58,14 @@
     public abstract class NumericType : InnerType
     {
         public abstract int CastPriority { get; }
+
         public bool CanCast(NumericType toThisType)
         {
             if (this.CastPriority <= toThisType.CastPriority)
                 return true;
             return false;
         }
+
         public override string Representation => "numeric";
     }
 
@@ -84,6 +90,7 @@
     public sealed class Void : InnerType
     {
         public override string Representation => "void";
+        public override bool PossibleAsVariableType => false;
     }
     public sealed class Underfined : InnerType
     {

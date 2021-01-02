@@ -130,14 +130,7 @@ namespace alm.Core.SyntaxAnalysis
 
             if (Match(tkQuote))
             {
-                Lexer.GetNextToken();
-                if (!Match(tkStringConst)) return new ImportExpression(new OnlyDebug("Ожидалась строка", Lexer.CurrentToken));
-                StringConst stringImport = new StringConst(Lexer.CurrentToken);
-                Lexer.GetNextToken();
-                if (!Match(tkQuote)) return new ImportExpression(new ReservedSymbolExpected("\"", Lexer.CurrentToken));
-                Lexer.GetNextToken();
-                if (!Match(tkSemicolon)) return new ImportExpression(new MissingSemi(Lexer.PreviousToken));
-                Lexer.GetNextToken();
+                StringConst stringImport = ParseStringConst();
                 return Import(stringImport);
             }
             else if (Match(tkId))
@@ -153,6 +146,8 @@ namespace alm.Core.SyntaxAnalysis
         }
         public SyntaxTreeNode ParseExternalFunctionDeclaration()
         {
+            Lexer.GetNextToken();
+            if (!Match(tkExternalProp)) return new FunctionDeclaration(new ReservedWordExpected("external", Lexer.CurrentToken));
             SourceContext funccontext = new SourceContext();
             Lexer.GetNextToken();
             StringConst packageName = ParseStringConst();
@@ -213,8 +208,7 @@ namespace alm.Core.SyntaxAnalysis
         {
             SourceContext funccontext = new SourceContext();
 
-            if (Match(tkExternalProp)) return ParseExternalFunctionDeclaration();
-
+            if (Match(tkAt)) return ParseExternalFunctionDeclaration();
             if (!Match(tkFunc)) return new FunctionDeclaration(new ReservedWordExpected("func", Lexer.CurrentToken));
             funccontext.StartsAt = new Position(Lexer.CurrentToken);
             Lexer.GetNextToken();
@@ -282,13 +276,6 @@ namespace alm.Core.SyntaxAnalysis
             return new FunctionDeclaration(funcname, args, functype, funcbody, funccontext);
         }
 
-        /*public SyntaxTreeNode ParseGlobalDeclaration()
-        {
-            if (!Match(tkGlobal)) return new GlobalDeclarationExpression(new ReservedWordExpected("global",Lexer.CurrentToken));
-            Lexer.GetNextToken();
-            return new GlobalDeclarationExpression(ParseVariableDeclaration());
-        }*/
-
         public SyntaxTreeNode ParseVariableDeclaration()
         {
             if (!Match(tkType)) return new DeclarationExpression(new TypeExpected(Lexer.CurrentToken));
@@ -315,7 +302,7 @@ namespace alm.Core.SyntaxAnalysis
                 Lexer.GetNextToken();
                 return new DeclarationExpression(idType, id);
             }
-            else return new DeclarationExpression(new OnlyDebug("Ожидался символ [=] или [;]", Lexer.CurrentToken));
+            else return new DeclarationExpression(new ErrorMessage("Ожидался символ [=] или [;]", Lexer.CurrentToken));
         }
         public SyntaxTreeNode ParseAssignmentExpression()
         {
@@ -327,7 +314,7 @@ namespace alm.Core.SyntaxAnalysis
                 !Match(tkMultAssign) &&
                 !Match(tkDivAssign)  &&
                 !Match(tkSubAssign)) 
-                return new AssignmentExpression(new ReservedSymbolExpected("=,+=,-=,*=,/=", Lexer.CurrentToken));
+                return new AssignmentExpression(new ErrorMessage("Ожидался символ присваивания", Lexer.CurrentToken));
 
             Lexer.GetNextToken();
             AssignmentExpression assign = new AssignmentExpression(id,GetOperatorFromTokenType(Lexer.PreviousToken.TokenType),ParseExpression());
@@ -347,7 +334,7 @@ namespace alm.Core.SyntaxAnalysis
                 case tkType: return ParseVariableDeclaration();
                 case tkRet:  return ParseReturnExpression();
 
-                default: return new ReturnExpression(new OnlyDebug("Ожидалось выражение", Lexer.CurrentToken));
+                default: return new ReturnExpression(new ErrorMessage("Ожидалось выражение", Lexer.CurrentToken));
             }
         }
         public SyntaxTreeNode ParseIdentifierExpression()
@@ -394,7 +381,11 @@ namespace alm.Core.SyntaxAnalysis
             if (!Match(tkRet)) return new ReturnExpression(new ReservedWordExpected("return", Lexer.CurrentToken));
             retcontext.StartsAt = new Position(Lexer.CurrentToken);
             Lexer.GetNextToken();
-            SyntaxTreeNode Expression = ParseExpression();
+            SyntaxTreeNode Expression;
+            if (Match(tkSemicolon)) 
+                Expression = null;
+            else
+                Expression = ParseExpression();
             retcontext.EndsAt = new Position(Lexer.CurrentToken);
             if (!Match(tkSemicolon)) return new ReturnExpression(new MissingSemi(Lexer.PreviousToken));
             Lexer.GetNextToken();
@@ -607,7 +598,7 @@ namespace alm.Core.SyntaxAnalysis
                     return node;
 
                 case tkMinus:
-                    if (Match(tkMinus, -1)) return new BinaryExpression(new OnlyDebug("Возможно добавление только одного унарного минуса.",Lexer.CurrentToken));
+                    if (Match(tkMinus, -1)) return new BinaryExpression(new ErrorMessage("Возможно добавление только одного унарного минуса.",Lexer.CurrentToken));
                     Lexer.GetNextToken();
                     return new BinaryExpression(new IntegerConst("-1"), Operator.Multiplication, ParseFactor());
 
@@ -631,7 +622,7 @@ namespace alm.Core.SyntaxAnalysis
 
                 case tkLpar: return ParseParentisizedExpression();
 
-                default: return new BinaryExpression(new OnlyDebug("Ожидалось число,переменная,или выражение в скобках", Lexer.CurrentToken));
+                default: return new BinaryExpression(new ErrorMessage("Ожидалось число,переменная,или выражение в скобках", Lexer.CurrentToken));
             }
         }
         public SyntaxTreeNode ParseParentisizedExpression()
@@ -648,7 +639,7 @@ namespace alm.Core.SyntaxAnalysis
         {
             if (!Match(tkQuote)) return new StringConst(new ReservedSymbolExpected("\"", Lexer.CurrentToken));
             Lexer.GetNextToken();
-            if (!Match(tkStringConst)) return new StringConst(new OnlyDebug("Ожидалась строка", Lexer.CurrentToken));
+            if (!Match(tkStringConst)) return new StringConst(new ErrorMessage("Ожидалась строка.", Lexer.CurrentToken));
             StringConst stringConst = new StringConst(Lexer.CurrentToken);
             Lexer.GetNextToken();
             if (!Match(tkQuote)) return new StringConst(new ReservedSymbolExpected("\"", Lexer.CurrentToken));
@@ -750,6 +741,7 @@ namespace alm.Core.SyntaxAnalysis
         }
         public override string ToConsoleString() => $"[{Filename}]";
     }
+
     public class Body : SyntaxTreeNode
     {
         public override NodeType NodeType  => NodeType.Body;
@@ -758,12 +750,14 @@ namespace alm.Core.SyntaxAnalysis
         public Body(SyntaxTreeNode body) => this.AddNode(body);
         public Body() { }
     }
+
     public class Condition : SyntaxTreeNode
     {
         public override NodeType NodeType  => NodeType.Condition;
         public override ConsoleColor Color => this.Parent.Color;
         public Condition(SyntaxTreeNode condition) => this.AddNode(condition);
     }
+
     public class Arguments : SyntaxTreeNode
     {
         public override NodeType NodeType  => NodeType.Arguments;
@@ -771,6 +765,7 @@ namespace alm.Core.SyntaxAnalysis
         public Arguments(SyntaxTreeNode arguments) => this.AddNode(arguments);
         public Arguments() { }
     }
+
     public class ElseBody : Body
     {
         public override NodeType NodeType => NodeType.ElseBody;
@@ -784,7 +779,7 @@ namespace alm.Core.SyntaxAnalysis
         public Arguments Arguments { get; private set; }
         public InnerType Type { get; private set; }
 
-        public bool External { get; protected set; }
+        public bool External  { get; protected set; }
         public string Package { get; protected set; }
 
         public override NodeType NodeType => NodeType.Function;
@@ -823,8 +818,9 @@ namespace alm.Core.SyntaxAnalysis
             Diagnostics.SyntaxErrors.Add(error);
         }
 
-        public override string ToConsoleString() => $"{Name}:{Type.Representation}:[func decl]";
+        public override string ToConsoleString() => $"{Name}:{Type.Representation}:[decl]" + (External ? ":[external]":"");
     }
+
     public sealed class FunctionCall : Expression , ITypeable
     {
         public override NodeType NodeType  => NodeType.FunctionCall;
@@ -851,8 +847,9 @@ namespace alm.Core.SyntaxAnalysis
             Diagnostics.SyntaxErrors.Add(error);
         }
 
-        public override string ToConsoleString() => $"{Name}:{Type}:[func call]";
+        public override string ToConsoleString() => $"{Name}:{Type}:[call]";
     }
+
     public sealed class ImportExpression : Expression
     {
         public string ImportPath { get; private set; }
@@ -887,6 +884,7 @@ namespace alm.Core.SyntaxAnalysis
             Diagnostics.SyntaxErrors.Add(error);
         }
     }
+
     public sealed class ArgumentDeclaration : Expression
     {
         public string Name;
@@ -912,22 +910,23 @@ namespace alm.Core.SyntaxAnalysis
         }
     }
 
-    public abstract class Statement : SyntaxTreeNode
+    public abstract class Statement : SyntaxTreeNode 
     {
         public Body Body           { get; protected set; }
         public ElseBody ElseBody   { get; protected set; }
         public Condition Condition { get; protected set; }
         public override ConsoleColor Color => ConsoleColor.Blue;
     }
+
     public sealed class IfStatement : Statement
     {
-        private NodeType _type;
+        private NodeType type;
 
-        public override NodeType NodeType => _type;
+        public override NodeType NodeType => type;
 
         public IfStatement(Condition condition, Body body, SourceContext context)
         {
-            _type = NodeType.If;
+            type = NodeType.If;
             this.SourceContext = context;
             this.Condition = condition;
             this.Body = body;
@@ -935,7 +934,7 @@ namespace alm.Core.SyntaxAnalysis
         }
         public IfStatement(IfStatement ifStatement, ElseBody elseBody, SourceContext context)
         {
-            _type = NodeType.IfElse;
+            type = NodeType.IfElse;
             this.SourceContext = context;
             this.Body = ifStatement.Body;
             this.Condition = ifStatement.Condition;
@@ -949,6 +948,7 @@ namespace alm.Core.SyntaxAnalysis
             Diagnostics.SyntaxErrors.Add(error);
         }
     }
+
     public sealed class WhileStatement : Statement
     {
         public override NodeType NodeType => NodeType.While;
@@ -967,6 +967,7 @@ namespace alm.Core.SyntaxAnalysis
             Diagnostics.SyntaxErrors.Add(error);
         }
     }
+
     public sealed class DoWhileStatement : Statement
     {
         public override NodeType NodeType => NodeType.Do;
@@ -992,6 +993,7 @@ namespace alm.Core.SyntaxAnalysis
         public SyntaxTreeNode Right { get; set; }
         public override ConsoleColor Color => ConsoleColor.DarkCyan;
     }
+
     public class IdentifierExpression : Expression, ITypeable
     {
         public string Name { get; private set; }
@@ -1011,6 +1013,7 @@ namespace alm.Core.SyntaxAnalysis
             this.Name = token.Value;
             SetSourceContext(token);
             this.Type = type;
+            //if (!type.PossibleAsVariableType) Diagnostics.SyntaxErrors.Add(new );
         }
 
         public IdentifierExpression(SyntaxError error)
@@ -1021,6 +1024,7 @@ namespace alm.Core.SyntaxAnalysis
 
         public override string ToConsoleString() => $"{Name}:{Type}";
     }
+
     public sealed class IdentifierDeclaration : IdentifierExpression
     {
         public IdentifierDeclaration(Token token)                 : base(token) { }
@@ -1030,6 +1034,7 @@ namespace alm.Core.SyntaxAnalysis
 
         public override string ToConsoleString() => base.ToConsoleString() + ":[decl]";
     }
+
     public sealed class IdentifierCall : IdentifierExpression
     {
         public IdentifierCall(Token token)                 : base(token) { }
@@ -1039,6 +1044,7 @@ namespace alm.Core.SyntaxAnalysis
 
         public override string ToConsoleString() => base.ToConsoleString() + ":[call]";
     }
+
     public abstract class ConstExpression : Expression, ITypeable
     {
         public string Value { get; protected set; }
@@ -1046,6 +1052,7 @@ namespace alm.Core.SyntaxAnalysis
 
         public override string ToConsoleString() => $"{Value}:{Type}";
     }
+
     public sealed class FloatConst : ConstExpression
     {
         public override NodeType NodeType => NodeType.FloatConstant;
@@ -1096,17 +1103,17 @@ namespace alm.Core.SyntaxAnalysis
     }
     public sealed class BooleanConst : ConstExpression
     {
-        private NodeType _type;
+        private NodeType type;
 
-        public override NodeType NodeType  => _type;
+        public override NodeType NodeType  => type;
         public override ConsoleColor Color => ConsoleColor.Green;
 
         public override InnerType Type => new Other.InnerTypes.Boolean();
 
         public BooleanConst(Token token)
         {
-            if      (token.Value == "true")  _type = NodeType.True;
-            else if (token.Value == "false") _type = NodeType.False;
+            if      (token.Value == "true")  type = NodeType.True;
+            else if (token.Value == "false") type = NodeType.False;
 
             this.SetSourceContext(token);
             this.Value = token.Value;
@@ -1180,20 +1187,20 @@ namespace alm.Core.SyntaxAnalysis
 
     public sealed class BinaryExpression : Expression
     {
-        private NodeType _type;
-        private ConsoleColor _color;
+        private NodeType type;
+        private ConsoleColor color;
 
-        public override NodeType NodeType  => _type;
-        public override ConsoleColor Color => _color;
+        public override NodeType NodeType  => type;
+        public override ConsoleColor Color => color;
 
         public BinaryExpression(SyntaxTreeNode left, Operator op, SyntaxTreeNode right)
         {
             switch (op)
             {
-                case Operator.Plus:           _type = NodeType.Addition;       _color = ConsoleColor.DarkYellow; break;
-                case Operator.Minus:          _type = NodeType.Substraction;   _color = ConsoleColor.DarkYellow; break;
-                case Operator.Multiplication: _type = NodeType.Multiplication; _color = ConsoleColor.Yellow;     break;
-                case Operator.Division:       _type = NodeType.Division;       _color = ConsoleColor.Yellow;     break;
+                case Operator.Plus:           type = NodeType.Addition;       color = ConsoleColor.DarkYellow; break;
+                case Operator.Minus:          type = NodeType.Substraction;   color = ConsoleColor.DarkYellow; break;
+                case Operator.Multiplication: type = NodeType.Multiplication; color = ConsoleColor.Yellow;     break;
+                case Operator.Division:       type = NodeType.Division;       color = ConsoleColor.Yellow;     break;
                 default: throw new Exception("Встречен неизвестный оператор: " + op.ToString());
             }
             this.SetSourceContext(left, right);
@@ -1220,26 +1227,26 @@ namespace alm.Core.SyntaxAnalysis
     }
     public sealed class BooleanExpression : Expression
     {
-        private NodeType _type;
-        private ConsoleColor _color;
+        private NodeType type;
+        private ConsoleColor color;
 
-        public override NodeType NodeType  => _type;
-        public override ConsoleColor Color => _color;
+        public override NodeType NodeType  => type;
+        public override ConsoleColor Color => color;
 
         public BooleanExpression(SyntaxTreeNode left, Operator op, SyntaxTreeNode right)
         {
             // Opertator -> NodeType
             switch (op)
             {
-                case Operator.LogicalAND: _type = NodeType.And; _color = ConsoleColor.DarkGreen; break;
-                case Operator.LogicalOR:  _type = NodeType.Or;  _color = ConsoleColor.DarkGreen; break;
-                case Operator.LogicalNOT: _type = NodeType.Not; _color = ConsoleColor.DarkGreen; break;
-                case Operator.Less:       _type = NodeType.LessThan;  _color = ConsoleColor.Green; break;
-                case Operator.LessEqual:  _type = NodeType.EqualLess; _color = ConsoleColor.Green; break;
-                case Operator.Greater:    _type = NodeType.MoreThan;  _color = ConsoleColor.Green; break;
-                case Operator.GreaterEqual: _type = NodeType.EqualMore; _color = ConsoleColor.Green; break;
-                case Operator.Equal:        _type = NodeType.Equal;     _color = ConsoleColor.Green; break;
-                case Operator.NotEqual:     _type = NodeType.NotEqual;  _color = ConsoleColor.Green; break;
+                case Operator.LogicalAND: type = NodeType.And; color = ConsoleColor.DarkGreen; break;
+                case Operator.LogicalOR:  type = NodeType.Or;  color = ConsoleColor.DarkGreen; break;
+                case Operator.LogicalNOT: type = NodeType.Not; color = ConsoleColor.DarkGreen; break;
+                case Operator.Less:       type = NodeType.LessThan;  color = ConsoleColor.Green; break;
+                case Operator.LessEqual:  type = NodeType.EqualLess; color = ConsoleColor.Green; break;
+                case Operator.Greater:    type = NodeType.MoreThan;  color = ConsoleColor.Green; break;
+                case Operator.GreaterEqual: type = NodeType.EqualMore; color = ConsoleColor.Green; break;
+                case Operator.Equal:        type = NodeType.Equal;     color = ConsoleColor.Green; break;
+                case Operator.NotEqual:     type = NodeType.NotEqual;  color = ConsoleColor.Green; break;
 
                 default: throw new Exception("Встречен неизвестный оператор: " + op.ToString());
             }
@@ -1252,9 +1259,8 @@ namespace alm.Core.SyntaxAnalysis
 
         public BooleanExpression(Operator notOp, SyntaxTreeNode right)
         {
-            //if (NotOp != OperatorLogicalNOT) throw new Exception("Конструктор предназначен только для not expression.");
-            _type = NodeType.Not;
-            _color = ConsoleColor.DarkGreen;
+            type  = NodeType.Not;
+            color = ConsoleColor.DarkGreen;
             this.SetSourceContext(right);
             this.Op = notOp;
             this.Right = right;
@@ -1357,7 +1363,8 @@ namespace alm.Core.SyntaxAnalysis
         {
             this.SourceContext = context;
             this.Right = expression;
-            this.AddNodes(Right);
+            if (Right != null)
+                this.AddNodes(Right);
         }
 
         public ReturnExpression(SourceContext context) => this.SourceContext = context;

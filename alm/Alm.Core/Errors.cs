@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
 
-using alm.Other.InnerTypes;
 using alm.Other.Structs;
+using alm.Other.InnerTypes;
 using alm.Other.ConsoleStuff;
 
 using static alm.Other.ConsoleStuff.ConsoleCustomizer;
@@ -33,7 +33,7 @@ namespace alm.Core.Errors
 
         public static void Reset()
         {
-            SyntaxAnalysisFailed = false;
+            SyntaxAnalysisFailed   = false;
             SemanticAnalysisFailed = false;
             SyntaxErrors = new List<SyntaxError>();
             SemanticErrors = new List<SemanticError>();
@@ -72,7 +72,7 @@ namespace alm.Core.Errors
         }
     }
 
-    public abstract class SyntaxError: CompilerError
+    public abstract class SyntaxError : CompilerError
     {
         public SyntaxError(string Message, SourceContext Context)
         {
@@ -84,145 +84,154 @@ namespace alm.Core.Errors
 
     public sealed class MissingLbra : SyntaxError
     {
-        public MissingLbra(Token Token) : base("Ожидался символ [{]", Token.Context) { }
+        public MissingLbra(Token token) : base("Ожидался символ [{].", token.Context) { }
     }
+
     public sealed class MissingRbra : SyntaxError
     {
-        public MissingRbra(Token Token) : base("Ожидался символ [}]", Token.Context) { }
+        public MissingRbra(Token token) : base("Ожидался символ [}].", token.Context) { }
     }
+
     public sealed class MissingLpar : SyntaxError
     {
-        public MissingLpar(Token Token) : base("Ожидался символ [(]", Token.Context) { }
+        public MissingLpar(Token token) : base("Ожидался символ [(].", token.Context) { }
     }
+
     public sealed class MissingRpar : SyntaxError
     {
-        public MissingRpar(Token Token) : base("Ожидался символ [)]", Token.Context) { }
+        public MissingRpar(Token token) : base("Ожидался символ [)].", token.Context) { }
     }
+
     public sealed class MissingSemi : SyntaxError
     {
-        public MissingSemi(Token Token) : base("Ожидался символ [;]", new SourceContext(new Position(Token.Context.StartsAt.Start+1, Token.Context.StartsAt.End+1, Token.Context.StartsAt.Line),Token.Context.EndsAt)) { }
+        public MissingSemi(Token token) : base("Ожидался символ [;].", new SourceContext(new Position(token.Context.StartsAt.Start+1, token.Context.StartsAt.End+1, token.Context.StartsAt.Line),token.Context.EndsAt)) { }
     }
+
     public sealed class MissingAssign : SyntaxError
     {
-        public MissingAssign(Token Token) : base("Ожидался символ [=]", Token.Context) { }
+        public MissingAssign(Token token) : base("Ожидался символ [=].", token.Context) { }
     }
+
     public sealed class MissingNameOrValue : SyntaxError
     {
-        public MissingNameOrValue(Token Token) : base("Ожидалось название переменной или ее значение", Token.Context) { }
+        public MissingNameOrValue(Token token) : base("Ожидалось название переменной или ее значение.", token.Context) { }
     }
-    public sealed class NotAppliableWithDigit : SyntaxError
-    {
-        public NotAppliableWithDigit(string Operator, Token Token) : base($"Данный оператор [{Operator}] невозможно применить к числу", Token.Context) { }
-    }
+
     public sealed class IdentifierExpected : SyntaxError
     {
-        public IdentifierExpected(Token Token) : base("Ожидался идентификатор", Token.Context) { }
+        public IdentifierExpected(Token token) : base("Ожидался идентификатор.", token.Context) { }
     }
+
     public sealed class TypeExpected : SyntaxError
     {
-        public TypeExpected(Token Token) : base("Ожидался тип переменной", Token.Context) { }
+        public TypeExpected(Token token) : base("Ожидался тип переменной.", token.Context) { }
     }
+
     public sealed class ReservedWordExpected : SyntaxError
     {
-        public ReservedWordExpected(string Word, Token Token) : base($"Ожидалось ключевое слово [{Word}]", Token.Context) { }
+        public ReservedWordExpected(string word, Token token) : base($"Ожидалось ключевое слово [{word}].", token.Context) { }
     }
+
     public sealed class ReservedSymbolExpected : SyntaxError
     {
-        public ReservedSymbolExpected(string Symbol, Token Token) : base($"Ожидался символ [{Symbol}]", Token.Context) { }
+        public ReservedSymbolExpected(string symbol, Token token) : base($"Ожидался символ [{symbol}].", token.Context) { }
     }
 
     public sealed class WrongImport : SyntaxError
     {
-        public WrongImport(SourceContext Context) : base($"Попытка импортирования несуществующего файла.", Context) { }
+        public WrongImport(SourceContext context) : base($"Попытка импортирования несуществующего файла.", context) { }
     }
 
     public sealed class WrongShortImport : SyntaxError
     {
-        public WrongShortImport(SourceContext Context) : base($"Попытка импортирования несуществующего файла либо не лежащего в одной папке с запускаемым файлом.", Context) { }
+        public WrongShortImport(SourceContext context) : base($"Попытка импортирования несуществующего файла либо не лежащего в одной папке с запускаемым файлом.", context) { }
     }
 
     public sealed class CannotImportThisFile : SyntaxError
     {
-        public CannotImportThisFile(string Path, SourceContext Context) : base($"Файл \"{Path}\" нельзя импортировать.", Context) { }
+        public CannotImportThisFile(string path, SourceContext context) : base($"Файл \"{path}\" нельзя импортировать.", context) { }
     }
 
     public sealed class ThisFileAlreadyImported : SyntaxError
     {
-        public ThisFileAlreadyImported(string Path,SourceContext Context) : base($"Файл \"{Path}\" уже импортирован.", Context) { }
+        public ThisFileAlreadyImported(string path, SourceContext context) : base($"Файл \"{path}\" уже импортирован.", context) { }
     }
 
     public sealed class WrongImportExtension : SyntaxError
     {
-        public WrongImportExtension(SourceContext Context) : base($"Расширение файла должно быть \"alm\".", Context) { }
+        public WrongImportExtension(SourceContext context) : base($"Расширение файла должно быть \"alm\".", context) { }
     }
 
     public sealed class ExpectedCorrectImport : SyntaxError
     {
-        public ExpectedCorrectImport(SourceContext Context) : base($"Ожидалось короткое или полное имя файла для импортирования.", Context) { }
+        public ExpectedCorrectImport(SourceContext context) : base($"Ожидалось короткое или полное имя файла для импортирования.", context) { }
     }
 
-    public sealed class OnlyDebug : SyntaxError
+    public sealed class ErrorMessage : SyntaxError
     {
-        public OnlyDebug(string Message, Token Token) : base(Message, Token.Context) { }
+        public ErrorMessage(string message, Token token) : base($"{message}.", token.Context) { }
     }
 
-    public sealed class IncompatibleTypes : SemanticError
-    {
-        public IncompatibleTypes(InnerType ExpectedType,InnerType Type,SourceContext Context) : base($"Несовместимые типы. Попытка приведения {ExpectedType.Representation} к {Type.Representation}",Context) { }
-    }
     public sealed class IncompatibleReturnType : SemanticError
     {
-        public IncompatibleReturnType(InnerType ExpectedType, InnerType Type, SourceContext Context) : base($"Возвращаемый тип в [return] должен быть {ExpectedType.Representation}, а встречен {Type.Representation}", Context) { }
+        public IncompatibleReturnType(InnerType expectedType, InnerType type, SourceContext context) : base($"Возвращаемый тип в [return] должен быть {expectedType.Representation}, а встречен {type.Representation}.", context) { }
     }
+
     public sealed class IncompatibleConditionType : SemanticError
     {
-        public IncompatibleConditionType(InnerType Type,SourceContext Context) : base($"Несовместимые типы. Любой тип условия должен быть типа boolean",Context) { }
+        public IncompatibleConditionType(SourceContext context) : base($"Несовместимые типы. Любой тип условия должен быть типа boolean.", context) { }
     }
+
     public sealed class IncompatibleBinaryExpressionType: SemanticError
     {
-        public IncompatibleBinaryExpressionType(InnerType ExpectedType, InnerType Type, SourceContext Context) : base($"Несовместимые типы в бинарной операции, ожидался тип {ExpectedType.Representation}, а встеречен {Type.Representation}", Context) { }
-        public IncompatibleBinaryExpressionType(InnerType Type, SourceContext Context) : base($"Несовместимые типы в бинарной операции, ожидался числовой тип, а встеречен {Type.Representation}", Context) { }
+        public IncompatibleBinaryExpressionType(InnerType type, SourceContext context) : base($"Несовместимые типы в бинарной операции, ожидался числовой тип, а встеречен {type.Representation}.", context) { }
+        public IncompatibleBinaryExpressionType(InnerType expectedType, InnerType type, SourceContext context) : base($"Несовместимые типы в бинарной операции, ожидался тип {expectedType.Representation}, а встеречен {type.Representation}.", context) { }
     }
+
     public sealed class IncompatibleBooleanExpressionType : SemanticError
     {
-        public IncompatibleBooleanExpressionType(InnerType ExpectedType, InnerType Type, SourceContext Context) : base($"Несовместимые типы в булевом выражении, ожидался тип {ExpectedType.Representation}, а встеречен {Type.Representation}", Context) { }
+        public IncompatibleBooleanExpressionType(InnerType type, SourceContext context) : base($"Несовместимые типы в операции сравнения, ожидался числовой тип, а встеречен {type.Representation}.", context) { }
+        public IncompatibleBooleanExpressionType(InnerType expectedType, InnerType type, SourceContext context) : base($"Несовместимые типы в булевом выражении, ожидался тип {expectedType.Representation}, а встеречен {type.Representation}.", context) { }
     }
+
     public sealed class IncompatibleAssignmentType : SemanticError
     {
-        public IncompatibleAssignmentType(InnerType Type, InnerType ExpectedType, SourceContext Context) : base($"Несовместимые типы в присваивании переменной, ожидался тип {ExpectedType.Representation}, а встеречен {Type.Representation}", Context) { }
+        public IncompatibleAssignmentType(InnerType type, InnerType expectedType, SourceContext context) : base($"Несовместимые типы в присваивании переменной, ожидался тип {expectedType.Representation}, а встеречен {type.Representation}.", context) { }
     }
+
     public sealed class IncompatibleArgumentType : SemanticError
     {
-        public IncompatibleArgumentType(InnerType Type, InnerType ExpectedType, SourceContext Context) : base($"Несовместимый тип в аргументе функции, ожидался тип {ExpectedType.Representation}, а встеречен {Type.Representation}", Context) { }
+        public IncompatibleArgumentType(InnerType type, InnerType expectedType, SourceContext context) : base($"Несовместимый тип в аргументе функции, ожидался тип {expectedType.Representation}, а встеречен {type.Representation}.", context) { }
     }
+
     public sealed class NotAllCodePathsReturnValue : SemanticError
     {
-        public NotAllCodePathsReturnValue(SourceContext Context) : base("Не все пути к коду возвращают значение.", Context) { }
+        public NotAllCodePathsReturnValue(SourceContext context) : base("Не все пути к коду возвращают значение.", context) { }
     }
 
     public sealed class ThisIdentifierAlreadyDeclared : SemanticError
     {
-        public ThisIdentifierAlreadyDeclared(string Name,SourceContext Context) : base($"Переменная [{Name}] уже объявлена.", Context) { }
+        public ThisIdentifierAlreadyDeclared(string name,SourceContext context) : base($"Переменная [{name}] уже объявлена.", context) { }
     }
 
     public sealed class ThisIdentifierNotDeclared : SemanticError
     {
-        public ThisIdentifierNotDeclared(string Name, SourceContext Context) : base($"Переменная [{Name}] не объявлена.", Context) { }
+        public ThisIdentifierNotDeclared(string name, SourceContext context) : base($"Переменная [{name}] не объявлена.", context) { }
     }
 
     public sealed class ThisIdentifierNotInitialized : SemanticError
     {
-        public ThisIdentifierNotInitialized(string Name, SourceContext Context) : base($"Переменной [{Name}] не присвоено значение.", Context) { }
+        public ThisIdentifierNotInitialized(string name, SourceContext context) : base($"Переменной [{name}] не присвоено значение.", context) { }
     }
 
     public sealed class ThisFunctionNotDeclared : SemanticError
     {
-        public ThisFunctionNotDeclared(string Name, SourceContext Context) : base($"Функция с именем [{Name}] не объявлена.", Context) { }
+        public ThisFunctionNotDeclared(string name, SourceContext context) : base($"Функция с именем [{name}] не объявлена.", context) { }
     }
 
     public sealed class ThisFunctionAlreadyDeclared : SemanticError
     {
-        public ThisFunctionAlreadyDeclared(string Name, SourceContext Context) : base($"Функция с именем [{Name}] уже объявлена.", Context) { }
+        public ThisFunctionAlreadyDeclared(string name, SourceContext context) : base($"Функция с именем [{name}] уже объявлена.", context) { }
     }
 
     public sealed class InExexutableFileMainExprected : SemanticError
@@ -232,10 +241,12 @@ namespace alm.Core.Errors
 
     public sealed class FunctionNotContainsThisNumberOfArguments : SemanticError
     {
-        public FunctionNotContainsThisNumberOfArguments(string Name,int CorrectArgumentCount, int ArgumentCount, SourceContext Context) : base($"Функция [{Name}] не содержит такое количество аргументов [{ArgumentCount}], ожидалось [{CorrectArgumentCount}].", Context) { }
+        public FunctionNotContainsThisNumberOfArguments(string name, int actualArgumentCount, int argumentCount, SourceContext context) : base($"Функция [{name}] не содержит такое количество аргументов [{argumentCount}], ожидалось [{actualArgumentCount}].", context) { }
     }
+
     public enum CompilerUnitErrorType
     {
+        ScanError,
         SyntaxError,
         SemanticError
     }

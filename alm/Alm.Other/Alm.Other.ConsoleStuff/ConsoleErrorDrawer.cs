@@ -13,27 +13,27 @@ namespace alm.Other.ConsoleStuff
         private string FilePath;
         private string[] Lines;
 
-        public void DrawError(CompilerError Error, string FilePath)
+        public void DrawError(CompilerError error, string path)
         {
-            if (!Error.HasLocation) return;
-            if (this.FilePath != FilePath)
+            if (!error.HasLocation) return;
+            if (this.FilePath != path)
             {
-                this.FilePath = FilePath;
-                Lines = File.ReadAllLines(FilePath);
+                this.FilePath = path;
+                Lines = File.ReadAllLines(path);
             }
-            if (Lines is null) Lines = File.ReadAllLines(FilePath);
+            if (Lines is null) Lines = File.ReadAllLines(path);
 
             int len;
             int tabs;
             string line;
 
-            len = Error.EndsAt.End - Error.StartsAt.Start;
+            len = error.EndsAt.End - error.StartsAt.Start;
 
             if (len <= 0) len = 1;
 
             try
             {
-                line = Lines[Error.StartsAt.Line - 1];
+                line = Lines[error.StartsAt.Line - 1];
                 tabs = Tabulations(line)+1;
             }
             catch (IndexOutOfRangeException)
@@ -47,7 +47,7 @@ namespace alm.Other.ConsoleStuff
             if (line != string.Empty)
             {
                 ColorizedPrintln(line, ConsoleColor.Gray);
-                ColorizedPrintln("\t\t" + SymbolNTimes(Error.StartsAt.Start - tabs, ' ') + SymbolNTimes(len, '~'), ConsoleColor.Red);
+                ColorizedPrintln("\t\t" + SymbolNTimes(error.StartsAt.Start - tabs, ' ') + SymbolNTimes(len, '~'), ConsoleColor.Red);
             }
         }
     }

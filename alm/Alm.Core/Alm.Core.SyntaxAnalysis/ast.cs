@@ -9,7 +9,6 @@ namespace alm.Core.SyntaxAnalysis
     public sealed class AbstractSyntaxTree
     {
         public bool Builded { get; private set; } = false;
-        public bool Failure { get; private set; } = false;
         public SyntaxTreeNode Root { get; private set; }
 
         public void BuildTree(string path)
@@ -19,16 +18,14 @@ namespace alm.Core.SyntaxAnalysis
             Parser parser = new Parser(lexer);
             this.Root = parser.Parse(path);
             Builded = true;
-            if (Diagnostics.SyntaxErrors.Count > 0) Failure = true;
         }
         public void ShowTree()
         {
             if (Builded)
-                if (!Failure)
-                    ParseAllNodes(Root,"",true);
+                ShowTreeInConsole(Root,"",true);
         }
 
-        private void ParseAllNodes(SyntaxTreeNode node, string indent = "", bool root = false)
+        private void ShowTreeInConsole(SyntaxTreeNode node, string indent = "", bool root = false)
         {
             //├── └── │
 
@@ -46,8 +43,8 @@ namespace alm.Core.SyntaxAnalysis
                     if (n == node.Nodes.Last()) ConsoleCustomizer.ColorizedPrint(indent + "└──", ConsoleColor.DarkGray);
                     else ConsoleCustomizer.ColorizedPrint(indent + "├──", ConsoleColor.DarkGray);
                     ConsoleCustomizer.ColorizedPrintln(n.ToConsoleString(), n.Color);
-                    if (n.Nodes.Count >= 1 && n == node.Nodes.Last()) ParseAllNodes(n, indent);
-                    else ParseAllNodes(n, indent + "│");
+                    if (n.Nodes.Count >= 1 && n == node.Nodes.Last()) ShowTreeInConsole(n, indent);
+                    else ShowTreeInConsole(n, indent + "│");
                 }
             }
         }

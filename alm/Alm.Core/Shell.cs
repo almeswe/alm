@@ -23,7 +23,6 @@ namespace alm.Core.Shell
             Console.WriteLine("");
             while (true)
             {
-
                 ColorizedPrint(">",ConsoleColor.Green);
                 ParseInput(Console.ReadLine());
             }
@@ -32,6 +31,11 @@ namespace alm.Core.Shell
         private void ParseInput(string input)
         {
             string[] subs = SplitSubstrings(input);
+            if (subs.Length == 0)
+            {
+                ColorizedPrintln($"Пустое поле.(Введите команду \"?\" для получения информации)", ConsoleColor.DarkRed);
+                return;
+            }
             if (!IsCommand(subs[0]))
             {
                 ColorizedPrintln($"\"{subs[0]}\" не является командой.(Введите команду \"?\" для получения информации)",ConsoleColor.DarkRed);
@@ -52,7 +56,8 @@ namespace alm.Core.Shell
                 new OpenDir(),
                 new CreateFile(),
                 new Cls(),
-                new Exit()
+                new Exit(),
+                new ShowTree()
             };
 
             foreach (Command command in Commands)
@@ -86,6 +91,9 @@ namespace alm.Core.Shell
             if (command == "shtree")
             { 
                 #if DEBUG
+                    return false;
+                #endif
+                #if !DEBUG
                     return true;
                 #endif
             }
@@ -98,13 +106,15 @@ namespace alm.Core.Shell
         #if DEBUG
         //public static string SourcePath = @"C:\Users\Almes\source\repos\Compiler\compiler v.5\Alm\alm\Alm.Tests\TestScripts\AlmDebug.alm";
         public static string SourcePath = @"C:\Users\Almes\source\repos\Compiler\compiler v.5\Libs\main.alm";
+        public static string DestinationPath = "alm.exe";
+
         #endif
 
         #if !DEBUG
-        public static string SourcePath = "alm";
+        public static string SourcePath = " ";
+        public static string DestinationPath = " ";
         #endif
 
-        public static string DestinationPath = "alm.exe";
 
         public static bool ShowTree = false;
         public static bool RunExeAfterCompiling = true;
@@ -216,6 +226,27 @@ namespace alm.Core.Shell
         }
     }
 
+    internal sealed class ShowTree : Command
+    {
+        public ShowTree()
+        {
+            this.Name = "shtree";
+            this.ArgumentCount = 1;
+        }
+
+        //show
+        public override void Execute(string[] arguments)
+        {
+            this.Arguments = new CommandArgument[] { new CommandArgument("show", arguments[1], typeof(bool)) };
+
+            if (!ArgumentTypesCorrect()) return;
+
+            bool show = (bool)this.Arguments[0].DefineValue();
+
+            ShellInfo.ShowTree = show;
+        }
+    }
+
     internal sealed class Compile : Command
     {        
         public Compile()
@@ -239,7 +270,7 @@ namespace alm.Core.Shell
             ShellInfo.DestinationPath = binPath;
             ShellInfo.RunExeAfterCompiling = run;
 
-            new Compiler.Compiler().CompileThis(ShellInfo.SourcePath,binPath,run);
+            new Compiler.Compiler().Compile(ShellInfo.SourcePath,binPath,run);
         }
     }
     internal sealed class File : Command
@@ -277,7 +308,7 @@ namespace alm.Core.Shell
         public override void Execute(string[] arguments)
         {
             if (!ArgumentTypesCorrect()) return;
-            new Compiler.Compiler().CompileThis(ShellInfo.SourcePath, ShellInfo.DestinationPath, ShellInfo.RunExeAfterCompiling);
+            new Compiler.Compiler().Compile(ShellInfo.SourcePath, ShellInfo.DestinationPath, ShellInfo.RunExeAfterCompiling);
 
         }
     }

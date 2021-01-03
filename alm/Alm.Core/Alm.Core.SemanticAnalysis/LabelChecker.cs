@@ -105,7 +105,7 @@ namespace alm.Core.SemanticAnalysis
 
             else if (identifierExpression is IdentifierCall)
             {
-                if (!table.CheckIdentifier(identifierExpression))
+                if (!table.CheckIdentifier(identifierExpression.Name))
                 {
                     Diagnostics.SemanticErrors.Add(new ThisIdentifierNotDeclared(identifierExpression.Name, identifierExpression.SourceContext));
                     return 1;
@@ -144,16 +144,16 @@ namespace alm.Core.SemanticAnalysis
 
         public static int ResolveFunctionCall(FunctionCall functionCall, Table table)
         {
-            if (table.CheckFunction(functionCall))
+            if (table.CheckFunction(functionCall.Name,functionCall.ArgumentCount))
             {
-                Function func = table.FetchFunction(functionCall);
+                TableFunction func = table.FetchFunction(functionCall.Name, functionCall.ArgumentCount);
                 if (func.ArgumentCount != functionCall.ArgumentCount)
                 {
                     Diagnostics.SemanticErrors.Add(new FunctionNotContainsThisNumberOfArguments(functionCall.Name, func.ArgumentCount, functionCall.ArgumentCount, functionCall.SourceContext));
                     return 1;
                 }
-                functionCall.Type = func.ReturnType;
-                foreach (var arg in functionCall.Arguments.Nodes)
+                functionCall.Type = func.Type;
+                foreach (var arg in functionCall.ArgumentsValues.Nodes)
                         ResolveExpression((Expression)arg,table);
                 return 0;
             }

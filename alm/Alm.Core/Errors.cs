@@ -226,12 +226,12 @@ namespace alm.Core.Errors
 
     public sealed class ThisFunctionNotDeclared : SemanticError
     {
-        public ThisFunctionNotDeclared(string name, SourceContext context) : base($"Функция с именем [{name}] не объявлена.", context) { }
+        public ThisFunctionNotDeclared(string name, SourceContext context) : base($"Функция [{name}] с такими типами параметров не объявлена.", context) { }
     }
 
     public sealed class ThisFunctionAlreadyDeclared : SemanticError
     {
-        public ThisFunctionAlreadyDeclared(string name, SourceContext context) : base($"Функция с именем [{name}] уже объявлена.", context) { }
+        public ThisFunctionAlreadyDeclared(string name, SourceContext context) : base($"Функция [{name}] с таким количеством параметров уже объявлена.", context) { }
     }
 
     public sealed class InExexutableFileMainExprected : SemanticError

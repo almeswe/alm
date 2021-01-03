@@ -18,7 +18,7 @@ namespace alm.Core.CodeGeneration.Emitter
         public static ModuleBuilder module;
         public static AssemblyBuilder assembly;
 
-        private static List<MethodInfo> methods = new List<MethodInfo>();
+        private static Dictionary<MethodInfo,int> methods = new Dictionary<MethodInfo,int>();
         private static Dictionary<string, int> methodArgs = new Dictionary<string, int>();
         private static Dictionary<FunctionDeclaration, string> externalMethods = new Dictionary<FunctionDeclaration, string>();
         private static Dictionary<string, LocalVariableInfo> methodLocals = new Dictionary<string, LocalVariableInfo>();
@@ -99,6 +99,8 @@ namespace alm.Core.CodeGeneration.Emitter
                 methodIL.Emit(OpCodes.Ldc_I4, constExpression.Value == "true" ? 1 : 0);
             else if (constExpression.Type.GetEquivalence() == typeof(float))
                 methodIL.Emit(OpCodes.Ldc_R4, float.Parse(constExpression.Value));
+            else if (constExpression.Type.GetEquivalence() == typeof(char))
+                methodIL.Emit(OpCodes.Ldc_I4, Convert.ToInt32(constExpression.Value[0]));
         }
         private static void EmitIdentifierDeclaration(ILGenerator methodIL, IdentifierExpression identifierExpression)
         {
@@ -127,9 +129,9 @@ namespace alm.Core.CodeGeneration.Emitter
         {
             if (EmitBaseFunction(methodIL, functionCall)) return;
 
-            MethodInfo method = GetCreatedMethod(functionCall.Name);
+            MethodInfo method = GetCreatedMethod(functionCall.Name,functionCall.ArgumentCount);
 
-            foreach (var arg in functionCall.Arguments.Nodes) 
+            foreach (var arg in functionCall.ArgumentsValues.Nodes) 
                 EmitExpression(methodIL, (Expression)arg);
 
             if (IsMethodExternal(functionCall.Name))
@@ -154,7 +156,7 @@ namespace alm.Core.CodeGeneration.Emitter
             MethodBuilder method  = module.DefineGlobalMethod(Name,MethodAttributes.Public | MethodAttributes.Static,returnType,argTypes);
             ILGenerator methodIL = method.GetILGenerator();
 
-            methods.Add(method);
+            methods.Add(method,functionDeclaration.ArgumentCount);
 
             for (int i = 0; i < functionDeclaration.Arguments.Nodes.Count; i++)
                 methodArgs.Add(((ArgumentDeclaration)functionDeclaration.Arguments.Nodes[i]).Name, i);
@@ -437,7 +439,7 @@ namespace alm.Core.CodeGeneration.Emitter
                 EmitFunctionDeclaration(func);
 
             module.CreateGlobalFunctions();
-            assembly.SetEntryPoint(GetCreatedMethod("main"));
+            assembly.SetEntryPoint(GetCreatedMethod("main",0));
             try
             {
                 assembly.Save(exeName);
@@ -469,17 +471,19 @@ namespace alm.Core.CodeGeneration.Emitter
                 case "tofloat": EmitStrToFloat(methodIL, functionCall);    return true;
                 case "point"  : EmitPoint(methodIL, functionCall);         return true;
                 case "round"  : EmitRound(methodIL, functionCall);         return true;
+
+                case "chartoint32": EmitCharToInt32(methodIL, functionCall); return true;
                 default: return false;
             }
         }
         private static void EmitPrintString(ILGenerator methodIL, FunctionCall functionCall)
         {
-            EmitExpression(methodIL, (Expression)functionCall.Arguments.Nodes[0]);
+            EmitExpression(methodIL, (Expression)functionCall.ArgumentsValues.Nodes[0]);
             methodIL.EmitCall(OpCodes.Call, typeof(Console).GetMethod("Write", new Type[] { typeof(string) }), null);
         }
         private static void EmitPrintlnString(ILGenerator methodIL, FunctionCall functionCall)
         {
-            EmitExpression(methodIL, (Expression)functionCall.Arguments.Nodes[0]);
+            EmitExpression(methodIL, (Expression)functionCall.ArgumentsValues.Nodes[0]);
             methodIL.EmitCall(OpCodes.Call, typeof(Console).GetMethod("WriteLine", new Type[] { typeof(string) }), null);
         }
         private static void EmitInput(ILGenerator methodIL,FunctionCall functionCall)
@@ -490,33 +494,38 @@ namespace alm.Core.CodeGeneration.Emitter
         }
         private static void EmitIntToStr(ILGenerator methodIL, FunctionCall functionCall)
         {
-            EmitExpression(methodIL, (Expression)functionCall.Arguments.Nodes[0]);
+            EmitExpression(methodIL, (Expression)functionCall.ArgumentsValues.Nodes[0]);
             methodIL.EmitCall(OpCodes.Call, typeof(Convert).GetMethod("ToString", new Type[] { typeof(int) }), null);
         }
         private static void EmitFloatToStr(ILGenerator methodIL, FunctionCall functionCall)
         {
-            EmitExpression(methodIL, (Expression)functionCall.Arguments.Nodes[0]);
+            EmitExpression(methodIL, (Expression)functionCall.ArgumentsValues.Nodes[0]);
             methodIL.EmitCall(OpCodes.Call, typeof(Convert).GetMethod("ToString", new Type[] { typeof(float) }), null);
         }
         private static void EmitStrToInt(ILGenerator methodIL, FunctionCall functionCall)
         {
-            EmitExpression(methodIL, (Expression)functionCall.Arguments.Nodes[0]);
+            EmitExpression(methodIL, (Expression)functionCall.ArgumentsValues.Nodes[0]);
             methodIL.EmitCall(OpCodes.Call, typeof(Convert).GetMethod("ToInt32", new Type[] { typeof(string) }), null);
         }
         private static void EmitStrToFloat(ILGenerator methodIL, FunctionCall functionCall)
         {
-            EmitExpression(methodIL, (Expression)functionCall.Arguments.Nodes[0]);
+            EmitExpression(methodIL, (Expression)functionCall.ArgumentsValues.Nodes[0]);
             methodIL.EmitCall(OpCodes.Call, typeof(float).GetMethod("Parse", new Type[] { typeof(string) }), null);
         }
         private static void EmitRound(ILGenerator methodIL, FunctionCall functionCall)
         {
-            EmitExpression(methodIL, (Expression)functionCall.Arguments.Nodes[0]);
+            EmitExpression(methodIL, (Expression)functionCall.ArgumentsValues.Nodes[0]);
             methodIL.EmitCall(OpCodes.Call, typeof(Convert).GetMethod("ToInt32", new Type[] { typeof(float) }), null);
         }
         private static void EmitPoint(ILGenerator methodIL, FunctionCall functionCall)
         {
-            EmitExpression(methodIL, (Expression)functionCall.Arguments.Nodes[0]);
+            EmitExpression(methodIL, (Expression)functionCall.ArgumentsValues.Nodes[0]);
             methodIL.EmitCall(OpCodes.Call, typeof(Convert).GetMethod("ToSingle", new Type[] { typeof(int) }), null);
+        }
+        private static void EmitCharToInt32(ILGenerator methodIL, FunctionCall functionCall)
+        {
+            EmitExpression(methodIL, (Expression)functionCall.ArgumentsValues.Nodes[0]);
+            methodIL.EmitCall(OpCodes.Call, typeof(Convert).GetMethod("ToInt32", new Type[] { typeof(char) }), null);
         }
         //
 
@@ -583,11 +592,13 @@ namespace alm.Core.CodeGeneration.Emitter
             return null;
         }
 
-        private static MethodInfo GetCreatedMethod(string methodName)
+        private static MethodInfo GetCreatedMethod(string methodName,int args)
         {
             MethodInfo method = null;
             foreach (var m in methods)
-                if (methodName == m.Name) method = m;
+                if (methodName == m.Key.Name) 
+                    if (m.Value == args)
+                        method = m.Key;
             return method;
         }
         private static bool ReturnValueIsUseless(SyntaxTreeNode node)

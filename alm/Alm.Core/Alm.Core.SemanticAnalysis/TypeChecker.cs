@@ -135,7 +135,7 @@ namespace alm.Core.SemanticAnalysis
                 case LessEqual:
                 case Greater:
                 case GreaterEqual:
-                    ExpectedType = new Integer32();break;
+                    ExpectedType = new Int32();break;
                 default:
                     ExpectedType = null;break;
             }
@@ -196,7 +196,7 @@ namespace alm.Core.SemanticAnalysis
             return new Underfined();
         }
 
-        private static InnerType ResolveExpressionType(Expression expression)
+        public static InnerType ResolveExpressionType(Expression expression)
         {
             if      (expression is ConstExpression)      return ((ConstExpression)expression).Type;
             else if (expression is IdentifierExpression) return ((IdentifierExpression)expression).Type;
@@ -257,22 +257,22 @@ namespace alm.Core.SemanticAnalysis
             int i = 0;
             bool alreadyCasted = false;
 
-            while (i < functionCall.Arguments.Nodes.Count)
+            while (i < functionCall.ArgumentsValues.Nodes.Count)
             {
-                ExpectedType = GlobalTable.Table.FetchFunction(functionCall).Arguments[i].Type;
+                ExpectedType = GlobalTable.Table.FetchFunction(functionCall.Name,functionCall.ArgumentCount).Arguments[i].Type;
 
-                Type = ResolveExpressionType((Expression)functionCall.Arguments.Nodes[i]);
+                Type = ResolveExpressionType((Expression)functionCall.ArgumentsValues.Nodes[i]);
 
                 if (ExpectedType != Type)
                 {
                     if (!alreadyCasted)
                     {
-                        TypeCaster.CastFunctionArgument((Expression)functionCall.Arguments.Nodes[i], Type, ExpectedType);
+                        TypeCaster.CastFunctionArgument((Expression)functionCall.ArgumentsValues.Nodes[i], Type, ExpectedType);
                         alreadyCasted = true;
                         i--;
                     }
                     else
-                        Diagnostics.SemanticErrors.Add(new IncompatibleArgumentType(Type, ExpectedType, functionCall.Arguments.Nodes[i].SourceContext));
+                        Diagnostics.SemanticErrors.Add(new IncompatibleArgumentType(Type, ExpectedType, functionCall.ArgumentsValues.Nodes[i].SourceContext));
                 }
                 else
                     alreadyCasted = false;
@@ -308,6 +308,7 @@ namespace alm.Core.SemanticAnalysis
         public enum CastCase
         {
             IntegerToFloat,
+            CharToInteger,
             Int32ToFloat64,
             Int64ToFloat32,
             Int64ToFloat64,
@@ -413,7 +414,7 @@ namespace alm.Core.SemanticAnalysis
             if (!CanCast(constExpression.Type, toType, false))
                 return;
 
-            FunctionCall pointFunctionCall = new FunctionCall(GetCastFunctionName(castCase), new Arguments(constExpression), constExpression.SourceContext);
+            FunctionCall pointFunctionCall = new FunctionCall(GetCastFunctionName(castCase) , new Arguments(constExpression), constExpression.SourceContext);
             pointFunctionCall.Type = toType;
             Replace(parent, constExpression, pointFunctionCall);
         }
@@ -468,6 +469,8 @@ namespace alm.Core.SemanticAnalysis
             {
                 case CastCase.IntegerToFloat:
                     return "point";
+                case CastCase.CharToInteger:
+                    return "chartoint32";
                 default: throw new System.Exception("??");
             }
         }

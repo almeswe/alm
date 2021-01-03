@@ -10,6 +10,7 @@
 
         tkType,
         tkIntConst,
+        tkCharConst,
         tkFloatConst,
         tkStringConst,
         tkBooleanConst,
@@ -43,7 +44,8 @@
         tkRpar,
         tkFunc,
         tkComma,
-        tkQuote,
+        tkDQuote,
+        tkSQuote,
         tkColon,
         tkSemicolon,
 

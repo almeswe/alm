@@ -66,7 +66,7 @@ namespace alm.Core.SyntaxAnalysis
                 if (stringConst.Value == CurrentParsingFile) return new ImportExpression(new CannotImportThisFile(stringConst.Value, stringConst.SourceContext));
 
                 if (Imports.Contains(stringConst.Value + CurrentParsingFile) || 
-                         Imports.Contains(CurrentParsingFile + stringConst.Value)) 
+                    Imports.Contains(CurrentParsingFile + stringConst.Value)) 
                          return new ImportExpression(new ThisFileAlreadyImported(stringConst.Value, stringConst.SourceContext));
                 else if (Imports.Contains(stringConst.Value)) return new ImportExpression();
                 else
@@ -123,12 +123,13 @@ namespace alm.Core.SyntaxAnalysis
             }
             return Root;
         }
+
         public SyntaxTreeNode ParseImportExpression()
         {
             if (!Match(tkImport)) return new ImportExpression(new ReservedWordExpected("import", Lexer.CurrentToken));
             Lexer.GetNextToken();
 
-            if (Match(tkQuote))
+            if (Match(tkDQuote))
             {
                 StringConst stringImport = ParseStringConst();
                 return Import(stringImport);
@@ -343,19 +344,20 @@ namespace alm.Core.SyntaxAnalysis
             if (Match(tkLpar,1)) return ParseFunctionCall();
             else return ParseAssignmentExpression();
         }
-        public SyntaxTreeNode ParseFunctionCall(bool ParseAsSingleExpression = true)
+
+        public SyntaxTreeNode ParseFunctionCall(bool parseAsSingleExpression = true)
         {
             SourceContext funccontext = new SourceContext();
             funccontext.FilePath = CurrentParsingFile;
             funccontext.StartsAt = Lexer.CurrentToken.Context.StartsAt;
             IdentifierCall funcname = new IdentifierCall(Lexer.CurrentToken);
-            Arguments args = new Arguments();
+            Arguments values = new Arguments();
             Lexer.GetNextToken();
             if (!Match(tkLpar)) return new FunctionCall(new MissingLpar(Lexer.PreviousToken));
             Lexer.GetNextToken();
             while (!Match(tkRpar))
             {
-                args.AddNode(ParseExpression());
+                values.AddNode(ParseExpression());
 
                 if (!Match(tkComma))
                 {
@@ -364,16 +366,18 @@ namespace alm.Core.SyntaxAnalysis
                 }
                 Lexer.GetNextToken();
             }
-            if (ParseAsSingleExpression)
+            if (parseAsSingleExpression)
             {
                 funccontext.EndsAt = Lexer.CurrentToken.Context.EndsAt;
                 Lexer.GetNextToken();
                 if (!Match(tkSemicolon)) return new FunctionCall(new MissingSemi(Lexer.PreviousToken));
                 Lexer.GetNextToken();
             }
-            else funccontext.EndsAt = Lexer.CurrentToken.Context.EndsAt;
-            return new FunctionCall(funcname.Name,args,funccontext);
+            else
+                funccontext.EndsAt = Lexer.CurrentToken.Context.EndsAt;
+            return new FunctionCall(funcname.Name, values, funccontext);
         }
+
         public SyntaxTreeNode ParseReturnExpression()
         {
             SourceContext retcontext = new SourceContext();
@@ -391,6 +395,7 @@ namespace alm.Core.SyntaxAnalysis
             Lexer.GetNextToken();
             return new ReturnExpression(Expression, retcontext);
         }
+
         public SyntaxTreeNode ParseIfStatement()
         {
             if (!Match(tkIf)) return new IfStatement(new ReservedWordExpected("if", Lexer.CurrentToken));
@@ -571,7 +576,7 @@ namespace alm.Core.SyntaxAnalysis
             switch (Lexer.CurrentToken.TokenType)
             {
                 case tkMult: Lexer.GetNextToken(); node = new BinaryExpression(node,  Operator.Multiplication, ParseTerm()); break;
-                case tkDiv: Lexer.GetNextToken();  node = new BinaryExpression(node,  Operator.Division, ParseTerm());      break;
+                case tkDiv:  Lexer.GetNextToken(); node = new BinaryExpression(node,  Operator.Division, ParseTerm());      break;
             }
             return node;
         }
@@ -617,8 +622,11 @@ namespace alm.Core.SyntaxAnalysis
                     Lexer.GetNextToken();
                     return node;
 
-                case tkQuote:
+                case tkDQuote:
                     return ParseStringConst();
+
+                case tkSQuote:
+                    return ParseCharConst();
 
                 case tkLpar: return ParseParentisizedExpression();
 
@@ -637,14 +645,26 @@ namespace alm.Core.SyntaxAnalysis
 
         public StringConst ParseStringConst()
         {
-            if (!Match(tkQuote)) return new StringConst(new ReservedSymbolExpected("\"", Lexer.CurrentToken));
+            if (!Match(tkDQuote)) return new StringConst(new ReservedSymbolExpected("\"", Lexer.CurrentToken));
             Lexer.GetNextToken();
             if (!Match(tkStringConst)) return new StringConst(new ErrorMessage("Ожидалась строка.", Lexer.CurrentToken));
             StringConst stringConst = new StringConst(Lexer.CurrentToken);
             Lexer.GetNextToken();
-            if (!Match(tkQuote)) return new StringConst(new ReservedSymbolExpected("\"", Lexer.CurrentToken));
+            if (!Match(tkDQuote)) return new StringConst(new ReservedSymbolExpected("\"", Lexer.CurrentToken));
             Lexer.GetNextToken();
             return stringConst;
+        }
+
+        public CharConst ParseCharConst()
+        {
+            if (!Match(tkSQuote)) return new CharConst(new ReservedSymbolExpected("\'", Lexer.CurrentToken));
+            Lexer.GetNextToken();
+            if (!Match(tkCharConst)) return new CharConst(new ErrorMessage("Ожидался символ", Lexer.CurrentToken));
+            CharConst charConst = new CharConst(Lexer.CurrentToken);
+            Lexer.GetNextToken();
+            if (!Match(tkSQuote)) return new CharConst(new ReservedSymbolExpected("\'", Lexer.CurrentToken));
+            Lexer.GetNextToken();
+            return charConst;
         }
 
         public bool Match(TokenType expectedType, int offset = 0)
@@ -652,16 +672,19 @@ namespace alm.Core.SyntaxAnalysis
             if (Lexer.Peek(offset).TokenType == expectedType) return true;
             return false;
         }
+
         public bool Match(SyntaxTreeNode node, NodeType expectedType)
         {
             if (node.NodeType == expectedType) return true;
             return false;
         }
+
         public bool Match(Expression expression, NodeType expectedType)
         {
             if (expression.NodeType == expectedType) return true;
             return false;
         }
+
         public Operator GetOperatorFromTokenType(TokenType type)
         {
             switch (type)
@@ -692,9 +715,9 @@ namespace alm.Core.SyntaxAnalysis
 
         public SourceContext SourceContext = new SourceContext();
 
-        public void SetSourceContext(Token token)                                => this.SourceContext = GetSourceContext(token, CurrentParsingFile);
-        public void SetSourceContext(Token sToken, Token fToken)                 => this.SourceContext = GetSourceContext(sToken,fToken, CurrentParsingFile);
-        public void SetSourceContext(SyntaxTreeNode node)                        => this.SourceContext = GetSourceContext(node, CurrentParsingFile);
+        public void SetSourceContext(Token token) => this.SourceContext = GetSourceContext(token, CurrentParsingFile);
+        public void SetSourceContext(Token sToken, Token fToken) => this.SourceContext = GetSourceContext(sToken,fToken, CurrentParsingFile);
+        public void SetSourceContext(SyntaxTreeNode node)        => this.SourceContext = GetSourceContext(node, CurrentParsingFile);
         public void SetSourceContext(SyntaxTreeNode lnode, SyntaxTreeNode rnode) => this.SourceContext = GetSourceContext(lnode,rnode, CurrentParsingFile);
 
         public virtual string ToConsoleString() => $"{NodeType}";
@@ -826,19 +849,20 @@ namespace alm.Core.SyntaxAnalysis
         public override NodeType NodeType  => NodeType.FunctionCall;
         public override ConsoleColor Color => ConsoleColor.DarkYellow;
 
+        public InnerType Type      { get; set; }
         public string Name         { get; private set; }
         public int ArgumentCount   { get; private set; }
-        public InnerType Type      { get; set; }
-        public Arguments Arguments { get; private set; }
+        public InnerType[] Arguments { get; set; }
+        public Arguments ArgumentsValues { get; private set; }
 
-        public FunctionCall(string name, Arguments arguments,SourceContext context)
+        public FunctionCall(string name, Arguments argumentValues,SourceContext context)
         {
             this.Name = name;
-            this.Arguments = arguments;
             this.SourceContext = context;
-            this.ArgumentCount = arguments.Nodes.Count;
+            this.ArgumentsValues = argumentValues;
+            this.ArgumentCount = argumentValues.Nodes.Count;
 
-            this.AddNode(arguments);
+            this.AddNode(argumentValues);
         }
 
         public FunctionCall(SyntaxError error)
@@ -926,7 +950,7 @@ namespace alm.Core.SyntaxAnalysis
 
         public IfStatement(Condition condition, Body body, SourceContext context)
         {
-            type = NodeType.If;
+            this.type = NodeType.If;
             this.SourceContext = context;
             this.Condition = condition;
             this.Body = body;
@@ -934,7 +958,7 @@ namespace alm.Core.SyntaxAnalysis
         }
         public IfStatement(IfStatement ifStatement, ElseBody elseBody, SourceContext context)
         {
-            type = NodeType.IfElse;
+            this.type = NodeType.IfElse;
             this.SourceContext = context;
             this.Body = ifStatement.Body;
             this.Condition = ifStatement.Condition;
@@ -1058,7 +1082,7 @@ namespace alm.Core.SyntaxAnalysis
         public override NodeType NodeType => NodeType.FloatConstant;
         public override ConsoleColor Color => ConsoleColor.DarkMagenta;
 
-        public override InnerType Type => new Float();
+        public override InnerType Type => new Real32();
 
         public FloatConst(string value)
         {
@@ -1082,7 +1106,7 @@ namespace alm.Core.SyntaxAnalysis
         public override NodeType NodeType  => NodeType.IntegerConstant;
         public override ConsoleColor Color => ConsoleColor.DarkMagenta;
 
-        public override InnerType Type => new Integer32();
+        public override InnerType Type => new Other.InnerTypes.Int32();
 
         public IntegerConst(string value)
         {
@@ -1125,6 +1149,29 @@ namespace alm.Core.SyntaxAnalysis
             Diagnostics.SyntaxErrors.Add(error);
         }
     }
+
+    public sealed class CharConst : ConstExpression
+    {
+        public override NodeType NodeType => NodeType.CharConstant;
+        public override ConsoleColor Color => ConsoleColor.Yellow;
+
+        public override InnerType Type => new Other.InnerTypes.Char();
+
+        public CharConst(Token token)
+        {
+            this.SetSourceContext(token);
+            this.Value = token.Value;
+        }
+
+        public CharConst(SyntaxError error)
+        {
+            this.Errored = true;
+            Diagnostics.SyntaxErrors.Add(error);
+        }
+
+        public override string ToConsoleString() => $"\'{Value}\':{Type}";
+    }
+
     public sealed class StringConst : ConstExpression
     {
         public override NodeType NodeType  => NodeType.StringConstant;

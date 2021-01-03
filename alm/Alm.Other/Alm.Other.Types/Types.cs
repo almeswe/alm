@@ -16,11 +16,13 @@ namespace alm.Other.InnerTypes
         {
             switch (this.Representation.ToLower())
             {
+                //переписать
                 case "string": return typeof(string);
                 case "integer": return typeof(int);
                 case "boolean": return typeof(bool);
                 case "float": return typeof(float);
                 case "void": return typeof(void);
+                case "char": return typeof(char);
                 default:
                     throw new System.Exception("");
             }
@@ -29,11 +31,13 @@ namespace alm.Other.InnerTypes
         {
             switch (StringType.ToLower())
             {
-                case "integer": return new Integer32();
+                //переписать
+                case "integer": return new Int32();
                 case "boolean": return new Boolean();
                 case "string" : return new String();
-                case "float"  : return new Float();
+                case "float"  : return new Real32();
                 case "void"   : return new Void();
+                case "char":    return new Char();
                 default: 
                     throw new System.Exception("");
             }
@@ -69,19 +73,25 @@ namespace alm.Other.InnerTypes
         public override string Representation => "numeric";
     }
 
-    public sealed class Integer32 : NumericType
-    {
-        public override int CastPriority => 1;
-        public override string Representation => "integer";
-    }
-    public sealed class Float : NumericType
+    public sealed class Int32 : NumericType
     {
         public override int CastPriority => 2;
+        public override string Representation => "integer";
+    }
+    public sealed class Real32 : NumericType
+    {
+        public override int CastPriority => 3;
         public override string Representation => "float";
     }
     public sealed class String : InnerType
     {
         public override string Representation => "string";
+    }
+    public sealed class Char : NumericType
+    {
+        public override int CastPriority => 1;
+
+        public override string Representation => "char";
     }
     public sealed class Boolean : InnerType
     {

@@ -1,5 +1,4 @@
 ﻿using System.IO;
-using System.Linq;
 using System.Collections.Generic;
 
 using alm.Other.Structs;
@@ -27,15 +26,13 @@ namespace alm.Core.SyntaxAnalysis
 
         private bool tokensCreated = false;
 
-        private Token[] tokens;
+        public List<Token> tokens = new List<Token>();
 
-        public string Path { get; private set; }
         public Token CurrentToken => Peek(0);
         public Token PreviousToken => Peek(-1);
 
         public Lexer(string path)
         {
-            this.Path = path;
             reader = new StreamReader(path);
             currentCharIndex = -1;
             currentTokenIndex = -1;
@@ -49,7 +46,7 @@ namespace alm.Core.SyntaxAnalysis
             currentTokenIndex++;
             if (tokensCreated)
             {
-                if (currentTokenIndex < tokens.Length)
+                if (currentTokenIndex < tokens.Count)
                     token = tokens[currentTokenIndex];
                 else
                     token = new Token(tkEOF, new Position(charPos, charPos, linePos));
@@ -63,37 +60,51 @@ namespace alm.Core.SyntaxAnalysis
         }
         public Token Peek(int offset)
         {
-            if (currentTokenIndex + offset < tokens.Length) return tokens[currentTokenIndex + offset];
+            if (currentTokenIndex + offset < tokens.Count) return tokens[currentTokenIndex + offset];
             else if (currentTokenIndex + offset < 0) return new Token(tkNull);
             else return new Token(tkEOF, new Position(charPos, charPos, linePos));
         }
         public Token[] GetTokens()
         {
-            IList<Token> tokens = new List<Token>();
             GetNextChar();
             while (currentChar != chEOF)
             {
-                if (currentChar == '"')
+                if (Match('"'))
                 {
-                    GetNextChar();
-                    tokens.Add(new Token(tkQuote, new Position(charPos-1, charPos+1, linePos)));
+                    AddDoubleQuoteToken();
                     tokens.Add(RecognizeString());
-                    if (currentChar == '"')
-                    {
-                        tokens.Add(new Token(tkQuote, new Position(charPos-1, charPos, linePos)));
-                        GetNextChar();
-                    }
+                    AddDoubleQuoteToken();
                 }
-                else if (CharForNumber()) tokens.Add(RecognizeConst());
-                else if (CharForIdentifier(true)) tokens.Add(RecognizeIdentifier());
-                else if (char.IsWhiteSpace(currentChar)) GetNextChar();
-                else    { tokens.Add(RecognizeSymbol()); GetNextChar(); }
+                else if (Match('\''))
+                {
+                    AddSingleQuoteToken();
+                    tokens.Add(RecognizeSingleChar());
+                    AddSingleQuoteToken();
+                }
+                else if (CharForNumber())
+                    tokens.Add(RecognizeConst());
+                else if (CharForIdentifier(true))
+                    tokens.Add(RecognizeIdentifier());
+                else if (char.IsWhiteSpace(currentChar))
+                    GetNextChar();
+                else
+                {
+                    tokens.Add(RecognizeChar());
+                    GetNextChar();
+                }
             }
             reader.Close();
             if (!tokensCreated) tokensCreated = true;
-            this.tokens = tokens.ToArray();
-            return this.tokens;
+            return tokens.ToArray();
         }
+
+        private Token RecognizeSingleChar()
+        {
+            Token token = new Token(tkCharConst, new Position(charPos - 1, charPos + 1, linePos),currentChar.ToString());
+            GetNextChar();
+            return token;
+        }
+
         private Token RecognizeConst()
         {
             string num = string.Empty;
@@ -101,7 +112,7 @@ namespace alm.Core.SyntaxAnalysis
             bool dot  = false;
             while (CharForNumber())
             {
-                if (currentChar == 46)
+                if (Match('.'))
                 {
                     if (dot) break;
                     else dot = true;
@@ -115,8 +126,10 @@ namespace alm.Core.SyntaxAnalysis
             int end = charPos;
             if (dot)
                 return new Token(tkFloatConst, new Position(start, end, linePos), num);
-            return new Token(tkIntConst, new Position(start, end, linePos), num);
+            else 
+                return new Token(tkIntConst, new Position(start, end, linePos), num);
         }
+
         private Token RecognizeIdentifier()
         {
             string ident = string.Empty;
@@ -131,6 +144,25 @@ namespace alm.Core.SyntaxAnalysis
             if (!Token.IsNull(GetReservedWord(ident))) return GetReservedWord(ident);
             return new Token(tkId, new Position(start, end, linePos), ident);
         }
+
+        private void AddDoubleQuoteToken()
+        {
+            if (Match('"'))
+            {
+                tokens.Add(new Token(tkDQuote, new Position(charPos - 1, charPos, linePos)));
+                GetNextChar();
+            }
+        }
+
+        private void AddSingleQuoteToken()
+        {
+            if (Match('\''))
+            {
+                tokens.Add(new Token(tkSQuote, new Position(charPos - 1, charPos, linePos)));
+                GetNextChar();
+            }
+        }
+
         private Token RecognizeString()
         {
             string str = string.Empty;
@@ -144,7 +176,8 @@ namespace alm.Core.SyntaxAnalysis
             }
             return new Token(tkStringConst, new Position(start, start+str.Length, line), str);
         }
-        private Token RecognizeSymbol()
+
+        private Token RecognizeChar()
         {
             switch (currentChar)
             {
@@ -218,14 +251,16 @@ namespace alm.Core.SyntaxAnalysis
                 case '(': return new Token(tkLpar,      new Position(charPos, charPos + 1, linePos));
                 case ')': return new Token(tkRpar,      new Position(charPos, charPos + 1, linePos));
 
-                case '{': return new Token(tkLbra,  new Position(charPos, charPos + 1, linePos));
-                case '}': return new Token(tkRbra,  new Position(charPos, charPos + 1, linePos));
-                case '"': return new Token(tkQuote, new Position(charPos, charPos + 1, linePos));
-                case ',': return new Token(tkComma, new Position(charPos, charPos + 1, linePos));
+                case '{':  return new Token(tkLbra,  new Position(charPos, charPos + 1, linePos));
+                case '}':  return new Token(tkRbra,  new Position(charPos, charPos + 1, linePos));
+                case '"':  return new Token(tkDQuote, new Position(charPos, charPos + 1, linePos));
+                case '\'': return new Token(tkDQuote, new Position(charPos, charPos + 1, linePos));
+                case ',':  return new Token(tkComma, new Position(charPos, charPos + 1, linePos));
                 case chEOF: return new Token(tkEOF, new Position(charPos, charPos + 1, linePos));
                 default: return new Token(tkNull);
             }
         }
+
         private Token GetReservedWord(string word)
         {
             switch (word)
@@ -243,6 +278,7 @@ namespace alm.Core.SyntaxAnalysis
                 case "of":   return new Token(tkOf,   new Position(charPos - 2, charPos, linePos));
 
                 case "void":    return new Token(tkType, new Position(charPos - 4, charPos, linePos), "void");
+                case "char":    return new Token(tkType, new Position(charPos - 4, charPos, linePos), "char");
                 case "float":   return new Token(tkType, new Position(charPos - 5, charPos, linePos), "float");
                 case "string":  return new Token(tkType, new Position(charPos - 6, charPos, linePos), "string");
                 case "boolean": return new Token(tkType, new Position(charPos - 7, charPos, linePos), "boolean");
@@ -260,6 +296,7 @@ namespace alm.Core.SyntaxAnalysis
                 default: return Token.GetNullToken();
             }
         }
+
         private void GetNextChar()
         {
             if (reader.Peek() == EOF)
@@ -309,23 +346,28 @@ namespace alm.Core.SyntaxAnalysis
             if (char.IsDigit(currentChar))
                 if (!isFirstSymbol)
                     return true;
-            if (char.IsLetter(currentChar) || currentChar == '_')
+            if (char.IsLetter(currentChar) || Match('_'))
                 return true;
             return false;
         }
 
         public bool CharForNumber()
         {
-           return (char.IsDigit(currentChar) || currentChar == '.') ? true : false;
+           return (char.IsDigit(currentChar) || Match('.')) ? true : false;
         }
 
         public bool CharForString(int linePos,bool firstQuote = false)
         {
-            if (currentChar == '"' && !firstQuote) 
+            if (Match('"') && !firstQuote) 
                 return false;
             if (this.linePos != linePos)
                 return false;
             return true;
+        }
+
+        public bool Match(char ch)
+        {
+            return currentChar == ch ? true : false;
         }
     }
 }

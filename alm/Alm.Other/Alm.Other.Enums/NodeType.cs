@@ -12,6 +12,7 @@
         IntegerConstant,
         BooleanConstant,
         StringConstant,
+        CharConstant,
         Type,
         PrimaryNode,
         Function,

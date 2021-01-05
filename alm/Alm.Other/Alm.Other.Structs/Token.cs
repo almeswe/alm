@@ -26,12 +26,7 @@ namespace alm.Other.Structs
             this.TokenType = TokenType;
             this.Context   = new SourceContext(new Position(Position.Start,Position.Start,Position.Line),new Position(Position.End,Position.End,Position.Line));
         }
-        public static Token GetNullToken() => new Token(TokenType.tkNull);
-        public static bool IsNull(Token Token)
-        {
-            if (Token.TokenType == TokenType.tkNull) return true;
-            return false;
-        }
+
         public string ToExtendedString() => $"{this.TokenType}:{this.Value}[{this.Context.StartsAt};{this.Context.EndsAt}][{this.Context.StartsAt.Line}]";
         public override string ToString()
         {

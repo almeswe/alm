@@ -10,18 +10,20 @@ namespace alm.Other.ConsoleStuff
 {
     public sealed class ConsoleErrorDrawer
     {
-        private string FilePath;
-        private string[] Lines;
+        private string filePath;
+        private string[] lines;
 
         public void DrawError(CompilerError error, string path)
         {
-            if (!error.HasLocation) return;
-            if (this.FilePath != path)
+            if (!error.HasLocation)
+                return;
+            if (this.filePath != path)
             {
-                this.FilePath = path;
-                Lines = File.ReadAllLines(path);
+                this.filePath = path;
+                lines = File.ReadAllLines(path);
             }
-            if (Lines is null) Lines = File.ReadAllLines(path);
+            if (lines is null) 
+                lines = File.ReadAllLines(path);
 
             int len;
             int tabs;
@@ -29,11 +31,12 @@ namespace alm.Other.ConsoleStuff
 
             len = error.EndsAt.End - error.StartsAt.Start;
 
-            if (len <= 0) len = 1;
+            if (len <= 0) 
+                len = 1;
 
             try
             {
-                line = Lines[error.StartsAt.Line - 1];
+                line = lines[error.StartsAt.Line - 1];
                 tabs = Tabulations(line)+1;
             }
             catch (IndexOutOfRangeException)

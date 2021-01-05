@@ -62,10 +62,6 @@ namespace alm.Core.SyntaxAnalysis
             currentLineIndex = 1;
             currentTokenIndex = -1;
             GetTokens();
-            /*foreach(var t in Tokens)
-            {
-                System.Console.WriteLine(t.ToExtendedString());
-            }*/
         }
         public Token GetNextToken()
         {
@@ -228,7 +224,7 @@ namespace alm.Core.SyntaxAnalysis
                 case '"':
                     return new Token(tkDQuote, new Position(currentCharIndex, currentCharIndex + 1, currentLineIndex));
                 case '\'':
-                    return new Token(tkDQuote, new Position(currentCharIndex, currentCharIndex + 1, currentLineIndex));
+                    return new Token(tkSQuote, new Position(currentCharIndex, currentCharIndex + 1, currentLineIndex));
                 case ',':
                     return new Token(tkComma, new Position(currentCharIndex, currentCharIndex + 1, currentLineIndex));
                 default:
@@ -237,22 +233,24 @@ namespace alm.Core.SyntaxAnalysis
         }
         private Token RecognizeIdentifier()
         {
-            string ident = string.Empty;
+            int line = currentLineIndex;
             int start = currentCharIndex;
+            string ident = string.Empty;
             while (CharForIdentifier())
             {
                 ident += currentChar.ToString();
                 GetNextChar();
+                //здесь появляется \n и обнуляет позицию и добавляет строку
+                //потом в функции GetReservedWord создается контексит по имеющимся данным
             }
-            int end = currentCharIndex;
             if (IsWordReserved(ident)) 
                 return GetReservedWord(ident);
-            return new Token(tkId, new Position(start, start+ident.Length, currentLineIndex), ident);
+            return new Token(tkId, new Position(start, start+ident.Length, line), ident);
         }
         private Token RecognizeNumber()
         {
-            string num = string.Empty;
             int start = currentCharIndex;
+            string num = string.Empty;
             bool dot = false;
             while (CharForNumber())
             {
@@ -266,35 +264,32 @@ namespace alm.Core.SyntaxAnalysis
                     num += currentChar.ToString();
                 GetNextChar();
             }
-            int end = currentCharIndex;
             if (dot)
-                return new Token(tkFloatConst, new Position(start, end, currentLineIndex), num);
+                return new Token(tkFloatConst, new Position(start, start+num.Length, currentLineIndex), num);
             else
-                return new Token(tkIntConst, new Position(start, end, currentLineIndex), num);
+                return new Token(tkIntConst, new Position(start, start + num.Length, currentLineIndex), num);
         }
         private Token[] RecognizeString()
         {
             //also returns quote tokens
             List<Token> tokens = new List<Token>();
             string str = string.Empty;
-
-            int line = currentLineIndex;
             int start = currentCharIndex;
+            int line = currentLineIndex;
 
             if (CharIsDQuote())
-                tokens.Add(new Token(tkDQuote, new Position(start, start+1, line)));
+                tokens.Add(new Token(tkDQuote, new Position(currentCharIndex, currentCharIndex+1, line)));
             GetNextChar();
             while (CharForString(line))
             {
                 str += currentChar.ToString();
                 GetNextChar();
             }
-            int end = currentCharIndex;
-            tokens.Add(new Token(tkStringConst, new Position(currentCharIndex,end, line),str));
+            tokens.Add(new Token(tkStringConst, new Position(currentCharIndex - str.Length, currentCharIndex, line), str));
 
             if (CharIsDQuote())
             {
-                tokens.Add(new Token(tkDQuote, new Position(currentCharIndex, currentCharIndex + 1, line)));
+                tokens.Add(new Token(tkDQuote, new Position(currentCharIndex, currentCharIndex+1, line)));
                 //skip quote
                 GetNextChar();
             }
@@ -307,13 +302,16 @@ namespace alm.Core.SyntaxAnalysis
             List<Token> tokens = new List<Token>();
 
             if (CharIsSQuote())
-                tokens.Add(new Token(tkSQuote, new Position(currentCharIndex, currentCharIndex, currentLineIndex)));
+                tokens.Add(new Token(tkSQuote, new Position(currentCharIndex, currentCharIndex+1, currentLineIndex)));
             GetNextChar();
-            tokens.Add(new Token(tkCharConst, new Position(currentCharIndex, currentCharIndex, currentLineIndex), currentChar.ToString()));
-            GetNextChar();
+            if (CharForSChar())
+            {
+                tokens.Add(new Token(tkCharConst, new Position(currentCharIndex, currentCharIndex+1, currentLineIndex), currentChar.ToString()));
+                GetNextChar();
+            }
             if (CharIsSQuote())
             {
-                tokens.Add(new Token(tkSQuote, new Position(currentCharIndex, currentCharIndex, currentLineIndex)));
+                tokens.Add(new Token(tkSQuote, new Position(currentCharIndex, currentCharIndex+1, currentLineIndex)));
                 GetNextChar();
             }
 
@@ -329,7 +327,7 @@ namespace alm.Core.SyntaxAnalysis
                 switch(currentChar)
                 {
                     case '\n':
-                        currentCharIndex = 1;
+                        currentCharIndex = 0;
                         currentLineIndex++;
                         GetNextChar();
                         break;
@@ -381,10 +379,7 @@ namespace alm.Core.SyntaxAnalysis
                 else if (CharForIdentifier(true))
                     Tokens.Add(RecognizeIdentifier());
                 else if (CharIsWSpace())
-                {
-                    currentCharIndex++;
                     GetNextChar();
-                }
                 else
                 {
                     Tokens.Add(GetReservedChar());
@@ -443,6 +438,15 @@ namespace alm.Core.SyntaxAnalysis
             if (this.currentLineIndex != linePos)
                 return false;
             return true;
+        }
+        private bool CharForSChar()
+        {
+            if (Match(chEOF))
+                return false;
+            if (Match('\''))
+                return false;
+            return true;
+            //TODO escape chars
         }
         private bool Match(char ch)
         {

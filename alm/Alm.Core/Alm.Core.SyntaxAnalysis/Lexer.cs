@@ -7,112 +7,256 @@ using static alm.Other.Enums.TokenType;
 
 namespace alm.Core.SyntaxAnalysis
 {
-    internal sealed class Lexer
+    public sealed class Lexer
     {
+        private readonly string[] reservedWords = new string[]
+        {
+            "while",
+            "do",
+            "if",
+            "else",
+            "not",
+            "or",
+            "and",
+            "func",
+            "of",
+            "void",
+            "char",
+            "string",
+            "float",
+            "boolean",
+            "integer",
+            "import",
+            "global",
+            "external",
+            "true",
+            "false",
+            "return"
+        };
+
         private const int  EOF = -1;
         private const char chEOF = '\0';
-        private const char chSpace = ' ';
+        private const char chHTab = '\t';
+        private const char chVTab = '\v';
         private const char chNewLn = '\n';
+        private const char chWSpace = ' ';
         private const char chCarrRet = '\r';
 
-        private int charPos;
-        private int linePos;
+        private char currentChar;
 
-        public char currentChar;
-
-        private int currentTokenIndex;
         private int currentCharIndex;
-        private TextReader reader;
+        private int currentLineIndex;
+        private int currentTokenIndex;
 
-        private bool tokensCreated = false;
+        private StreamReader stream;
 
-        public List<Token> tokens = new List<Token>();
+        public List<Token> Tokens;
 
-        public Token CurrentToken => Peek(0);
+        public Token CurrentToken  => Peek(0);
         public Token PreviousToken => Peek(-1);
 
         public Lexer(string path)
         {
-            reader = new StreamReader(path);
-            currentCharIndex = -1;
+            stream = new StreamReader(path,System.Text.Encoding.UTF8);
+            currentCharIndex = 0;
+            currentLineIndex = 1;
             currentTokenIndex = -1;
-            charPos = 0;
-            linePos = 1;
+            GetTokens();
+            /*foreach(var t in Tokens)
+            {
+                System.Console.WriteLine(t.ToExtendedString());
+            }*/
         }
-
         public Token GetNextToken()
         {
             Token token;
             currentTokenIndex++;
-            if (tokensCreated)
-            {
-                if (currentTokenIndex < tokens.Count)
-                    token = tokens[currentTokenIndex];
-                else
-                    token = new Token(tkEOF, new Position(charPos, charPos, linePos));
-                return token;
-            }
+            if (currentTokenIndex < Tokens.Count)
+                token = Tokens[currentTokenIndex];
             else
-            {
-                token = Token.GetNullToken();
-                return token;
-            }
+                token = new Token(tkEOF, new Position(currentCharIndex, currentCharIndex, currentLineIndex));
+            return token;
         }
         public Token Peek(int offset)
         {
-            if (currentTokenIndex + offset < tokens.Count) return tokens[currentTokenIndex + offset];
-            else if (currentTokenIndex + offset < 0) return new Token(tkNull);
-            else return new Token(tkEOF, new Position(charPos, charPos, linePos));
+            if (currentTokenIndex + offset < Tokens.Count) 
+                return Tokens[currentTokenIndex + offset];
+            else if (currentTokenIndex + offset < 0) 
+                return default;
+            else 
+                return new Token(tkEOF, new Position(currentCharIndex, currentCharIndex, currentLineIndex));
         }
-        public Token[] GetTokens()
+        private Token GetReservedWord(string word)
         {
-            GetNextChar();
-            while (currentChar != chEOF)
+            switch (word)
             {
-                if (Match('"'))
-                {
-                    AddDoubleQuoteToken();
-                    tokens.Add(RecognizeString());
-                    AddDoubleQuoteToken();
-                }
-                else if (Match('\''))
-                {
-                    AddSingleQuoteToken();
-                    tokens.Add(RecognizeSingleChar());
-                    AddSingleQuoteToken();
-                }
-                else if (CharForNumber())
-                    tokens.Add(RecognizeConst());
-                else if (CharForIdentifier(true))
-                    tokens.Add(RecognizeIdentifier());
-                else if (char.IsWhiteSpace(currentChar))
-                    GetNextChar();
-                else
-                {
-                    tokens.Add(RecognizeChar());
-                    GetNextChar();
-                }
+                case "while": 
+                    return new Token(tkWhile, new Position(currentCharIndex - 5, currentCharIndex, currentLineIndex));
+                case "do":    
+                    return new Token(tkDo,    new Position(currentCharIndex - 2, currentCharIndex, currentLineIndex));
+                case "if":    
+                    return new Token(tkIf,    new Position(currentCharIndex - 2, currentCharIndex, currentLineIndex));
+                case "else":  
+                    return new Token(tkElse,  new Position(currentCharIndex - 4, currentCharIndex, currentLineIndex));
+
+                case "not": 
+                    return new Token(tkNot, new Position(currentCharIndex - 3, currentCharIndex, currentLineIndex));
+                case "or":  
+                    return new Token(tkOr,  new Position(currentCharIndex - 2, currentCharIndex, currentLineIndex));
+                case "and": 
+                    return new Token(tkAnd, new Position(currentCharIndex - 3, currentCharIndex, currentLineIndex));
+
+                case "func": 
+                    return new Token(tkFunc, new Position(currentCharIndex - 4, currentCharIndex, currentLineIndex));
+                case "of":   
+                    return new Token(tkOf,   new Position(currentCharIndex - 2, currentCharIndex, currentLineIndex));
+
+                case "void":    
+                    return new Token(tkType, new Position(currentCharIndex - 4, currentCharIndex, currentLineIndex), "void");
+                case "char":    
+                    return new Token(tkType, new Position(currentCharIndex - 4, currentCharIndex, currentLineIndex), "char");
+                case "float":   
+                    return new Token(tkType, new Position(currentCharIndex - 5, currentCharIndex, currentLineIndex), "float");
+                case "string":  
+                    return new Token(tkType, new Position(currentCharIndex - 6, currentCharIndex, currentLineIndex), "string");
+                case "boolean": 
+                    return new Token(tkType, new Position(currentCharIndex - 7, currentCharIndex, currentLineIndex), "boolean");
+                case "integer": 
+                    return new Token(tkType, new Position(currentCharIndex - 7, currentCharIndex, currentLineIndex), "integer");
+
+                case "import": 
+                    return new Token(tkImport, new Position(currentCharIndex - 6, currentCharIndex, currentLineIndex));
+                case "global": 
+                    return new Token(tkGlobal, new Position(currentCharIndex - 6, currentCharIndex, currentLineIndex));
+
+                case "external": 
+                    return new Token(tkExternalProp, new Position(currentCharIndex - 8, currentCharIndex, currentLineIndex));
+
+                case "return": 
+                    return new Token(tkRet,          new Position(currentCharIndex - 6, currentCharIndex, currentLineIndex));
+                case "true":   
+                    return new Token(tkBooleanConst, new Position(currentCharIndex - 4, currentCharIndex, currentLineIndex), "true");
+                case "false":  
+                    return new Token(tkBooleanConst, new Position(currentCharIndex - 5, currentCharIndex, currentLineIndex), "false");
+
+                default: return default;
             }
-            reader.Close();
-            if (!tokensCreated) tokensCreated = true;
-            return tokens.ToArray();
         }
-
-        private Token RecognizeSingleChar()
+        private Token GetReservedChar()
         {
-            Token token = new Token(tkCharConst, new Position(charPos - 1, charPos + 1, linePos),currentChar.ToString());
-            GetNextChar();
-            return token;
-        }
+            switch (currentChar)
+            {
+                case '=':
+                    if (MatchPeeked('='))
+                    {
+                        GetNextChar();
+                        return new Token(tkEqual, new Position(currentCharIndex, currentCharIndex + 2, currentLineIndex));
+                    }
+                    return new Token(tkAssign, new Position(currentCharIndex, currentCharIndex + 1, currentLineIndex));
 
-        private Token RecognizeConst()
+                case '!':
+                    if (MatchPeeked('='))
+                    {
+                        GetNextChar();
+                        return new Token(tkNotEqual, new Position(currentCharIndex, currentCharIndex + 2, currentLineIndex));
+                    }
+                    return new Token(tkNull);
+
+                case '<':
+                    if (MatchPeeked('='))
+                    {
+                        GetNextChar();
+                        return new Token(tkEqualLess, new Position(currentCharIndex, currentCharIndex + 2, currentLineIndex));
+                    }
+                    return new Token(tkLess, new Position(currentCharIndex, currentCharIndex + 1, currentLineIndex));
+
+                case '>':
+                    if (MatchPeeked('='))
+                    {
+                        GetNextChar();
+                        return new Token(tkEqualGreater, new Position(currentCharIndex, currentCharIndex + 2, currentLineIndex));
+                    }
+                    return new Token(tkGreater, new Position(currentCharIndex, currentCharIndex + 1, currentLineIndex));
+
+                case '+':
+                    if (MatchPeeked('='))
+                    {
+                        GetNextChar();
+                        return new Token(tkAddAssign, new Position(currentCharIndex, currentCharIndex + 2, currentLineIndex));
+                    }
+                    return new Token(tkPlus, new Position(currentCharIndex, currentCharIndex + 1, currentLineIndex));
+
+                case '-':
+                    if (MatchPeeked('='))
+                    {
+                        GetNextChar();
+                        return new Token(tkSubAssign, new Position(currentCharIndex, currentCharIndex + 2, currentLineIndex));
+                    }
+                    return new Token(tkMinus, new Position(currentCharIndex, currentCharIndex + 1, currentLineIndex));
+
+                case '*':
+                    if (MatchPeeked('='))
+                    {
+                        GetNextChar();
+                        return new Token(tkMultAssign, new Position(currentCharIndex, currentCharIndex + 2, currentLineIndex));
+                    }
+                    return new Token(tkMult, new Position(currentCharIndex, currentCharIndex + 1, currentLineIndex));
+
+                case '/':
+                    if (MatchPeeked('='))
+                    {
+                        GetNextChar();
+                        return new Token(tkDivAssign, new Position(currentCharIndex, currentCharIndex + 2, currentLineIndex));
+                    }
+                    return new Token(tkDiv, new Position(currentCharIndex, currentCharIndex + 1, currentLineIndex));
+
+                case '@':
+                    return new Token(tkAt, new Position(currentCharIndex, currentCharIndex + 1, currentLineIndex));
+                case ';':
+                    return new Token(tkSemicolon, new Position(currentCharIndex, currentCharIndex + 1, currentLineIndex));
+                case ':':
+                    return new Token(tkColon, new Position(currentCharIndex, currentCharIndex + 1, currentLineIndex));
+                case '(':
+                    return new Token(tkLpar, new Position(currentCharIndex, currentCharIndex + 1, currentLineIndex));
+                case ')':
+                    return new Token(tkRpar, new Position(currentCharIndex, currentCharIndex + 1, currentLineIndex));
+
+                case '{':
+                    return new Token(tkLbra, new Position(currentCharIndex, currentCharIndex + 1, currentLineIndex));
+                case '}':
+                    return new Token(tkRbra, new Position(currentCharIndex, currentCharIndex + 1, currentLineIndex));
+                case '"':
+                    return new Token(tkDQuote, new Position(currentCharIndex, currentCharIndex + 1, currentLineIndex));
+                case '\'':
+                    return new Token(tkDQuote, new Position(currentCharIndex, currentCharIndex + 1, currentLineIndex));
+                case ',':
+                    return new Token(tkComma, new Position(currentCharIndex, currentCharIndex + 1, currentLineIndex));
+                default:
+                    return new Token(tkNull);
+            }
+        }
+        private Token RecognizeIdentifier()
+        {
+            string ident = string.Empty;
+            int start = currentCharIndex;
+            while (CharForIdentifier())
+            {
+                ident += currentChar.ToString();
+                GetNextChar();
+            }
+            int end = currentCharIndex;
+            if (IsWordReserved(ident)) 
+                return GetReservedWord(ident);
+            return new Token(tkId, new Position(start, start+ident.Length, currentLineIndex), ident);
+        }
+        private Token RecognizeNumber()
         {
             string num = string.Empty;
-            int start = charPos;
-            bool dot  = false;
+            int start = currentCharIndex;
+            bool dot = false;
             while (CharForNumber())
             {
-                if (Match('.'))
+                if (CharIsDot())
                 {
                     if (dot) break;
                     else dot = true;
@@ -120,254 +264,218 @@ namespace alm.Core.SyntaxAnalysis
                 }
                 else
                     num += currentChar.ToString();
-                currentCharIndex++;
                 GetNextChar();
             }
-            int end = charPos;
+            int end = currentCharIndex;
             if (dot)
-                return new Token(tkFloatConst, new Position(start, end, linePos), num);
-            else 
-                return new Token(tkIntConst, new Position(start, end, linePos), num);
+                return new Token(tkFloatConst, new Position(start, end, currentLineIndex), num);
+            else
+                return new Token(tkIntConst, new Position(start, end, currentLineIndex), num);
         }
-
-        private Token RecognizeIdentifier()
+        private Token[] RecognizeString()
         {
-            string ident = string.Empty;
-            int start    = charPos;
-            while (CharForIdentifier())
-            {
-                ident += currentChar.ToString();
-                currentCharIndex++;
-                GetNextChar();
-            }
-            int end = charPos;
-            if (!Token.IsNull(GetReservedWord(ident))) return GetReservedWord(ident);
-            return new Token(tkId, new Position(start, end, linePos), ident);
-        }
-
-        private void AddDoubleQuoteToken()
-        {
-            if (Match('"'))
-            {
-                tokens.Add(new Token(tkDQuote, new Position(charPos - 1, charPos, linePos)));
-                GetNextChar();
-            }
-        }
-
-        private void AddSingleQuoteToken()
-        {
-            if (Match('\''))
-            {
-                tokens.Add(new Token(tkSQuote, new Position(charPos - 1, charPos, linePos)));
-                GetNextChar();
-            }
-        }
-
-        private Token RecognizeString()
-        {
+            //also returns quote tokens
+            List<Token> tokens = new List<Token>();
             string str = string.Empty;
-            int line = linePos;
-            int start = charPos;
+
+            int line = currentLineIndex;
+            int start = currentCharIndex;
+
+            if (CharIsDQuote())
+                tokens.Add(new Token(tkDQuote, new Position(start, start+1, line)));
+            GetNextChar();
             while (CharForString(line))
             {
                 str += currentChar.ToString();
-                currentCharIndex++;
                 GetNextChar();
             }
-            return new Token(tkStringConst, new Position(start, start+str.Length, line), str);
-        }
+            int end = currentCharIndex;
+            tokens.Add(new Token(tkStringConst, new Position(currentCharIndex,end, line),str));
 
-        private Token RecognizeChar()
-        {
-            switch (currentChar)
+            if (CharIsDQuote())
             {
-                case '=':
-                    if (reader.Peek() == '=')
-                    {
-                        GetNextChar();
-                        return new Token(tkEqual, new Position(charPos, charPos+2, linePos));
-                    }
-                    return new Token(tkAssign, new Position(charPos, charPos+1, linePos));
-
-                case '!':
-                    if (reader.Peek() == '=')
-                    {
-                        GetNextChar();
-                        return new Token(tkNotEqual, new Position(charPos, charPos+2, linePos));
-                    }
-                    return new Token(tkNull);
-
-                case '<':
-                    if (reader.Peek() == '=')
-                    { 
-                        GetNextChar();
-                        return new Token(tkEqualLess, new Position(charPos, charPos + 2, linePos));
-                    }
-                    return new Token(tkLess, new Position(charPos, charPos + 1, linePos));
-
-                case '>':
-                    if (reader.Peek() == '=') 
-                    {
-                        GetNextChar(); 
-                        return new Token(tkEqualGreater, new Position(charPos, charPos + 2, linePos));
-                    }
-                    return new Token(tkGreater, new Position(charPos, charPos + 1, linePos));
-
-                case '+':
-                    if (reader.Peek() == '=')
-                    {
-                        GetNextChar();
-                        return new Token(tkAddAssign, new Position(charPos, charPos + 2, linePos));
-                    }
-                    return new Token(tkPlus,  new Position(charPos, charPos + 1, linePos));
-
-                case '-':
-                    if (reader.Peek() == '=')
-                    {
-                        GetNextChar();
-                        return new Token(tkSubAssign, new Position(charPos, charPos + 2, linePos));
-                    }
-                    return new Token(tkMinus, new Position(charPos, charPos + 1, linePos));
-
-                case '*':
-                    if (reader.Peek() == '=')
-                    {
-                        GetNextChar();
-                        return new Token(tkMultAssign, new Position(charPos, charPos + 2, linePos));
-                    }
-                    return new Token(tkMult,  new Position(charPos, charPos + 1, linePos));
-
-                case '/':
-                    if (reader.Peek() == '=')
-                    {
-                        GetNextChar();
-                        return new Token(tkDivAssign, new Position(charPos, charPos + 2, linePos));
-                    }
-                    return new Token(tkDiv,   new Position(charPos, charPos + 1, linePos));
-
-                case '@': return new Token(tkAt,        new Position(charPos, charPos + 1, linePos));
-                case ';': return new Token(tkSemicolon, new Position(charPos, charPos + 1, linePos));
-                case ':': return new Token(tkColon,     new Position(charPos, charPos + 1, linePos));
-                case '(': return new Token(tkLpar,      new Position(charPos, charPos + 1, linePos));
-                case ')': return new Token(tkRpar,      new Position(charPos, charPos + 1, linePos));
-
-                case '{':  return new Token(tkLbra,  new Position(charPos, charPos + 1, linePos));
-                case '}':  return new Token(tkRbra,  new Position(charPos, charPos + 1, linePos));
-                case '"':  return new Token(tkDQuote, new Position(charPos, charPos + 1, linePos));
-                case '\'': return new Token(tkDQuote, new Position(charPos, charPos + 1, linePos));
-                case ',':  return new Token(tkComma, new Position(charPos, charPos + 1, linePos));
-                case chEOF: return new Token(tkEOF, new Position(charPos, charPos + 1, linePos));
-                default: return new Token(tkNull);
+                tokens.Add(new Token(tkDQuote, new Position(currentCharIndex, currentCharIndex + 1, line)));
+                //skip quote
+                GetNextChar();
             }
-        }
 
-        private Token GetReservedWord(string word)
+            return tokens.ToArray();
+        }
+        private Token[] RecognizeChar()
         {
-            switch (word)
+            //also returns quote tokens
+            List<Token> tokens = new List<Token>();
+
+            if (CharIsSQuote())
+                tokens.Add(new Token(tkSQuote, new Position(currentCharIndex, currentCharIndex, currentLineIndex)));
+            GetNextChar();
+            tokens.Add(new Token(tkCharConst, new Position(currentCharIndex, currentCharIndex, currentLineIndex), currentChar.ToString()));
+            GetNextChar();
+            if (CharIsSQuote())
             {
-                case "while": return new Token(tkWhile, new Position(charPos - 5, charPos, linePos));
-                case "do":    return new Token(tkDo,    new Position(charPos - 2, charPos, linePos));
-                case "if":    return new Token(tkIf,    new Position(charPos - 2, charPos, linePos));
-                case "else":  return new Token(tkElse,  new Position(charPos - 4, charPos, linePos));
-
-                case "not": return new Token(tkNot, new Position(charPos - 3, charPos, linePos));
-                case "or":  return new Token(tkOr,  new Position(charPos - 2, charPos, linePos));
-                case "and": return new Token(tkAnd, new Position(charPos - 3, charPos, linePos));
-
-                case "func": return new Token(tkFunc, new Position(charPos - 4, charPos, linePos));
-                case "of":   return new Token(tkOf,   new Position(charPos - 2, charPos, linePos));
-
-                case "void":    return new Token(tkType, new Position(charPos - 4, charPos, linePos), "void");
-                case "char":    return new Token(tkType, new Position(charPos - 4, charPos, linePos), "char");
-                case "float":   return new Token(tkType, new Position(charPos - 5, charPos, linePos), "float");
-                case "string":  return new Token(tkType, new Position(charPos - 6, charPos, linePos), "string");
-                case "boolean": return new Token(tkType, new Position(charPos - 7, charPos, linePos), "boolean");
-                case "integer": return new Token(tkType, new Position(charPos - 7, charPos, linePos), "integer");
-
-                case "import": return new Token(tkImport, new Position(charPos - 6, charPos, linePos));
-                case "global": return new Token(tkGlobal, new Position(charPos - 6, charPos, linePos));
-
-                case "external": return new Token(tkExternalProp, new Position(charPos - 8, charPos, linePos));
-
-                case "return": return new Token(tkRet,          new Position(charPos - 6, charPos, linePos));
-                case "true":   return new Token(tkBooleanConst, new Position(charPos - 4, charPos, linePos), "true");
-                case "false":  return new Token(tkBooleanConst, new Position(charPos - 5, charPos, linePos), "false");
-
-                default: return Token.GetNullToken();
+                tokens.Add(new Token(tkSQuote, new Position(currentCharIndex, currentCharIndex, currentLineIndex)));
+                GetNextChar();
             }
-        }
 
+            return tokens.ToArray();
+        }
         private void GetNextChar()
         {
-            if (reader.Peek() == EOF)
+            if (stream.Peek() == EOF)
                 currentChar = chEOF;
             else
             {
-                currentChar = (char)reader.Read();
-                charPos++;
-                currentCharIndex++;
-                if (currentChar == chNewLn)
+                currentChar = (char)stream.Read();
+                switch(currentChar)
                 {
-                    charPos = 0;
-                    linePos++;
-                    GetNextChar();
+                    case '\n':
+                        currentCharIndex = 1;
+                        currentLineIndex++;
+                        GetNextChar();
+                        break;
+
+                    case '\r':
+                        currentCharIndex = 1;
+                        GetNextChar();
+                        break;
+                        
+                    case '\t':
+                    case '\v':
+                        GetNextChar();
+                        break;
+
+                    case '/':
+                        switch ((char)stream.Peek())
+                        {
+                            case '*':
+                                MultiLineCommentary();
+                                break;
+                            case '/':
+                                SingleLineCommentary();
+                                break;
+                            default:
+                                //default case like in main "switch"
+                                currentCharIndex++;
+                                break;
+                        }
+                        break;
+
+                    default:
+                        currentCharIndex++;
+                        break;
                 }
             }
-            CheckCommentary();
         }
-
-        private void CheckCommentary()
+        private void GetTokens()
         {
-            int line = linePos;
-            if (currentChar == '/')
+            Tokens = new List<Token>();
+            GetNextChar();
+            while (!Match(chEOF))
             {
-                //Проверка на однострочный комментарий
-                if (reader.Peek() == '/')
+                if (CharIsDQuote())
+                    Tokens.AddRange(RecognizeString());
+                else if (CharIsSQuote())
+                    Tokens.AddRange(RecognizeChar());
+                else if (CharForNumber())
+                    Tokens.Add(RecognizeNumber());
+                else if (CharForIdentifier(true))
+                    Tokens.Add(RecognizeIdentifier());
+                else if (CharIsWSpace())
                 {
-                    reader.Read();
-                    while (linePos == line)
-                        GetNextChar();
-                }
-                //Проверка на многострочный комментарий
-                if (reader.Peek() == '*')
-                {
-                    reader.Read();
-                    while (currentChar != '*' || reader.Peek() != '/')
-                        GetNextChar();
+                    currentCharIndex++;
                     GetNextChar();
+                }
+                else
+                {
+                    Tokens.Add(GetReservedChar());
                     GetNextChar();
                 }
             }
-
+            stream.Close();
         }
-
-        public bool CharForIdentifier(bool isFirstSymbol = false)
+        private void MultiLineCommentary()
         {
-            if (char.IsDigit(currentChar))
-                if (!isFirstSymbol)
+            //skip start '*' char
+            GetNextChar();
+            while (!(Match('*') && MatchPeeked('/')) &&
+                   !Match(chEOF))
+                GetNextChar();
+
+            //skip '*','/' chars
+            GetNextChar();
+            GetNextChar();
+        }
+        private void SingleLineCommentary()
+        {
+            //skip start '\' char
+            GetNextChar();
+
+            int startLine = currentLineIndex;
+            while (startLine == currentLineIndex &&
+                   !Match(chEOF))
+                GetNextChar();
+        }
+        private bool CharForNumber()
+        {
+            if (Match(chEOF))
+                return false;
+            return (CharIsDigit(currentChar) ||
+                    CharIsDot()) ? true : false;
+        }
+        private bool CharForIdentifier(bool fsym = false)
+        {
+            if (Match(chEOF))
+                return false;
+            if (CharIsDigit(currentChar) && 
+                !fsym)
                     return true;
-            if (char.IsLetter(currentChar) || Match('_'))
+            if (CharIsLetter(currentChar) || 
+                CharIsUnderscore())
                 return true;
             return false;
         }
-
-        public bool CharForNumber()
+        private bool CharForString(int linePos, bool fq = false)
         {
-           return (char.IsDigit(currentChar) || Match('.')) ? true : false;
-        }
-
-        public bool CharForString(int linePos,bool firstQuote = false)
-        {
-            if (Match('"') && !firstQuote) 
+            if (Match(chEOF))
                 return false;
-            if (this.linePos != linePos)
+            if (Match('"') && !fq)
+                return false;
+            if (this.currentLineIndex != linePos)
                 return false;
             return true;
         }
-
-        public bool Match(char ch)
+        private bool Match(char ch)
         {
             return currentChar == ch ? true : false;
         }
+        private bool MatchPeeked(char ch)
+        {
+            if (stream == null)
+                return false;
+            return (char)stream.Peek() == ch ? true : false;
+        }
+        private bool IsWordReserved(string word)
+        {
+            for (int i = 0; i < reservedWords.Length; i++)
+                if (reservedWords[i] == word)
+                    return true;
+            return false;
+        }
+        private bool CharIsDigit(char ch) => 
+            ch >= 48 && ch <= 57 
+            ? true : false;
+        private bool CharIsLetter(char ch) => 
+            //encoding UTF-8
+            ((ch >= 97 && ch <= 122) || (ch >= 65 && ch <= 90)) ||    // eng
+            ((ch >= 1072 && ch <= 1103) || (ch >= 1040 && ch <= 1071))// rus
+            ? true : false;
+        private bool CharIsLetterOrDigit(char ch) => CharIsDigit(ch) || CharIsLetter(ch) ? true : false;
+        private bool CharsAreSame(char ch, char sch) => ch == sch ? true : false;
+        private bool CharIsAt()  => CharsAreSame(currentChar, '@') ? true : false;
+        private bool CharIsDot() => CharsAreSame(currentChar, '.') ? true : false;
+        private bool CharIsUnderscore() => CharsAreSame(currentChar, '_') ? true : false;
+        private bool CharIsDQuote() => CharsAreSame(currentChar, '\"') ? true : false;
+        private bool CharIsSQuote() => CharsAreSame(currentChar, '\'') ? true : false;
+        private bool CharIsWSpace() => CharsAreSame(currentChar, ' ') ? true : false;
     }
 }

@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Linq;
 
-using alm.Core.Errors;
 using alm.Other.ConsoleStuff;
 
 namespace alm.Core.SyntaxAnalysis
@@ -14,10 +13,9 @@ namespace alm.Core.SyntaxAnalysis
         public void BuildTree(string path)
         {
             Lexer lexer = new Lexer(path);
-            lexer.GetTokens();
             Parser parser = new Parser(lexer);
             this.Root = parser.Parse(path);
-            Builded = true;
+            this.Builded = true;
         }
         public void ShowTree()
         {

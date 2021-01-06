@@ -2,7 +2,6 @@
 {
     public enum Operator
     {
-        UnaryMinus,
         Plus,
         Minus,
         Multiplication,

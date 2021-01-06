@@ -70,7 +70,7 @@ namespace alm.Core.SyntaxAnalysis
             if (currentTokenIndex < Tokens.Count)
                 token = Tokens[currentTokenIndex];
             else
-                token = new Token(tkEOF, new Position(currentCharIndex, currentCharIndex, currentLineIndex));
+                token = new Token(tkEOF, new Position(currentCharIndex, currentLineIndex));
             return token;
         }
         public Token Peek(int offset)
@@ -80,60 +80,60 @@ namespace alm.Core.SyntaxAnalysis
             else if (currentTokenIndex + offset < 0) 
                 return default;
             else 
-                return new Token(tkEOF, new Position(currentCharIndex, currentCharIndex, currentLineIndex));
+                return new Token(tkEOF, new Position(currentCharIndex, currentLineIndex));
         }
         private Token GetReservedWord(string word)
         {
             switch (word)
             {
                 case "while": 
-                    return new Token(tkWhile, new Position(currentCharIndex - 5, currentCharIndex, currentLineIndex));
+                    return new Token(tkWhile, new Position(currentCharIndex-5, currentLineIndex), word);
                 case "do":    
-                    return new Token(tkDo,    new Position(currentCharIndex - 2, currentCharIndex, currentLineIndex));
+                    return new Token(tkDo,    new Position(currentCharIndex-2, currentLineIndex), word);
                 case "if":    
-                    return new Token(tkIf,    new Position(currentCharIndex - 2, currentCharIndex, currentLineIndex));
+                    return new Token(tkIf,    new Position(currentCharIndex-2, currentLineIndex), word);
                 case "else":  
-                    return new Token(tkElse,  new Position(currentCharIndex - 4, currentCharIndex, currentLineIndex));
+                    return new Token(tkElse,  new Position(currentCharIndex-4, currentLineIndex), word);
 
                 case "not": 
-                    return new Token(tkNot, new Position(currentCharIndex - 3, currentCharIndex, currentLineIndex));
+                    return new Token(tkNot, new Position(currentCharIndex-3, currentLineIndex), word);
                 case "or":  
-                    return new Token(tkOr,  new Position(currentCharIndex - 2, currentCharIndex, currentLineIndex));
+                    return new Token(tkOr,  new Position(currentCharIndex-2, currentLineIndex), word);
                 case "and": 
-                    return new Token(tkAnd, new Position(currentCharIndex - 3, currentCharIndex, currentLineIndex));
+                    return new Token(tkAnd, new Position(currentCharIndex-3, currentLineIndex), word);
 
                 case "func": 
-                    return new Token(tkFunc, new Position(currentCharIndex - 4, currentCharIndex, currentLineIndex));
+                    return new Token(tkFunc, new Position(currentCharIndex-4, currentLineIndex),word);
                 case "of":   
-                    return new Token(tkOf,   new Position(currentCharIndex - 2, currentCharIndex, currentLineIndex));
+                    return new Token(tkOf,   new Position(currentCharIndex-2, currentLineIndex),word);
 
                 case "void":    
-                    return new Token(tkType, new Position(currentCharIndex - 4, currentCharIndex, currentLineIndex), "void");
+                    return new Token(tkType, new Position(currentCharIndex-4, currentLineIndex), word);
                 case "char":    
-                    return new Token(tkType, new Position(currentCharIndex - 4, currentCharIndex, currentLineIndex), "char");
+                    return new Token(tkType, new Position(currentCharIndex-4, currentLineIndex), word);
                 case "float":   
-                    return new Token(tkType, new Position(currentCharIndex - 5, currentCharIndex, currentLineIndex), "float");
+                    return new Token(tkType, new Position(currentCharIndex-5, currentLineIndex), word);
                 case "string":  
-                    return new Token(tkType, new Position(currentCharIndex - 6, currentCharIndex, currentLineIndex), "string");
+                    return new Token(tkType, new Position(currentCharIndex-6, currentLineIndex), word);
                 case "boolean": 
-                    return new Token(tkType, new Position(currentCharIndex - 7, currentCharIndex, currentLineIndex), "boolean");
+                    return new Token(tkType, new Position(currentCharIndex-7, currentLineIndex), word);
                 case "integer": 
-                    return new Token(tkType, new Position(currentCharIndex - 7, currentCharIndex, currentLineIndex), "integer");
+                    return new Token(tkType, new Position(currentCharIndex-7, currentLineIndex), word);
 
                 case "import": 
-                    return new Token(tkImport, new Position(currentCharIndex - 6, currentCharIndex, currentLineIndex));
+                    return new Token(tkImport, new Position(currentCharIndex-6, currentLineIndex), word);
                 case "global": 
-                    return new Token(tkGlobal, new Position(currentCharIndex - 6, currentCharIndex, currentLineIndex));
+                    return new Token(tkGlobal, new Position(currentCharIndex-6, currentLineIndex), word);
 
                 case "external": 
-                    return new Token(tkExternalProp, new Position(currentCharIndex - 8, currentCharIndex, currentLineIndex));
+                    return new Token(tkExternalProp, new Position(currentCharIndex-8, currentLineIndex));
 
                 case "return": 
-                    return new Token(tkRet,          new Position(currentCharIndex - 6, currentCharIndex, currentLineIndex));
+                    return new Token(tkRet, new Position(currentCharIndex-6, currentLineIndex), word);
                 case "true":   
-                    return new Token(tkBooleanConst, new Position(currentCharIndex - 4, currentCharIndex, currentLineIndex), "true");
+                    return new Token(tkBooleanConst, new Position(currentCharIndex-4, currentLineIndex), word);
                 case "false":  
-                    return new Token(tkBooleanConst, new Position(currentCharIndex - 5, currentCharIndex, currentLineIndex), "false");
+                    return new Token(tkBooleanConst, new Position(currentCharIndex-5, currentLineIndex), word);
 
                 default: return default;
             }
@@ -146,15 +146,15 @@ namespace alm.Core.SyntaxAnalysis
                     if (MatchPeeked('='))
                     {
                         GetNextChar();
-                        return new Token(tkEqual, new Position(currentCharIndex, currentCharIndex + 2, currentLineIndex));
+                        return new Token(tkEqual, new Position(currentCharIndex, currentLineIndex), "==");
                     }
-                    return new Token(tkAssign, new Position(currentCharIndex, currentCharIndex + 1, currentLineIndex));
+                    return new Token(tkAssign, new Position(currentCharIndex, currentLineIndex), "=");
 
                 case '!':
                     if (MatchPeeked('='))
                     {
                         GetNextChar();
-                        return new Token(tkNotEqual, new Position(currentCharIndex, currentCharIndex + 2, currentLineIndex));
+                        return new Token(tkNotEqual, new Position(currentCharIndex, currentLineIndex), "!=");
                     }
                     return new Token(tkNull);
 
@@ -162,71 +162,71 @@ namespace alm.Core.SyntaxAnalysis
                     if (MatchPeeked('='))
                     {
                         GetNextChar();
-                        return new Token(tkEqualLess, new Position(currentCharIndex, currentCharIndex + 2, currentLineIndex));
+                        return new Token(tkEqualLess, new Position(currentCharIndex, currentLineIndex), "<=");
                     }
-                    return new Token(tkLess, new Position(currentCharIndex, currentCharIndex + 1, currentLineIndex));
+                    return new Token(tkLess, new Position(currentCharIndex, currentLineIndex), "<");
 
                 case '>':
                     if (MatchPeeked('='))
                     {
                         GetNextChar();
-                        return new Token(tkEqualGreater, new Position(currentCharIndex, currentCharIndex + 2, currentLineIndex));
+                        return new Token(tkEqualGreater, new Position(currentCharIndex, currentLineIndex), ">=");
                     }
-                    return new Token(tkGreater, new Position(currentCharIndex, currentCharIndex + 1, currentLineIndex));
+                    return new Token(tkGreater, new Position(currentCharIndex, currentLineIndex), ">");
 
                 case '+':
                     if (MatchPeeked('='))
                     {
                         GetNextChar();
-                        return new Token(tkAddAssign, new Position(currentCharIndex, currentCharIndex + 2, currentLineIndex));
+                        return new Token(tkAddAssign, new Position(currentCharIndex, currentLineIndex), "+=");
                     }
-                    return new Token(tkPlus, new Position(currentCharIndex, currentCharIndex + 1, currentLineIndex));
+                    return new Token(tkPlus, new Position(currentCharIndex, currentLineIndex), "+");
 
                 case '-':
                     if (MatchPeeked('='))
                     {
                         GetNextChar();
-                        return new Token(tkSubAssign, new Position(currentCharIndex, currentCharIndex + 2, currentLineIndex));
+                        return new Token(tkSubAssign, new Position(currentCharIndex, currentLineIndex), "-=");
                     }
-                    return new Token(tkMinus, new Position(currentCharIndex, currentCharIndex + 1, currentLineIndex));
+                    return new Token(tkMinus, new Position(currentCharIndex, currentLineIndex), "-");
 
                 case '*':
                     if (MatchPeeked('='))
                     {
                         GetNextChar();
-                        return new Token(tkMultAssign, new Position(currentCharIndex, currentCharIndex + 2, currentLineIndex));
+                        return new Token(tkMultAssign, new Position(currentCharIndex, currentLineIndex), "*=");
                     }
-                    return new Token(tkMult, new Position(currentCharIndex, currentCharIndex + 1, currentLineIndex));
+                    return new Token(tkMult, new Position(currentCharIndex, currentLineIndex), "*");
 
                 case '/':
                     if (MatchPeeked('='))
                     {
                         GetNextChar();
-                        return new Token(tkDivAssign, new Position(currentCharIndex, currentCharIndex + 2, currentLineIndex));
+                        return new Token(tkDivAssign, new Position(currentCharIndex, currentLineIndex), "/=");
                     }
-                    return new Token(tkDiv, new Position(currentCharIndex, currentCharIndex + 1, currentLineIndex));
+                    return new Token(tkDiv, new Position(currentCharIndex, currentLineIndex), "/");
 
                 case '@':
-                    return new Token(tkAt, new Position(currentCharIndex, currentCharIndex + 1, currentLineIndex));
+                    return new Token(tkAt, new Position(currentCharIndex, currentLineIndex), "@");
                 case ';':
-                    return new Token(tkSemicolon, new Position(currentCharIndex, currentCharIndex + 1, currentLineIndex));
+                    return new Token(tkSemicolon, new Position(currentCharIndex, currentLineIndex), ";");
                 case ':':
-                    return new Token(tkColon, new Position(currentCharIndex, currentCharIndex + 1, currentLineIndex));
+                    return new Token(tkColon, new Position(currentCharIndex, currentLineIndex), ":");
                 case '(':
-                    return new Token(tkLpar, new Position(currentCharIndex, currentCharIndex + 1, currentLineIndex));
+                    return new Token(tkLpar, new Position(currentCharIndex, currentLineIndex), "(");
                 case ')':
-                    return new Token(tkRpar, new Position(currentCharIndex, currentCharIndex + 1, currentLineIndex));
+                    return new Token(tkRpar, new Position(currentCharIndex, currentLineIndex), ")");
 
                 case '{':
-                    return new Token(tkLbra, new Position(currentCharIndex, currentCharIndex + 1, currentLineIndex));
+                    return new Token(tkLbra, new Position(currentCharIndex, currentLineIndex), "{");
                 case '}':
-                    return new Token(tkRbra, new Position(currentCharIndex, currentCharIndex + 1, currentLineIndex));
+                    return new Token(tkRbra, new Position(currentCharIndex, currentLineIndex), "}");
                 case '"':
-                    return new Token(tkDQuote, new Position(currentCharIndex, currentCharIndex + 1, currentLineIndex));
+                    return new Token(tkDQuote, new Position(currentCharIndex, currentLineIndex), "\"");
                 case '\'':
-                    return new Token(tkSQuote, new Position(currentCharIndex, currentCharIndex + 1, currentLineIndex));
+                    return new Token(tkSQuote, new Position(currentCharIndex, currentLineIndex), "\'");
                 case ',':
-                    return new Token(tkComma, new Position(currentCharIndex, currentCharIndex + 1, currentLineIndex));
+                    return new Token(tkComma, new Position(currentCharIndex, currentLineIndex), ",");
                 default:
                     return new Token(tkNull);
             }
@@ -245,7 +245,7 @@ namespace alm.Core.SyntaxAnalysis
             }
             if (IsWordReserved(ident)) 
                 return GetReservedWord(ident);
-            return new Token(tkId, new Position(start, start+ident.Length, line), ident);
+            return new Token(tkId, new Position(start, line), ident);
         }
         private Token RecognizeNumber()
         {
@@ -265,9 +265,9 @@ namespace alm.Core.SyntaxAnalysis
                 GetNextChar();
             }
             if (dot)
-                return new Token(tkFloatConst, new Position(start, start+num.Length, currentLineIndex), num);
+                return new Token(tkFloatConst, new Position(start, currentLineIndex), num);
             else
-                return new Token(tkIntConst, new Position(start, start + num.Length, currentLineIndex), num);
+                return new Token(tkIntConst, new Position(start, currentLineIndex), num);
         }
         private Token[] RecognizeString()
         {
@@ -278,18 +278,18 @@ namespace alm.Core.SyntaxAnalysis
             int line = currentLineIndex;
 
             if (CharIsDQuote())
-                tokens.Add(new Token(tkDQuote, new Position(currentCharIndex, currentCharIndex+1, line)));
+                tokens.Add(new Token(tkDQuote, new Position(currentCharIndex, line),"\""));
             GetNextChar();
             while (CharForString(line))
             {
                 str += currentChar.ToString();
                 GetNextChar();
             }
-            tokens.Add(new Token(tkStringConst, new Position(currentCharIndex - str.Length, currentCharIndex, line), str));
+            tokens.Add(new Token(tkStringConst, new Position(start, line), str));
 
             if (CharIsDQuote())
             {
-                tokens.Add(new Token(tkDQuote, new Position(currentCharIndex, currentCharIndex+1, line)));
+                tokens.Add(new Token(tkDQuote, new Position(currentCharIndex, line),"\""));
                 //skip quote
                 GetNextChar();
             }
@@ -302,16 +302,16 @@ namespace alm.Core.SyntaxAnalysis
             List<Token> tokens = new List<Token>();
 
             if (CharIsSQuote())
-                tokens.Add(new Token(tkSQuote, new Position(currentCharIndex, currentCharIndex+1, currentLineIndex)));
+                tokens.Add(new Token(tkSQuote, new Position(currentCharIndex, currentLineIndex), "\'"));
             GetNextChar();
             if (CharForSChar())
             {
-                tokens.Add(new Token(tkCharConst, new Position(currentCharIndex, currentCharIndex+1, currentLineIndex), currentChar.ToString()));
+                tokens.Add(new Token(tkCharConst, new Position(currentCharIndex,currentLineIndex), currentChar.ToString()));
                 GetNextChar();
             }
             if (CharIsSQuote())
             {
-                tokens.Add(new Token(tkSQuote, new Position(currentCharIndex, currentCharIndex+1, currentLineIndex)));
+                tokens.Add(new Token(tkSQuote, new Position(currentCharIndex, currentLineIndex), "\'"));
                 GetNextChar();
             }
 
@@ -327,7 +327,7 @@ namespace alm.Core.SyntaxAnalysis
                 switch(currentChar)
                 {
                     case '\n':
-                        currentCharIndex = 0;
+                        currentCharIndex = 1;
                         currentLineIndex++;
                         GetNextChar();
                         break;

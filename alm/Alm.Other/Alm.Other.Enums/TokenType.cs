@@ -42,7 +42,6 @@
         tkRbra,
         tkLpar,
         tkRpar,
-        tkFunc,
         tkComma,
         tkDQuote,
         tkSQuote,
@@ -51,6 +50,7 @@
 
         tkId,
         tkOf,
+        tkFunc,
         tkGlobal,
         tkExternalProp,
 

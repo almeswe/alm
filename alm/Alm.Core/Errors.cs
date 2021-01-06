@@ -16,7 +16,7 @@ namespace alm.Core.Errors
         public static List<SyntaxError>   SyntaxErrors   { get; set; } = new List<SyntaxError>();
         public static List<SemanticError> SemanticErrors { get; set; } = new List<SemanticError>();
 
-        public static void ShowErrors()
+        public static void ShowErrorsInConsole()
         {
             ConsoleErrorDrawer drawer = new ConsoleErrorDrawer();
             for (int i = 0; i < SyntaxErrors.Count; i++)
@@ -44,7 +44,7 @@ namespace alm.Core.Errors
     {
         protected SourceContext Context;
 
-        public bool HasLocation { get; private set; } = true;
+        public bool HasContext { get; private set; } = true;
         public Position StartsAt => Context.StartsAt;
         public Position EndsAt   => Context.EndsAt;
         public string FilePath   => Context.FilePath;
@@ -53,9 +53,9 @@ namespace alm.Core.Errors
         public CompilerUnitErrorType UnitErrorType { get; protected set; }
         public virtual string GetMessage()
         {
-            if (this.Context == default(SourceContext))
+            if (this.Context == default)
             {
-                this.HasLocation = false;
+                this.HasContext = false;
                 return $"{Message}";
             }
             return $"{Message} \nВ файле ({FilePath[0]}:\\...\\{System.IO.Path.GetFileName(FilePath)}) {this.StartsAt}";
@@ -64,10 +64,10 @@ namespace alm.Core.Errors
 
     public abstract class SemanticError : CompilerError
     {
-        public SemanticError(string Message, SourceContext Context)
+        public SemanticError(string message, SourceContext context)
         {
-            base.Message = Message;
-            base.Context = Context;
+            base.Message = message;
+            base.Context = context;
             base.UnitErrorType = CompilerUnitErrorType.SemanticError;
         }
     }
@@ -104,7 +104,7 @@ namespace alm.Core.Errors
 
     public sealed class MissingSemi : SyntaxError
     {
-        public MissingSemi(Token token) : base("Ожидался символ [;].", new SourceContext(new Position(token.Context.StartsAt.Start+1, token.Context.StartsAt.End+1, token.Context.StartsAt.Line),token.Context.EndsAt)) { }
+        public MissingSemi(Token token) : base("Ожидался символ [;].", new SourceContext(new Position(token.Context.StartsAt.CharIndex, token.Context.StartsAt.LineIndex),token.Context.EndsAt)) { }
     }
 
     public sealed class MissingAssign : SyntaxError

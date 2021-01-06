@@ -17,10 +17,11 @@ namespace alm.Other.Structs
             this.FilePath = CurrentParsingFile;
         }
 
-        public static SourceContext GetSourceContext(Token Token,string FilePath)                                 => new SourceContext(new Position(Token.Context.StartsAt.Start, Token.Context.StartsAt.Start, Token.Context.StartsAt.Line), new Position(Token.Context.EndsAt.End, Token.Context.EndsAt.End, Token.Context.EndsAt.Line));
-        public static SourceContext GetSourceContext(Token sToken, Token fToken, string FilePath)                 => new SourceContext(new Position(sToken.Context.StartsAt.Start, sToken.Context.StartsAt.Start, sToken.Context.StartsAt.Line), new Position(fToken.Context.EndsAt.End, fToken.Context.EndsAt.End, fToken.Context.EndsAt.Line));
-        public static SourceContext GetSourceContext(SyntaxTreeNode node, string FilePath)                        => new SourceContext(node.SourceContext.StartsAt, node.SourceContext.EndsAt);
-        public static SourceContext GetSourceContext(SyntaxTreeNode lnode, SyntaxTreeNode rnode, string FilePath) => new SourceContext(lnode.SourceContext.StartsAt, rnode.SourceContext.EndsAt);
+        public static SourceContext GetSourceContext(Token Token) => 
+            new SourceContext(new Position(Token.Context.StartsAt.CharIndex, Token.Context.StartsAt.LineIndex), new Position(Token.Context.EndsAt.CharIndex, Token.Context.EndsAt.LineIndex));
+        public static SourceContext GetSourceContext(Token sToken, Token fToken)  => new SourceContext(new Position(sToken.Context.StartsAt.CharIndex, sToken.Context.StartsAt.LineIndex), new Position(fToken.Context.EndsAt.CharIndex, fToken.Context.EndsAt.LineIndex));
+        public static SourceContext GetSourceContext(SyntaxTreeNode node)         => new SourceContext(node.SourceContext.StartsAt, node.SourceContext.EndsAt);
+        public static SourceContext GetSourceContext(SyntaxTreeNode lnode, SyntaxTreeNode rnode) => new SourceContext(lnode.SourceContext.StartsAt, rnode.SourceContext.EndsAt);
 
         public override string ToString() => $"От {StartsAt} До {EndsAt}";
 

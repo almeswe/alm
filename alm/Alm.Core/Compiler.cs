@@ -55,11 +55,15 @@ namespace alm.Core.Compiler
                     Emitter.LoadBootstrapper(Path.GetFileNameWithoutExtension(sourcePath), Path.GetFileNameWithoutExtension(sourcePath));
                     Emitter.EmitAST(ast);
                     if (run)
-                        System.Diagnostics.Process.Start(binaryPath);
+                        try
+                        {
+                            System.Diagnostics.Process.Start(binaryPath);
+                        }
+                        catch (Exception e) { ColorizedPrintln($"Ошибка при попытке открытия бинарного файла.[{e.Message}]", ConsoleColor.DarkRed); }
                     Emitter.Reset();
                 }
 
-                Errors.Diagnostics.ShowErrors();
+                Errors.Diagnostics.ShowErrorsInConsole();
             }
         }
         private bool IsCorrectExtension(string fileName)

@@ -24,10 +24,11 @@ namespace alm.Other.Structs
         {
             this.Value     = Value;
             this.TokenType = TokenType;
-            this.Context   = new SourceContext(new Position(Position.Start,Position.Start,Position.Line),new Position(Position.End,Position.End,Position.Line));
+            int End        = this.Value == null ? Position.CharIndex : Position.CharIndex + this.Value.Length; 
+            this.Context   = new SourceContext(new Position(Position.CharIndex,Position.LineIndex),new Position(End,Position.LineIndex));
         }
 
-        public string ToExtendedString() => $"{this.TokenType}:{this.Value}[{this.Context.StartsAt};{this.Context.EndsAt}][{this.Context.StartsAt.Line}]";
+        public string ToExtendedString() => $"{this.TokenType}:{this.Value}[{this.Context.StartsAt};{this.Context.EndsAt}][{this.Context.StartsAt.LineIndex}]";
         public override string ToString()
         {
             if (Value != null) return $"{this.TokenType}:{this.Value}";

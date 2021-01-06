@@ -38,7 +38,7 @@ namespace alm.Core.SyntaxAnalysis
                 if (buildedPath == CurrentParsingFile)  return new ImportExpression(new CannotImportThisFile(buildedPath,identifierExpression.SourceContext));
 
                 if (Imports.Contains(buildedPath + CurrentParsingFile) ||
-                         Imports.Contains(CurrentParsingFile + buildedPath))
+                    Imports.Contains(CurrentParsingFile + buildedPath))
                             return new ImportExpression(new ThisFileAlreadyImported(buildedPath, identifierExpression.SourceContext));
                 else if (Imports.Contains(buildedPath)) return new ImportExpression();
                 else
@@ -320,7 +320,7 @@ namespace alm.Core.SyntaxAnalysis
             Lexer.GetNextToken();
             AssignmentExpression assign = new AssignmentExpression(id,GetOperatorFromTokenType(Lexer.PreviousToken.TokenType),ParseExpression());
 
-            if (!Match(tkSemicolon)) return new AssignmentExpression(new MissingSemi(Lexer.PreviousToken));
+            if (!Match(tkSemicolon)) return new AssignmentExpression(new MissingSemi(Lexer.CurrentToken));
             Lexer.GetNextToken();
             return assign;
         }
@@ -669,20 +669,17 @@ namespace alm.Core.SyntaxAnalysis
 
         public bool Match(TokenType expectedType, int offset = 0)
         {
-            if (Lexer.Peek(offset).TokenType == expectedType) return true;
-            return false;
+            return Lexer.Peek(offset).TokenType == expectedType ? true : false;
         }
 
         public bool Match(SyntaxTreeNode node, NodeType expectedType)
         {
-            if (node.NodeType == expectedType) return true;
-            return false;
+            return node.NodeType == expectedType ? true : false;
         }
 
         public bool Match(Expression expression, NodeType expectedType)
         {
-            if (expression.NodeType == expectedType) return true;
-            return false;
+            return expression.NodeType == expectedType? true : false;
         }
 
         public Operator GetOperatorFromTokenType(TokenType type)
@@ -715,10 +712,10 @@ namespace alm.Core.SyntaxAnalysis
 
         public SourceContext SourceContext = new SourceContext();
 
-        public void SetSourceContext(Token token) => this.SourceContext = GetSourceContext(token, CurrentParsingFile);
-        public void SetSourceContext(Token sToken, Token fToken) => this.SourceContext = GetSourceContext(sToken,fToken, CurrentParsingFile);
-        public void SetSourceContext(SyntaxTreeNode node)        => this.SourceContext = GetSourceContext(node, CurrentParsingFile);
-        public void SetSourceContext(SyntaxTreeNode lnode, SyntaxTreeNode rnode) => this.SourceContext = GetSourceContext(lnode,rnode, CurrentParsingFile);
+        public void SetSourceContext(Token token) => this.SourceContext = GetSourceContext(token);
+        public void SetSourceContext(Token sToken, Token fToken) => this.SourceContext = GetSourceContext(sToken,fToken);
+        public void SetSourceContext(SyntaxTreeNode node)        => this.SourceContext = GetSourceContext(node);
+        public void SetSourceContext(SyntaxTreeNode lnode, SyntaxTreeNode rnode) => this.SourceContext = GetSourceContext(lnode,rnode);
 
         public virtual string ToConsoleString() => $"{NodeType}";
 
@@ -1037,7 +1034,6 @@ namespace alm.Core.SyntaxAnalysis
             this.Name = token.Value;
             SetSourceContext(token);
             this.Type = type;
-            //if (!type.PossibleAsVariableType) Diagnostics.SyntaxErrors.Add(new );
         }
 
         public IdentifierExpression(SyntaxError error)
@@ -1214,7 +1210,7 @@ namespace alm.Core.SyntaxAnalysis
         public override string ToConsoleString() => $"{Type}";
     }
 
-    /*public sealed class UnaryExpression : Expression
+    public sealed class UnaryExpression : Expression
     {
         public override NodeType NodeType => NodeType.UnaryExpression;
 
@@ -1223,14 +1219,17 @@ namespace alm.Core.SyntaxAnalysis
             this.Op = op;
             switch(op)
             {
-                case Operator.UnaryMinus:
+                case Operator.Minus:
                     this.Right = new BinaryExpression(new IntegerConst("-1"),Operator.Multiplication,right);
                     break;
+                /*case Operator.PrefixIncrement:
+                    this.Right = new BinaryExpression(right,Operator )
+                    break;*/
             }
             this.SetSourceContext(right);
             this.AddNode(right);
         }
-    }*/
+    }
 
     public sealed class BinaryExpression : Expression
     {
@@ -1347,7 +1346,7 @@ namespace alm.Core.SyntaxAnalysis
                     break;
             }
             this.SetSourceContext(this.Left, this.Right);
-            this.AddNodes(left, right);
+            this.AddNodes(left,right);
         }
 
         public AssignmentExpression(SyntaxError error)
@@ -1378,6 +1377,8 @@ namespace alm.Core.SyntaxAnalysis
     public sealed class DeclarationExpression : Expression
     {
         public override NodeType NodeType => NodeType.Declaration;
+
+        
 
         public DeclarationExpression(TypeExpression type, IdentifierExpression id)
         {
@@ -1426,5 +1427,10 @@ namespace alm.Core.SyntaxAnalysis
     public interface ITypeable
     {
         InnerType Type { get; }
+    }
+
+    public interface IArrayTypeable
+    {
+
     }
 }

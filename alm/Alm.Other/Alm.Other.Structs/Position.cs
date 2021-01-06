@@ -2,23 +2,20 @@
 {
     public struct Position
     {
-        public int Start { get; set; }
-        public int End   { get; set; }
-        public int Line  { get; set; }
+        public int CharIndex { get; set; }
+        public int LineIndex { get; set; }
 
-        public Position(int Start, int End, int Line)
+        public Position(int Start, int Line)
         {
-            this.Start = Start;
-            this.End   = End;
-            this.Line  = Line;
+            this.CharIndex  = Start;
+            this.LineIndex  = Line;
         }
 
         public Position(Token Token)
         {
-            this.Start = Token.Context.StartsAt.Start;
-            this.End   = Token.Context.EndsAt.End;
-            this.Line  = Token.Context.StartsAt.Line;
+            this.CharIndex  = Token.Context.StartsAt.CharIndex;
+            this.LineIndex  = Token.Context.StartsAt.LineIndex;
         }
-        public override string ToString() => $"(Строка: {Line} Позиция: {Start})";
+        public override string ToString() => $"(Строка: {LineIndex} Позиция: {CharIndex})";
     }
 }

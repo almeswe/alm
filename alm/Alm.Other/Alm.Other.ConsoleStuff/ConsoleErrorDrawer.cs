@@ -43,15 +43,14 @@ namespace alm.Other.ConsoleStuff
                 line = string.Empty;
             }
 
-            tabs = Tabulations(line);
-
+            tabs = Tabulations(line)+1;
 
             line = "\t\t" + DeleteFirstSpaces(SubstractSymbol(line, '\t'));
 
             if (line != string.Empty)
             {
                 ColorizedPrintln(line, ConsoleColor.Gray);
-                ColorizedPrintln("\t\t" + SymbolNTimes(error.StartsAt.CharIndex - tabs-1, ' ') + SymbolNTimes(len+1, '~'), ConsoleColor.Red);
+                ColorizedPrintln("\t\t" + SymbolNTimes(error.StartsAt.CharIndex-tabs, ' ') + SymbolNTimes(len, '~'), ConsoleColor.Red);
             }
         }
     }

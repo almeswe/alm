@@ -35,12 +35,15 @@ namespace alm.Core.SyntaxAnalysis
             string buildedPath = GetLongImportPath(identifierExpression.Name);
             if (File.Exists(buildedPath))
             {
-                if (buildedPath == CurrentParsingFile)  return new ImportExpression(new CannotImportThisFile(buildedPath,identifierExpression.SourceContext));
+                if (buildedPath == CurrentParsingFile)  
+                    return new ImportExpression(new CannotImportThisFile(buildedPath,identifierExpression.SourceContext));
 
-                if (Imports.Contains(buildedPath + CurrentParsingFile) ||
-                    Imports.Contains(CurrentParsingFile + buildedPath))
-                            return new ImportExpression(new ThisFileAlreadyImported(buildedPath, identifierExpression.SourceContext));
-                else if (Imports.Contains(buildedPath)) return new ImportExpression();
+                if (Imports.Contains(buildedPath + CurrentParsingFile) || Imports.Contains(CurrentParsingFile + buildedPath))
+                    return new ImportExpression(new ThisFileAlreadyImported(buildedPath, identifierExpression.SourceContext));
+
+                else if (Imports.Contains(buildedPath)) 
+                    return new ImportExpression();
+
                 else
                 {
                     Imports.Add(CurrentParsingFile + buildedPath);
@@ -62,13 +65,18 @@ namespace alm.Core.SyntaxAnalysis
         {
             if (File.Exists(stringConst.Value))
             {
-                if (Path.GetExtension(stringConst.Value) != ".alm") return new ImportExpression(new WrongImportExtension(stringConst.SourceContext));
-                if (stringConst.Value == CurrentParsingFile) return new ImportExpression(new CannotImportThisFile(stringConst.Value, stringConst.SourceContext));
+                if (Path.GetExtension(stringConst.Value) != ".alm") 
+                    return new ImportExpression(new WrongImportExtension(stringConst.SourceContext));
 
-                if (Imports.Contains(stringConst.Value + CurrentParsingFile) || 
-                    Imports.Contains(CurrentParsingFile + stringConst.Value)) 
-                         return new ImportExpression(new ThisFileAlreadyImported(stringConst.Value, stringConst.SourceContext));
-                else if (Imports.Contains(stringConst.Value)) return new ImportExpression();
+                if (stringConst.Value == CurrentParsingFile)
+                    return new ImportExpression(new CannotImportThisFile(stringConst.Value, stringConst.SourceContext));
+
+                if (Imports.Contains(stringConst.Value + CurrentParsingFile) || Imports.Contains(CurrentParsingFile + stringConst.Value)) 
+                    return new ImportExpression(new ThisFileAlreadyImported(stringConst.Value, stringConst.SourceContext));
+
+                else if (Imports.Contains(stringConst.Value)) 
+                    return new ImportExpression();
+
                 else
                 {
                     Imports.Add(CurrentParsingFile + stringConst.Value);
@@ -117,16 +125,14 @@ namespace alm.Core.SyntaxAnalysis
             }
 
             while (!Match(tkEOF))
-            {
                 Root.AddNode(ParseFunctionDeclaration());
-                if (Root.Nodes.Last().Errored) break;
-            }
             return Root;
         }
 
         public SyntaxTreeNode ParseImportExpression()
         {
-            if (!Match(tkImport)) return new ImportExpression(new ReservedWordExpected("import", Lexer.CurrentToken));
+            if (!Match(tkImport)) 
+                return new ImportExpression(new ReservedWordExpected("import", Lexer.CurrentToken));
             Lexer.GetNextToken();
 
             if (Match(tkDQuote))
@@ -136,10 +142,12 @@ namespace alm.Core.SyntaxAnalysis
             }
             else if (Match(tkId))
             {
-                IdentifierExpression idImport = new IdentifierExpression(Lexer.CurrentToken);
+                IdentifierExpression idImport = ParseIdentifierDeclaration();
+
+                if (!Match(tkSemicolon)) 
+                    return new ImportExpression(new MissingSemi(Lexer.PreviousToken));
                 Lexer.GetNextToken();
-                if (!Match(tkSemicolon)) return new ImportExpression(new MissingSemi(Lexer.PreviousToken));
-                Lexer.GetNextToken();
+
                 return Import(idImport);
             }
 
@@ -148,145 +156,186 @@ namespace alm.Core.SyntaxAnalysis
         public SyntaxTreeNode ParseExternalFunctionDeclaration()
         {
             Lexer.GetNextToken();
-            if (!Match(tkExternalProp)) return new FunctionDeclaration(new ReservedWordExpected("external", Lexer.CurrentToken));
-            SourceContext funccontext = new SourceContext();
+            if (!Match(tkExternalProp)) 
+                return new FunctionDeclaration(new ReservedWordExpected("external", Lexer.CurrentToken));
             Lexer.GetNextToken();
+
             StringConst packageName = ParseStringConst();
-            if (!Match(tkFunc)) return new FunctionDeclaration(new ReservedWordExpected("func", Lexer.CurrentToken));
-            funccontext.StartsAt = new Position(Lexer.CurrentToken);
+
+            if (!Match(tkFunc)) 
+                return new FunctionDeclaration(new ReservedWordExpected("func", Lexer.CurrentToken));
             Lexer.GetNextToken();
-            if (!Match(tkId)) return new FunctionDeclaration(new IdentifierExpected(Lexer.CurrentToken));
-            IdentifierExpression funcname = new IdentifierExpression(Lexer.CurrentToken);
-            funccontext = Lexer.CurrentToken.Context;
+
+            IdentifierExpression funcname = ParseIdentifierDeclaration();
+            SourceContext funccontext = Lexer.PreviousToken.Context;
+            Arguments args = ParseArgumentDeclarations();
+
+            if (!Match(tkColon)) 
+                return new FunctionDeclaration(new ReservedSymbolExpected(":", Lexer.CurrentToken));
             Lexer.GetNextToken();
-            if (!Match(tkLpar)) return new FunctionDeclaration(new MissingLpar(Lexer.CurrentToken));
+
+            TypeExpression functype = ParseTypeExpression();
+
+            if(!Match(tkSemicolon)) 
+                return new FunctionDeclaration(new ReservedSymbolExpected(";", Lexer.CurrentToken));
             Lexer.GetNextToken();
-            TypeExpression argtype;
-            IdentifierExpression argname;
-            ArgumentDeclaration arg;
+
+            return new FunctionDeclaration(funcname, args, functype, packageName.Value, funccontext);
+        }
+
+        public Arguments ParseArgumentDeclarations()
+        {
+            //used for function declaration args
             Arguments args = new Arguments();
-            SourceContext argscontext = new SourceContext();
-            argscontext.FilePath = CurrentParsingFile;
-            argscontext.StartsAt = new Position(Lexer.CurrentToken);
+            args.SourceContext.FilePath = CurrentParsingFile;
+            args.SourceContext.StartsAt = new Position(Lexer.CurrentToken);
 
-            while (!Match(tkRpar))
+            TypeExpression argType;
+            IdentifierDeclaration argName;
+
+            // (.... )
+
+            if (!Match(tkLpar)) 
+                return new Arguments(new MissingLpar(Lexer.CurrentToken));
+            Lexer.GetNextToken();
+
+            while (!Match(tkRpar) && !Match(tkEOF))
             {
-                if (!Match(tkType)) return new FunctionDeclaration(new TypeExpected(Lexer.CurrentToken));
-                argtype = new TypeExpression(Lexer.CurrentToken);
-                Lexer.GetNextToken();
-                argname = new IdentifierDeclaration(Lexer.CurrentToken);
-                argname.Type = argtype.Type;
+                argType = ParseTypeExpression();
+                argName = ParseIdentifierDeclaration(argType.Type);
 
-                Lexer.GetNextToken();
                 if (!Match(tkComma))
                 {
-                    if (Match(tkRpar))
-                    {
-                        arg = new ArgumentDeclaration(argtype, argname);
-                        args.AddNode(arg);
-                        continue;
-                    }
-                    else return new FunctionDeclaration(new ReservedSymbolExpected(",", Lexer.CurrentToken));
+                    if (!Match(tkRpar))
+                        return new Arguments(new ReservedSymbolExpected(",", Lexer.CurrentToken));
                 }
-                Lexer.GetNextToken();
-                arg = new ArgumentDeclaration(argtype, argname);
-                args.AddNode(arg);
+                else 
+                    Lexer.GetNextToken();
+                args.AddNode(new ArgumentDeclaration(argType, argName));
             }
-            argscontext.EndsAt = new Position(Lexer.CurrentToken);
-            args.SourceContext = argscontext;
+
+            if (!Match(tkRpar)) 
+                return new Arguments(new MissingRpar(Lexer.CurrentToken));
+
+            args.SourceContext.EndsAt = new Position(Lexer.CurrentToken);
+
             Lexer.GetNextToken();
-            if (!Match(tkColon)) return new FunctionDeclaration(new ReservedSymbolExpected(":", Lexer.CurrentToken));
+            return args;
+        }
+
+        public Arguments ParseArgumentExpressions()
+        {
+            //used for function call args
+            Arguments argValues = new Arguments();
+            argValues.SourceContext.FilePath = CurrentParsingFile;
+            argValues.SourceContext.StartsAt = new Position(Lexer.CurrentToken);
+
+            if (!Match(tkLpar))
+                return new Arguments(new MissingLpar(Lexer.CurrentToken));
+
             Lexer.GetNextToken();
-            if (!Match(tkType)) return new FunctionDeclaration(new TypeExpected(Lexer.CurrentToken));
-            TypeExpression functype = new TypeExpression(Lexer.CurrentToken);
+            while (!Match(tkRpar) && !Match(tkEOF))
+            {
+                argValues.AddNode(ParseExpression());
+
+                if (!Match(tkComma))
+                {
+                    if (!Match(tkRpar))
+                        return new Arguments(new ReservedSymbolExpected(",", Lexer.CurrentToken));
+                }
+                else
+                    Lexer.GetNextToken();
+            }
+
+            if (!Match(tkRpar))
+                return new Arguments(new MissingRpar(Lexer.CurrentToken));
+
+            argValues.SourceContext.EndsAt = new Position(Lexer.CurrentToken);
+
             Lexer.GetNextToken();
-            if(!Match(tkSemicolon)) return new FunctionDeclaration(new ReservedSymbolExpected(";", Lexer.CurrentToken));
+            return argValues;
+        }
+
+        public Body ParseBodyBlock()
+        {
+            Body body = new Body();
+            body.SourceContext.FilePath = CurrentParsingFile;
+            body.SourceContext.StartsAt = new Position(Lexer.CurrentToken);
+
+            if (!Match(tkLbra)) 
+                return new Body(new MissingLbra(Lexer.CurrentToken));
             Lexer.GetNextToken();
-            return new FunctionDeclaration(funcname, args, functype, packageName.Value, funccontext);
+            
+            while (!Match(tkRbra) && !Match(tkEOF))
+                body.AddNode(ParseStatement());
+            
+            if(!Match(tkRbra)) 
+                //Сделать отображение строки в ConsoleErrorDrawer, тк без нее не понятно где ошибка
+                return new Body(new MissingRbra(Lexer.CurrentToken));
+
+            body.SourceContext.EndsAt = new Position(Lexer.CurrentToken);
+
+            Lexer.GetNextToken();
+            return body;
+        }
+
+        public TypeExpression ParseTypeExpression()
+        {
+            if (!Match(tkType))
+                return new TypeExpression(new TypeExpected(Lexer.CurrentToken));
+            TypeExpression typeExpression = new TypeExpression(Lexer.CurrentToken);
+            Lexer.GetNextToken();
+            return typeExpression;
+        }
+
+        public IdentifierCall ParseIdentifierCall()
+        {
+            if (!Match(tkId))
+                return new IdentifierCall(new IdentifierExpected(Lexer.CurrentToken));
+            IdentifierCall identifierCall = new IdentifierCall(Lexer.CurrentToken);
+            Lexer.GetNextToken();
+            return identifierCall;
+        }
+
+        public IdentifierDeclaration ParseIdentifierDeclaration(InnerType type = null)
+        {
+            if (!Match(tkId))
+                return new IdentifierDeclaration(new IdentifierExpected(Lexer.CurrentToken));
+            IdentifierDeclaration identifierExpression;
+
+            if (type == null)
+                identifierExpression = new IdentifierDeclaration(Lexer.CurrentToken);
+            else
+                identifierExpression = new IdentifierDeclaration(Lexer.CurrentToken,type);
+            Lexer.GetNextToken();
+            return identifierExpression;
         }
 
         public SyntaxTreeNode ParseFunctionDeclaration()
         {
-            SourceContext funccontext = new SourceContext();
+            if (Match(tkAt)) 
+                return ParseExternalFunctionDeclaration();
+            if (!Match(tkFunc)) 
+                return new FunctionDeclaration(new ReservedWordExpected("func", Lexer.CurrentToken));
 
-            if (Match(tkAt)) return ParseExternalFunctionDeclaration();
-            if (!Match(tkFunc)) return new FunctionDeclaration(new ReservedWordExpected("func", Lexer.CurrentToken));
-            funccontext.StartsAt = new Position(Lexer.CurrentToken);
             Lexer.GetNextToken();
-            if (!Match(tkId)) return new FunctionDeclaration(new IdentifierExpected(Lexer.CurrentToken));
-            IdentifierExpression funcname = new IdentifierExpression(Lexer.CurrentToken);
-            funccontext = Lexer.CurrentToken.Context;
-            Lexer.GetNextToken();
-            if (!Match(tkLpar)) return new FunctionDeclaration(new MissingLpar(Lexer.CurrentToken));
-            Lexer.GetNextToken();
-            TypeExpression argtype;
-            IdentifierExpression argname;
-            ArgumentDeclaration arg;
-            Arguments args = new Arguments();
-            SourceContext argscontext = new SourceContext();
-            argscontext.FilePath = CurrentParsingFile;
-            argscontext.StartsAt = new Position(Lexer.CurrentToken);
+            IdentifierExpression funcName = ParseIdentifierDeclaration();
+            SourceContext funcContext = Lexer.PreviousToken.Context;
+            Arguments args = ParseArgumentDeclarations();
 
-            while (!Match(tkRpar))
-            {
-                if (!Match(tkType))  return new FunctionDeclaration(new TypeExpected(Lexer.CurrentToken));
-                argtype = new TypeExpression(Lexer.CurrentToken);
-                Lexer.GetNextToken();
-                argname = new IdentifierDeclaration(Lexer.CurrentToken);
-                argname.Type = argtype.Type;
+            if (!Match(tkColon)) 
+                return new FunctionDeclaration(new ReservedSymbolExpected(":", Lexer.CurrentToken));
 
-                Lexer.GetNextToken();
-                if (!Match(tkComma))
-                {
-                    if (Match(tkRpar))
-                    {
-                        arg = new ArgumentDeclaration(argtype, argname);
-                        args.AddNode(arg);
-                        continue;
-                    }
-                    else return new FunctionDeclaration(new ReservedSymbolExpected(",", Lexer.CurrentToken));
-                }
-                Lexer.GetNextToken();
-                arg = new ArgumentDeclaration(argtype, argname);
-                args.AddNode(arg);
-            }
-            argscontext.EndsAt = new Position(Lexer.CurrentToken);
-            args.SourceContext = argscontext;
             Lexer.GetNextToken();
-            if (!Match(tkColon)) return new FunctionDeclaration(new ReservedSymbolExpected(":", Lexer.CurrentToken));
-            Lexer.GetNextToken();
-            if (!Match(tkType)) return new FunctionDeclaration(new TypeExpected(Lexer.CurrentToken));
-            TypeExpression functype = new TypeExpression(Lexer.CurrentToken);
-            Lexer.GetNextToken();
-            if (!Match(tkLbra)) return new FunctionDeclaration(new MissingLbra(Lexer.CurrentToken));
-            Lexer.GetNextToken();
-            Body funcbody = new Body();
-            SourceContext bodycontext = new SourceContext();
-            bodycontext.FilePath = CurrentParsingFile;
-            bodycontext.StartsAt = new Position(Lexer.CurrentToken);
-            while (!Match(tkRbra))
-            {
-                if (Match(tkEOF)) return new FunctionDeclaration(new MissingRbra(Lexer.CurrentToken));
-                funcbody.AddNode(ParseStatement());
-                if (funcbody.Nodes.Last().Errored) break;
-            }
-
-            bodycontext.EndsAt = new Position(Lexer.CurrentToken);
-            funcbody.SourceContext = bodycontext;
-            Lexer.GetNextToken();
-            return new FunctionDeclaration(funcname, args, functype, funcbody, funccontext);
+            TypeExpression funcType = ParseTypeExpression();
+            Body           funcBody = ParseBodyBlock();
+            return new FunctionDeclaration(funcName, args, funcType, funcBody, funcContext);
         }
-
+        
         public SyntaxTreeNode ParseVariableDeclaration()
         {
-            if (!Match(tkType)) return new DeclarationExpression(new TypeExpected(Lexer.CurrentToken));
-            TypeExpression idType = new TypeExpression(Lexer.CurrentToken);
-            Lexer.GetNextToken();
-            if (!Match(tkId)) return new DeclarationExpression(new IdentifierExpected(Lexer.CurrentToken));
-
-            IdentifierExpression id = new IdentifierDeclaration(Lexer.CurrentToken, idType.Type);
-
-            Lexer.GetNextToken();
+            TypeExpression   idType = ParseTypeExpression();
+            IdentifierExpression id = ParseIdentifierDeclaration(idType.Type);
             AssignmentExpression assign;
 
             if (Match(tkAssign))
@@ -294,8 +343,10 @@ namespace alm.Core.SyntaxAnalysis
                 Lexer.GetNextToken();
                 assign = new AssignmentExpression(id,Operator.Assignment, ParseExpression());
            
-                if (!Match(tkSemicolon)) return new DeclarationExpression(new MissingSemi(Lexer.PreviousToken));
+                if (!Match(tkSemicolon)) 
+                    return new DeclarationExpression(new MissingSemi(Lexer.PreviousToken));
                 Lexer.GetNextToken();
+
                 return new DeclarationExpression(idType, assign);
             }
             else if (Match(tkSemicolon))
@@ -307,9 +358,8 @@ namespace alm.Core.SyntaxAnalysis
         }
         public SyntaxTreeNode ParseAssignmentExpression()
         {
-            if (!Match(tkId)) return new AssignmentExpression(new IdentifierExpected(Lexer.CurrentToken));
-            IdentifierExpression id = new IdentifierCall(Lexer.CurrentToken);
-            Lexer.GetNextToken();
+            IdentifierExpression id = ParseIdentifierCall();
+
             if (!Match(tkAssign)     &&
                 !Match(tkAddAssign)  &&
                 !Match(tkMultAssign) &&
@@ -320,7 +370,8 @@ namespace alm.Core.SyntaxAnalysis
             Lexer.GetNextToken();
             AssignmentExpression assign = new AssignmentExpression(id,GetOperatorFromTokenType(Lexer.PreviousToken.TokenType),ParseExpression());
 
-            if (!Match(tkSemicolon)) return new AssignmentExpression(new MissingSemi(Lexer.CurrentToken));
+            if (!Match(tkSemicolon)) 
+                return new AssignmentExpression(new MissingSemi(Lexer.CurrentToken));
             Lexer.GetNextToken();
             return assign;
         }
@@ -328,172 +379,138 @@ namespace alm.Core.SyntaxAnalysis
         {
             switch (Lexer.CurrentToken.TokenType)
             {
-                case tkId:   return ParseIdentifierExpression();
+                case tkId:   return ParseIdentifierAmbiguity();
                 case tkIf:   return ParseIfStatement();
                 case tkWhile:return ParseWhileStatement();
                 case tkDo:   return ParseDoWhileStatement();
                 case tkType: return ParseVariableDeclaration();
                 case tkRet:  return ParseReturnExpression();
 
+                // wrong error return
                 default: return new ReturnExpression(new ErrorMessage("Ожидалось выражение", Lexer.CurrentToken));
             }
         }
-        public SyntaxTreeNode ParseIdentifierExpression()
+        public SyntaxTreeNode ParseIdentifierAmbiguity()
         {
-            if (!Match(tkId)) return new FunctionCall(new IdentifierExpected(Lexer.CurrentToken));
-            if (Match(tkLpar,1)) return ParseFunctionCall();
-            else return ParseAssignmentExpression();
+            if (Match(tkLpar,1)) 
+                return ParseFunctionCall();
+            else 
+                return ParseAssignmentExpression();
+        }
+
+        public Condition ParseCondition()
+        {
+            Condition condition = new Condition();
+            condition.SourceContext.FilePath = CurrentParsingFile;
+            condition.SourceContext.StartsAt = new Position(Lexer.CurrentToken);
+            condition.AddNode(ParseBooleanParentisizedExpression());
+            condition.SourceContext.EndsAt = new Position(Lexer.CurrentToken);
+
+            return condition;
         }
 
         public SyntaxTreeNode ParseFunctionCall(bool parseAsSingleExpression = true)
         {
-            SourceContext funccontext = new SourceContext();
-            funccontext.FilePath = CurrentParsingFile;
-            funccontext.StartsAt = Lexer.CurrentToken.Context.StartsAt;
-            IdentifierCall funcname = new IdentifierCall(Lexer.CurrentToken);
-            Arguments values = new Arguments();
+            SourceContext funcContext = new SourceContext();
+            funcContext.FilePath = CurrentParsingFile;
+            funcContext.StartsAt = Lexer.CurrentToken.Context.StartsAt;
+            IdentifierCall funcName = new IdentifierCall(Lexer.CurrentToken);
             Lexer.GetNextToken();
-            if (!Match(tkLpar)) return new FunctionCall(new MissingLpar(Lexer.PreviousToken));
-            Lexer.GetNextToken();
-            while (!Match(tkRpar))
-            {
-                values.AddNode(ParseExpression());
 
-                if (!Match(tkComma))
-                {
-                    if (Match(tkRpar)) continue;
-                    else return new FunctionCall(new ReservedSymbolExpected(",", Lexer.CurrentToken));
-                }
-                Lexer.GetNextToken();
-            }
+            Arguments argValues = ParseArgumentExpressions();
+            funcContext.EndsAt = Lexer.CurrentToken.Context.EndsAt;
+
             if (parseAsSingleExpression)
             {
-                funccontext.EndsAt = Lexer.CurrentToken.Context.EndsAt;
-                Lexer.GetNextToken();
-                if (!Match(tkSemicolon)) return new FunctionCall(new MissingSemi(Lexer.PreviousToken));
+                 // ....
+                 // someFunc();
+                 //           ^
+                 // ....
+
+                if (!Match(tkSemicolon)) 
+                    return new FunctionCall(new MissingSemi(Lexer.PreviousToken));
                 Lexer.GetNextToken();
             }
-            else
-                funccontext.EndsAt = Lexer.CurrentToken.Context.EndsAt;
-            return new FunctionCall(funcname.Name, values, funccontext);
+            return new FunctionCall(funcName.Name, argValues, funcContext);
         }
 
         public SyntaxTreeNode ParseReturnExpression()
         {
+            if (!Match(tkRet))
+                return new ReturnExpression(new ReservedWordExpected("return", Lexer.CurrentToken));
+
             SourceContext retcontext = new SourceContext();
             retcontext.FilePath = CurrentParsingFile;
-            if (!Match(tkRet)) return new ReturnExpression(new ReservedWordExpected("return", Lexer.CurrentToken));
             retcontext.StartsAt = new Position(Lexer.CurrentToken);
+
             Lexer.GetNextToken();
-            SyntaxTreeNode Expression;
+            Expression expression;
             if (Match(tkSemicolon)) 
-                Expression = null;
+                expression = null;
             else
-                Expression = ParseExpression();
+                expression = (Expression)ParseExpression();
             retcontext.EndsAt = new Position(Lexer.CurrentToken);
-            if (!Match(tkSemicolon)) return new ReturnExpression(new MissingSemi(Lexer.PreviousToken));
+
+            if (!Match(tkSemicolon)) 
+                return new ReturnExpression(new MissingSemi(Lexer.PreviousToken));
             Lexer.GetNextToken();
-            return new ReturnExpression(Expression, retcontext);
+
+            return new ReturnExpression(expression, retcontext);
         }
 
         public SyntaxTreeNode ParseIfStatement()
         {
-            if (!Match(tkIf)) return new IfStatement(new ReservedWordExpected("if", Lexer.CurrentToken));
+            if (!Match(tkIf)) 
+                return new IfStatement(new ReservedWordExpected("if", Lexer.CurrentToken));
 
-            SourceContext ifcontext = new SourceContext();
-            ifcontext.FilePath = CurrentParsingFile;
-
-            ifcontext.StartsAt = new Position(Lexer.CurrentToken);
+            SourceContext ifContext = new SourceContext();
+            ifContext.FilePath = CurrentParsingFile;
+            ifContext.StartsAt = new Position(Lexer.CurrentToken);
 
             Lexer.GetNextToken();
 
-            SourceContext conditioncontext = new SourceContext();
-            conditioncontext.FilePath = CurrentParsingFile;
-            conditioncontext.StartsAt = new Position(Lexer.CurrentToken);
-            Condition ifcondition = new Condition(ParseBooleanParentisizedExpression());
-            conditioncontext.EndsAt = new Position(Lexer.CurrentToken);
-            ifcondition.SourceContext = conditioncontext;
-
-            if (!Match(tkLbra)) return new IfStatement(new MissingLbra(Lexer.CurrentToken));
-            Lexer.GetNextToken();
-            Body ifbody = new Body();
-            SourceContext bodycontext = new SourceContext();
-            bodycontext.FilePath = CurrentParsingFile;
-            bodycontext.StartsAt = new Position(Lexer.CurrentToken);
-            while (!Match(tkRbra))
-            {
-                if (Match(tkEOF)) return new IfStatement(new MissingRbra(Lexer.CurrentToken));
-                ifbody.AddNode(ParseStatement());
-                if (ifbody.Nodes.Last().Errored) break;
-            }
-            bodycontext.EndsAt = ifcontext.EndsAt = new Position(Lexer.CurrentToken);
-            ifbody.SourceContext = bodycontext;
-            IfStatement ifnode = new IfStatement(ifcondition, ifbody, ifcontext);
-            Lexer.GetNextToken();
+            Condition ifCondition = ParseCondition();
+            Body      ifBody = ParseBodyBlock();
+            IfStatement ifStmt = new IfStatement(ifCondition, ifBody, ifContext);
 
             if (Match(tkElse))
             {
                 Lexer.GetNextToken();
-                if (!Match(tkLbra)) return new IfStatement(new MissingLbra(Lexer.CurrentToken));
-                Lexer.GetNextToken();
-                ElseBody elsebody = new ElseBody();
-                SourceContext elsecontext = new SourceContext();
-                elsecontext.FilePath = CurrentParsingFile;
-                elsecontext.StartsAt = new Position(Lexer.CurrentToken);
-                while (!Match(tkRbra))
-                {
-                    if (Match(tkEOF)) return new IfStatement(new MissingRbra(Lexer.CurrentToken));
-                    elsebody.AddNode(ParseStatement());
-                    if (elsebody.Nodes.Last().Errored) break;
-                }
-                elsecontext.EndsAt = ifcontext.EndsAt = new Position(Lexer.CurrentToken);
-                elsebody.SourceContext = elsecontext;
-                ifnode = new IfStatement(ifnode, elsebody, ifcontext);
-                Lexer.GetNextToken();
-
+                Body elseBody = ParseBodyBlock();
+                ifStmt = new IfStatement(ifStmt, elseBody, ifContext);
             }
-            return ifnode;
+            return ifStmt;
         }
         public SyntaxTreeNode ParseWhileStatement()
         {
-            if (!Match(tkWhile)) return new WhileStatement(new ReservedWordExpected("while", Lexer.CurrentToken));
-            Lexer.GetNextToken();
-            Condition condition = new Condition(ParseBooleanParentisizedExpression());
-            if (!Match(tkLbra)) return new WhileStatement(new MissingLbra(Lexer.PreviousToken));
-            Lexer.GetNextToken();
-            Body body = new Body();
-            while (!Match(tkRbra))
-            {
-                if (Match(tkEOF)) return new WhileStatement(new MissingRbra(Lexer.PreviousToken));
-                body.AddNode(ParseStatement());
-                if (body.Nodes.Last().Errored) break;
-            }
+            if (!Match(tkWhile))
+                return new WhileStatement(new ReservedWordExpected("while", Lexer.CurrentToken));
             Lexer.GetNextToken();
 
-            return new WhileStatement(condition, body);
+            Condition loopCondition = ParseCondition();
+            Body      loopBody = ParseBodyBlock();
+
+            return new WhileStatement(loopCondition, loopBody);
         }
         public SyntaxTreeNode ParseDoWhileStatement()
         {
-            if (!Match(tkDo)) return new DoWhileStatement(new ReservedWordExpected("do", Lexer.CurrentToken));
-
-            Lexer.GetNextToken();
-            if (!Match(tkLbra)) return new DoWhileStatement(new MissingLbra(Lexer.PreviousToken));
-            Lexer.GetNextToken();
-            Body body = new Body();
-            while (!Match(tkRbra))
-            {
-                if (Match(tkEOF)) return new DoWhileStatement(new MissingRbra(Lexer.PreviousToken));
-                body.AddNode(ParseStatement());
-                if (body.Nodes.Last().Errored) break;
-            }
-            Lexer.GetNextToken();
-            if (!Match(tkWhile)) return new DoWhileStatement(new ReservedWordExpected("while", Lexer.CurrentToken));
-            Lexer.GetNextToken();
-            Condition condition = new Condition(ParseBooleanParentisizedExpression());
-            if (!Match(tkSemicolon)) return new DoWhileStatement(new MissingSemi(Lexer.PreviousToken));
+            if (!Match(tkDo)) 
+                return new DoWhileStatement(new ReservedWordExpected("do", Lexer.CurrentToken));
             Lexer.GetNextToken();
 
-            return new DoWhileStatement(body, condition);
+            Body loopBody = ParseBodyBlock();
+
+            if (!Match(tkWhile)) 
+                return new DoWhileStatement(new ReservedWordExpected("while", Lexer.CurrentToken));
+            Lexer.GetNextToken();
+
+            Condition loopCondition = ParseCondition();
+
+            if (!Match(tkSemicolon)) 
+                return new DoWhileStatement(new MissingSemi(Lexer.PreviousToken));
+            Lexer.GetNextToken();
+
+            return new DoWhileStatement(loopBody, loopCondition);
         }
         public SyntaxTreeNode ParseBooleanExpression()
         {
@@ -553,11 +570,16 @@ namespace alm.Core.SyntaxAnalysis
 
         public SyntaxTreeNode ParseBooleanParentisizedExpression()
         {
-            if (!Match(tkLpar)) return new BooleanExpression(new MissingLpar(Lexer.CurrentToken));
+            if (!Match(tkLpar)) 
+                return new BooleanExpression(new MissingLpar(Lexer.CurrentToken));
             Lexer.GetNextToken();
+
             SyntaxTreeNode node = ParseBooleanExpression();
-            if (!Match(tkRpar)) return new BooleanExpression(new MissingRpar(Lexer.CurrentToken));
+
+            if (!Match(tkRpar)) 
+                return new BooleanExpression(new MissingRpar(Lexer.CurrentToken));
             Lexer.GetNextToken();
+
             return node;
         }
         public SyntaxTreeNode ParseExpression()
@@ -595,14 +617,14 @@ namespace alm.Core.SyntaxAnalysis
             switch (Lexer.CurrentToken.TokenType)
             {
                 case tkId:
-                    if(Match(tkLpar,1))
+                    if (Match(tkLpar, 1))
                         node = ParseFunctionCall(false);
                     else
-                        node = new IdentifierCall(Lexer.CurrentToken);
-                    Lexer.GetNextToken();
+                        node = ParseIdentifierCall();
                     return node;
 
                 case tkMinus:
+                    //Переписать
                     if (Match(tkMinus, -1)) return new BinaryExpression(new ErrorMessage("Возможно добавление только одного унарного минуса.",Lexer.CurrentToken));
                     Lexer.GetNextToken();
                     return new BinaryExpression(new IntegerConst("-1"), Operator.Multiplication, ParseFactor());
@@ -635,35 +657,54 @@ namespace alm.Core.SyntaxAnalysis
         }
         public SyntaxTreeNode ParseParentisizedExpression()
         {
-            if (!Match(tkLpar)) return new BinaryExpression(new MissingLpar(Lexer.CurrentToken));
+            if (!Match(tkLpar)) 
+                return new BinaryExpression(new MissingLpar(Lexer.CurrentToken));
             Lexer.GetNextToken();
+
             SyntaxTreeNode node = ParseExpression();
-            if (!Match(tkRpar)) return new BinaryExpression(new MissingRpar(Lexer.CurrentToken));
+
+            if (!Match(tkRpar)) 
+                return new BinaryExpression(new MissingRpar(Lexer.CurrentToken));
             Lexer.GetNextToken();
+
             return node;
         }
 
         public StringConst ParseStringConst()
         {
-            if (!Match(tkDQuote)) return new StringConst(new ReservedSymbolExpected("\"", Lexer.CurrentToken));
+            if (!Match(tkDQuote)) 
+                return new StringConst(new ReservedSymbolExpected("\"", Lexer.CurrentToken));
             Lexer.GetNextToken();
-            if (!Match(tkStringConst)) return new StringConst(new ErrorMessage("Ожидалась строка.", Lexer.CurrentToken));
+
+            if (!Match(tkStringConst)) 
+                return new StringConst(new ErrorMessage("Ожидалась строка.", Lexer.CurrentToken));
+
             StringConst stringConst = new StringConst(Lexer.CurrentToken);
             Lexer.GetNextToken();
-            if (!Match(tkDQuote)) return new StringConst(new ReservedSymbolExpected("\"", Lexer.CurrentToken));
+
+            if (!Match(tkDQuote)) 
+                return new StringConst(new ReservedSymbolExpected("\"", Lexer.CurrentToken));
             Lexer.GetNextToken();
+
             return stringConst;
         }
 
         public CharConst ParseCharConst()
         {
-            if (!Match(tkSQuote)) return new CharConst(new ReservedSymbolExpected("\'", Lexer.CurrentToken));
+            if (!Match(tkSQuote)) 
+                return new CharConst(new ReservedSymbolExpected("\'", Lexer.CurrentToken));
             Lexer.GetNextToken();
-            if (!Match(tkCharConst)) return new CharConst(new ErrorMessage("Ожидался символ", Lexer.CurrentToken));
+
+            if (!Match(tkCharConst)) 
+                return new CharConst(new ErrorMessage("Ожидался символ", Lexer.CurrentToken));
+
             CharConst charConst = new CharConst(Lexer.CurrentToken);
             Lexer.GetNextToken();
-            if (!Match(tkSQuote)) return new CharConst(new ReservedSymbolExpected("\'", Lexer.CurrentToken));
+
+            if (!Match(tkSQuote)) 
+                return new CharConst(new ReservedSymbolExpected("\'", Lexer.CurrentToken));
             Lexer.GetNextToken();
+
             return charConst;
         }
 
@@ -721,6 +762,8 @@ namespace alm.Core.SyntaxAnalysis
 
         public void AddNode(SyntaxTreeNode node)
         {
+            if (node == null)
+                return;
             node.Parent = this;
             this.Nodes.Add(node);
         }
@@ -769,6 +812,11 @@ namespace alm.Core.SyntaxAnalysis
 
         public Body(SyntaxTreeNode body) => this.AddNode(body);
         public Body() { }
+        public Body(SyntaxError error)
+        {
+            this.Errored = true;
+            Diagnostics.SyntaxErrors.Add(error);
+        }
     }
 
     public class Condition : SyntaxTreeNode
@@ -776,6 +824,7 @@ namespace alm.Core.SyntaxAnalysis
         public override NodeType NodeType  => NodeType.Condition;
         public override ConsoleColor Color => this.Parent.Color;
         public Condition(SyntaxTreeNode condition) => this.AddNode(condition);
+        public Condition() { }
     }
 
     public class Arguments : SyntaxTreeNode
@@ -784,11 +833,11 @@ namespace alm.Core.SyntaxAnalysis
         public override ConsoleColor Color => this.Parent.Color;
         public Arguments(SyntaxTreeNode arguments) => this.AddNode(arguments);
         public Arguments() { }
-    }
-
-    public class ElseBody : Body
-    {
-        public override NodeType NodeType => NodeType.ElseBody;
+        public Arguments(SyntaxError error)
+        {
+            this.Errored = true;
+            Diagnostics.SyntaxErrors.Add(error);
+        }
     }
 
     public sealed class FunctionDeclaration : SyntaxTreeNode
@@ -933,8 +982,8 @@ namespace alm.Core.SyntaxAnalysis
 
     public abstract class Statement : SyntaxTreeNode 
     {
-        public Body Body           { get; protected set; }
-        public ElseBody ElseBody   { get; protected set; }
+        public Body Body     { get; protected set; }
+        public Body ElseBody { get; protected set; }
         public Condition Condition { get; protected set; }
         public override ConsoleColor Color => ConsoleColor.Blue;
     }
@@ -953,7 +1002,7 @@ namespace alm.Core.SyntaxAnalysis
             this.Body = body;
             this.AddNodes(condition, body);
         }
-        public IfStatement(IfStatement ifStatement, ElseBody elseBody, SourceContext context)
+        public IfStatement(IfStatement ifStatement, Body elseBody, SourceContext context)
         {
             this.type = NodeType.IfElse;
             this.SourceContext = context;
@@ -1411,8 +1460,7 @@ namespace alm.Core.SyntaxAnalysis
         {
             this.SourceContext = context;
             this.Right = expression;
-            if (Right != null)
-                this.AddNodes(Right);
+            this.AddNode(Right);
         }
 
         public ReturnExpression(SourceContext context) => this.SourceContext = context;

@@ -33,6 +33,15 @@ namespace alm.Core.SyntaxAnalysis
             "false",
             "return"
         };
+        /*private enum escapeChars 
+        { 
+            n = '\n',
+
+        }
+        private readonly char[] escapeChars = new char[]
+        {
+
+        };*/
 
         private const int  EOF = -1;
         private const char chEOF = '\0';
@@ -62,6 +71,8 @@ namespace alm.Core.SyntaxAnalysis
             currentLineIndex = 1;
             currentTokenIndex = -1;
             GetTokens();
+            //foreach (var r in Tokens)
+            //    System.Console.WriteLine(r.ToExtendedString());
         }
         public Token GetNextToken()
         {
@@ -285,7 +296,7 @@ namespace alm.Core.SyntaxAnalysis
                 str += currentChar.ToString();
                 GetNextChar();
             }
-            tokens.Add(new Token(tkStringConst, new Position(start, line), str));
+            tokens.Add(new Token(tkStringConst, new Position(start+1, line), str));
 
             if (CharIsDQuote())
             {
@@ -327,18 +338,19 @@ namespace alm.Core.SyntaxAnalysis
                 switch(currentChar)
                 {
                     case '\n':
-                        currentCharIndex = 1;
+                        //currentCharIndex = 0;
                         currentLineIndex++;
                         GetNextChar();
                         break;
 
                     case '\r':
-                        currentCharIndex = 1;
+                        currentCharIndex = 0;
                         GetNextChar();
                         break;
                         
                     case '\t':
                     case '\v':
+                        currentCharIndex++;
                         GetNextChar();
                         break;
 

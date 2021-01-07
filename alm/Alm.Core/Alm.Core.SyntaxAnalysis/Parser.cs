@@ -125,7 +125,10 @@ namespace alm.Core.SyntaxAnalysis
             }
 
             while (!Match(tkEOF))
+            {
                 Root.AddNode(ParseFunctionDeclaration());
+                if (Root.Nodes.Last().Errored) break;
+            }
             return Root;
         }
 
@@ -265,11 +268,14 @@ namespace alm.Core.SyntaxAnalysis
             if (!Match(tkLbra)) 
                 return new Body(new MissingLbra(Lexer.CurrentToken));
             Lexer.GetNextToken();
-            
+
             while (!Match(tkRbra) && !Match(tkEOF))
+            {
                 body.AddNode(ParseStatement());
-            
-            if(!Match(tkRbra)) 
+                if (body.Nodes.Last().Errored) break;
+            }
+
+            if (!Match(tkRbra)) 
                 //Сделать отображение строки в ConsoleErrorDrawer, тк без нее не понятно где ошибка
                 return new Body(new MissingRbra(Lexer.CurrentToken));
 
@@ -758,7 +764,8 @@ namespace alm.Core.SyntaxAnalysis
         public void SetSourceContext(SyntaxTreeNode node)        => this.SourceContext = GetSourceContext(node);
         public void SetSourceContext(SyntaxTreeNode lnode, SyntaxTreeNode rnode) => this.SourceContext = GetSourceContext(lnode,rnode);
 
-        public virtual string ToConsoleString() => $"{NodeType}";
+        //public virtual string ToConsoleString() => $"{NodeType}";
+        public virtual string ToConsoleString() => $"{this.NodeType}+{this.SourceContext}";
 
         public void AddNode(SyntaxTreeNode node)
         {
@@ -864,7 +871,7 @@ namespace alm.Core.SyntaxAnalysis
             this.SourceContext = context;
             this.ArgumentCount = arguments.Nodes.Count;
 
-            this.AddNodes(arguments, body);
+            this.AddNodes(this.Arguments, this.Body);
         }
 
         //External case
@@ -878,7 +885,7 @@ namespace alm.Core.SyntaxAnalysis
             this.SourceContext = context;
             this.ArgumentCount = arguments.Nodes.Count;
 
-            this.AddNodes(arguments);
+            this.AddNodes(this.Arguments);
         }
 
         public FunctionDeclaration(SyntaxError error)
@@ -908,7 +915,7 @@ namespace alm.Core.SyntaxAnalysis
             this.ArgumentsValues = argumentValues;
             this.ArgumentCount = argumentValues.Nodes.Count;
 
-            this.AddNode(argumentValues);
+            this.AddNode(this.ArgumentsValues);
         }
 
         public FunctionCall(SyntaxError error)
@@ -934,7 +941,7 @@ namespace alm.Core.SyntaxAnalysis
             this.Right = import;
             this.ImportPath = import.Value;
             this.ImportedRoot = importedRoot;
-            this.AddNode(importedRoot);
+            this.AddNode(this.ImportedRoot);
         }
         public ImportExpression(IdentifierExpression import, Root importedRoot)
         {
@@ -943,7 +950,7 @@ namespace alm.Core.SyntaxAnalysis
             this.Right = import;
             this.ImportPath = import.Name;
             this.ImportedRoot = importedRoot;
-            this.AddNode(importedRoot);
+            this.AddNode(this.ImportedRoot);
         }
 
         public ImportExpression() { }
@@ -961,16 +968,16 @@ namespace alm.Core.SyntaxAnalysis
         public InnerType Type;
         public override NodeType NodeType => NodeType.Argument;
 
-        public ArgumentDeclaration(TypeExpression type, IdentifierExpression id)
+        public ArgumentDeclaration(TypeExpression typeExpression, IdentifierExpression identifierExpression)
         {
-            this.SetSourceContext(id, type);
+            this.SetSourceContext(identifierExpression, typeExpression);
 
-            this.Name = id.Name;
-            this.Type = type.Type;
-            this.Left = type;
-            this.Right = id;
+            this.Name = identifierExpression.Name;
+            this.Type = typeExpression.Type;
+            this.Left = typeExpression;
+            this.Right = identifierExpression;
 
-            this.AddNodes(type, id);
+            this.AddNodes(this.Left, this.Right);
         }
 
         public ArgumentDeclaration(SyntaxError error)
@@ -1000,7 +1007,7 @@ namespace alm.Core.SyntaxAnalysis
             this.SourceContext = context;
             this.Condition = condition;
             this.Body = body;
-            this.AddNodes(condition, body);
+            this.AddNodes(this.Condition, this.Body);
         }
         public IfStatement(IfStatement ifStatement, Body elseBody, SourceContext context)
         {
@@ -1009,7 +1016,7 @@ namespace alm.Core.SyntaxAnalysis
             this.Body = ifStatement.Body;
             this.Condition = ifStatement.Condition;
             this.ElseBody = elseBody;
-            this.AddNodes(ifStatement.Condition, ifStatement.Body, elseBody);
+            this.AddNodes(this.Condition, this.Body, this.ElseBody);
         }
 
         public IfStatement(SyntaxError error)
@@ -1028,7 +1035,7 @@ namespace alm.Core.SyntaxAnalysis
         {
             this.Condition = condition;
             this.Body = body;
-            this.AddNodes(condition, body);
+            this.AddNodes(this.Condition, this.Body);
         }
 
         public WhileStatement(SyntaxError error)
@@ -1046,7 +1053,7 @@ namespace alm.Core.SyntaxAnalysis
         {
             this.Body = body;
             this.Condition = condition;
-            this.AddNodes(body, condition);
+            this.AddNodes(this.Body, this.Condition);
         }
 
         public DoWhileStatement(SyntaxError error)
@@ -1074,15 +1081,15 @@ namespace alm.Core.SyntaxAnalysis
 
         public IdentifierExpression(Token token)
         {
-            this.Name = token.Value;
             SetSourceContext(token);
             this.Type = new Underfined();
+            this.Name = token.Value;
         }
         public IdentifierExpression(Token token, InnerType type)
         {
-            this.Name = token.Value;
             SetSourceContext(token);
             this.Type = type;
+            this.Name = token.Value;
         }
 
         public IdentifierExpression(SyntaxError error)
@@ -1276,7 +1283,7 @@ namespace alm.Core.SyntaxAnalysis
                     break;*/
             }
             this.SetSourceContext(right);
-            this.AddNode(right);
+            this.AddNode(this.Right);
         }
     }
 
@@ -1302,7 +1309,7 @@ namespace alm.Core.SyntaxAnalysis
             this.Left = left;
             this.Op = op;
             this.Right = right;
-            this.AddNodes(left, right);
+            this.AddNodes(this.Left, this.Right);
         }
 
         public BinaryExpression(Operator op, SyntaxTreeNode right)
@@ -1310,7 +1317,7 @@ namespace alm.Core.SyntaxAnalysis
             this.SetSourceContext(right);
             this.Op = op;
             this.Right = right;
-            this.AddNodes(right);
+            this.AddNodes(this.Right);
         }
 
         public BinaryExpression(SyntaxError error)
@@ -1354,12 +1361,12 @@ namespace alm.Core.SyntaxAnalysis
 
         public BooleanExpression(Operator notOp, SyntaxTreeNode right)
         {
-            type  = NodeType.Not;
-            color = ConsoleColor.DarkGreen;
+            this.type  = NodeType.Not;
+            this.color = ConsoleColor.DarkGreen;
             this.SetSourceContext(right);
             this.Op = notOp;
             this.Right = right;
-            this.AddNodes(right);
+            this.AddNodes(this.Right);
         }
 
         public BooleanExpression(SyntaxError error)
@@ -1394,8 +1401,8 @@ namespace alm.Core.SyntaxAnalysis
                     this.Right = new BinaryExpression(left, Operator.Division, right);
                     break;
             }
-            this.SetSourceContext(this.Left, this.Right);
-            this.AddNodes(left,right);
+            this.SetSourceContext(this.Left, right);
+            this.AddNodes(this.Left, this.Right);
         }
 
         public AssignmentExpression(SyntaxError error)
@@ -1427,21 +1434,19 @@ namespace alm.Core.SyntaxAnalysis
     {
         public override NodeType NodeType => NodeType.Declaration;
 
-        
-
-        public DeclarationExpression(TypeExpression type, IdentifierExpression id)
+        public DeclarationExpression(TypeExpression typeExpression, IdentifierExpression identifierExpression)
         {
-            this.SetSourceContext(type, id);
-            this.Left = type;
-            this.Right = id;
-            this.AddNodes(Left, Right);
+            this.SetSourceContext(typeExpression, identifierExpression);
+            this.Left = typeExpression;
+            this.Right = identifierExpression;
+            this.AddNodes(this.Left, this.Right);
         }
-        public DeclarationExpression(TypeExpression type, AssignmentExpression assign)
+        public DeclarationExpression(TypeExpression typeExpression, AssignmentExpression assignmentExpression)
         {
-            this.SetSourceContext(type, assign);
-            this.Left = type;
-            this.Right = assign;
-            this.AddNodes(Left, Right);
+            this.SetSourceContext(typeExpression, assignmentExpression);
+            this.Left = typeExpression;
+            this.Right = assignmentExpression;
+            this.AddNodes(this.Left, this.Right);
         }
 
         public DeclarationExpression(SyntaxError error)
@@ -1460,7 +1465,7 @@ namespace alm.Core.SyntaxAnalysis
         {
             this.SourceContext = context;
             this.Right = expression;
-            this.AddNode(Right);
+            this.AddNode(this.Right);
         }
 
         public ReturnExpression(SourceContext context) => this.SourceContext = context;

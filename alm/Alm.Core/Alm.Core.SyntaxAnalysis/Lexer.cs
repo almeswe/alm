@@ -93,6 +93,7 @@ namespace alm.Core.SyntaxAnalysis
             else 
                 return new Token(tkEOF, new Position(currentCharIndex, currentLineIndex));
         }
+
         private Token GetReservedWord(string word)
         {
             switch (word)
@@ -251,7 +252,8 @@ namespace alm.Core.SyntaxAnalysis
             {
                 ident += currentChar.ToString();
                 GetNextChar();
-                //здесь появляется \n и обнуляет позицию и добавляет строку
+                //!!!!!!!!!!!!!!!!!!!!!!!
+                //здесь появляется \n ,обнуляет позицию и добавляет строку
                 //потом в функции GetReservedWord создается контексит по имеющимся данным
             }
             if (IsWordReserved(ident)) 
@@ -293,6 +295,7 @@ namespace alm.Core.SyntaxAnalysis
             GetNextChar();
             while (CharForString(line))
             {
+                CheckForEscapeChar();
                 str += currentChar.ToString();
                 GetNextChar();
             }
@@ -317,6 +320,7 @@ namespace alm.Core.SyntaxAnalysis
             GetNextChar();
             if (CharForSChar())
             {
+                CheckForEscapeChar();
                 tokens.Add(new Token(tkCharConst, new Position(currentCharIndex,currentLineIndex), currentChar.ToString()));
                 GetNextChar();
             }
@@ -338,7 +342,6 @@ namespace alm.Core.SyntaxAnalysis
                 switch(currentChar)
                 {
                     case '\n':
-                        //currentCharIndex = 0;
                         currentLineIndex++;
                         GetNextChar();
                         break;
@@ -376,6 +379,7 @@ namespace alm.Core.SyntaxAnalysis
                 }
             }
         }
+
         private void GetTokens()
         {
             Tokens = new List<Token>();
@@ -414,7 +418,7 @@ namespace alm.Core.SyntaxAnalysis
         }
         private void SingleLineCommentary()
         {
-            //skip start '\' char
+            //skip start '/' char
             GetNextChar();
 
             int startLine = currentLineIndex;
@@ -441,11 +445,11 @@ namespace alm.Core.SyntaxAnalysis
                 return true;
             return false;
         }
-        private bool CharForString(int linePos, bool fq = false)
+        private bool CharForString(int linePos)
         {
             if (Match(chEOF))
                 return false;
-            if (Match('"') && !fq)
+            if (Match('\"'))
                 return false;
             if (this.currentLineIndex != linePos)
                 return false;
@@ -455,10 +459,7 @@ namespace alm.Core.SyntaxAnalysis
         {
             if (Match(chEOF))
                 return false;
-            if (Match('\''))
-                return false;
             return true;
-            //TODO escape chars
         }
         private bool Match(char ch)
         {
@@ -477,6 +478,60 @@ namespace alm.Core.SyntaxAnalysis
                     return true;
             return false;
         }
+
+        private char GetEscapeChar(char ch)
+        {
+            switch (ch)
+            {
+                case '\'':
+                    return '\'';
+                case '\"':
+                    return '\"';
+                case '\\':
+                    return '\\';
+                case 'n':
+                    return '\n';
+                case 't':
+                    return '\t';
+                case 'b':
+                    return '\b';
+                case 'f':
+                    return '\f';
+                case 'v':
+                    return '\v';
+                //case '\xFF':
+                //    return '\xFF';
+                case '0':
+                    return '\0';
+
+                default:
+                    return ch;
+            }
+        }
+        private void CheckForEscapeChar()
+        {
+            if (Match('\\'))
+            {
+                switch ((char)stream.Peek())
+                {
+                    case '\'':
+                    case '"':
+                    case '\\':
+                    case 'n':
+                    case 'r':
+                    case 't':
+                    case 'b':
+                    case 'f':
+                    case 'v':
+                    case '0':
+                        currentChar = GetEscapeChar((char)stream.Peek());
+                        stream.Read();
+                        currentCharIndex++;
+                        break;
+                }
+            }
+        }
+
         private bool CharIsDigit(char ch) => 
             ch >= 48 && ch <= 57 
             ? true : false;

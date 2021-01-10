@@ -43,24 +43,11 @@
             }
             return strings4.ToArray();
         }
-        public static string SymbolNTimes(int N,char Symbol)
+        public static string CharNTimes(int n,char ch)
         {
             string str = string.Empty;
-            for (int i = 1;i <= N;i++)
-                str += Symbol.ToString();
-            return str;
-        }
-        public static string DeleteFirstSpaces(string String)
-        {
-            string str = string.Empty;
-            bool deleted = true;
-            for(int i = 0; i < String.Length; i++)
-            {
-                if (deleted)
-                    str += String[i].ToString();
-                if (String[i] == ' ')
-                    deleted = true;
-            }
+            for (int i = 1;i <= n;i++)
+                str += ch.ToString();
             return str;
         }
         public static string[] SplitSubstrings(string String)
@@ -86,13 +73,63 @@
             if (sub.Trim() != "") subs.Add(sub.Trim());
             return subs.ToArray();
         }
-        public static string SubstractSymbol(string String,char Symbol)
+        public static string SubstractChar(string String,char ch)
         {
             string str = string.Empty;
             for (int i = 0; i < String.Length; i++)
-                if (String[i] != Symbol)
+                if (String[i] != ch)
                     str += String[i].ToString();
             return str;
+        }
+        public static string DeleteFirstSameChar(string str, char ch)
+        {
+            bool meet = false;
+            string newstr = string.Empty;
+            
+            for (int i = 0; i < str.Length; i++)
+            {
+                if (str[i] != ch)
+                { 
+                    meet = true;
+                    newstr += str[i];
+                }
+                else
+                    if (meet)
+                        newstr += str[i];
+            }
+
+            return newstr;
+        }
+
+        public static string DeleteFirstSameChars(string str, char ch, char ch2)
+        {
+            bool meet = false;
+            string newstr = string.Empty;
+
+            for (int i = 0; i < str.Length; i++)
+            {
+                if (str[i] != ch && str[i] != ch2)
+                {
+                    meet = true;
+                    newstr += str[i];
+                }
+                else
+                    if (meet)
+                        newstr += str[i];
+            }
+
+            return newstr;
+        }
+
+        public static int CountFirstChars(string str, char ch)
+        {
+            int counter = 0;
+            for (int i = 0; i < str.Length; i++)
+                if (str[i] == ch)
+                    counter++;
+                else
+                    break;
+            return counter;
         }
         public static int Tabulations(string String)
         {

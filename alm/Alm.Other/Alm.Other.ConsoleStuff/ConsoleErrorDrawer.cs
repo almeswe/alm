@@ -10,48 +10,64 @@ namespace alm.Other.ConsoleStuff
 {
     public sealed class ConsoleErrorDrawer
     {
+        //табы иногда какого-то хуя разной длины(?)
+        private const int tabSize = 4;
+        private const char emphChar = '~';
+        private const ConsoleColor emphColor = ConsoleColor.Red;
+
         private string filePath;
         private string[] lines;
 
-        public void DrawError(CompilerError error, string path)
+        public void DrawError(CompilerError error)
         {
+            if (!File.Exists(error.FilePath))
+            {
+                ColorizedPrintln("Невозможно отрисовать ошибку в консоль,так как файла в котором произошла ошибка не существует.", ConsoleColor.Red);
+                return;
+            }
             if (!error.HasContext)
                 return;
-            if (this.filePath != path)
+
+            this.lines = File.ReadAllLines(error.FilePath);
+
+            string erroredLine;
+            string separateString;
+            string reducedErroredLine;
+
+            int line;
+            int difference;
+            int emphLineLen = error.EndsAt.CharIndex - error.StartsAt.CharIndex;
+
+            if (this.lines.Length > 0 && this.lines.Length <= error.StartsAt.LineIndex - 1)
+                erroredLine = this.lines[error.StartsAt.LineIndex - 1];
+            else
             {
-                this.filePath = path;
-                this.lines = File.ReadAllLines(path);
-            }
-            if (this.lines is null)
-                this.lines = File.ReadAllLines(path);
-
-            int len;
-            int tabs;
-            string line;
-
-            len = error.EndsAt.CharIndex - error.StartsAt.CharIndex;
-
-            if (len <= 0) 
-                len = 1;
-
-            try
-            {
-                line = lines[error.StartsAt.LineIndex - 1];
-            }
-            catch (IndexOutOfRangeException)
-            {
-                line = string.Empty;
+                ColorizedPrintln("Невозможно отрисовать ошибку в консоль,так как из файла не получена строка с номером ошибки (возможна она просто пустая).", ConsoleColor.Red);
+                return;
             }
 
-            tabs = Tabulations(line)+1;
+            line = error.StartsAt.LineIndex;
 
-            line = "\t\t" + DeleteFirstSpaces(SubstractSymbol(line, '\t'));
+            reducedErroredLine = DeleteFirstSameChars(erroredLine, ' ', '\t');
 
-            if (line != string.Empty)
+            difference = erroredLine.Length - reducedErroredLine.Length + 1;
+
+            for (int i = error.StartsAt.CharIndex - difference; i < error.EndsAt.CharIndex - difference; i++)
+                if (erroredLine[i] == '\t')
+                    emphLineLen += tabSize;
+
+            separateString = string.Empty;
+            for (int i = 0; i < error.StartsAt.CharIndex - difference; i++)
             {
-                ColorizedPrintln(line, ConsoleColor.Gray);
-                ColorizedPrintln("\t\t" + SymbolNTimes(error.StartsAt.CharIndex-tabs, ' ') + SymbolNTimes(len, '~'), ConsoleColor.Red);
+                separateString += ' ';
+                if (reducedErroredLine[i] == '\t')
+                    for (int j = 0; j < tabSize - 1; j++)
+                        separateString += ' ';
             }
+
+
+            ColorizedPrintln($"{line}.\t\t" + reducedErroredLine, ConsoleColor.Gray);
+            ColorizedPrintln("\t\t" + separateString + CharNTimes(emphLineLen, emphChar), emphColor);
         }
     }
 }

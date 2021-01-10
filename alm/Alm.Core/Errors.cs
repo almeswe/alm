@@ -22,12 +22,12 @@ namespace alm.Core.Errors
             for (int i = 0; i < SyntaxErrors.Count; i++)
             {
                 ColorizedPrintln(SyntaxErrors[i].GetMessage(), System.ConsoleColor.DarkRed);
-                drawer.DrawError(SyntaxErrors[i], SyntaxErrors[i].FilePath);
+                drawer.DrawError(SyntaxErrors[i]);
             }
             for (int i = 0; i < SemanticErrors.Count; i++)
             {
                 ColorizedPrintln(SemanticErrors[i].GetMessage(), System.ConsoleColor.DarkRed);
-                drawer.DrawError(SemanticErrors[i], SemanticErrors[i].FilePath);
+                drawer.DrawError(SemanticErrors[i]);
             }
         }
 

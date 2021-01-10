@@ -15,18 +15,18 @@ namespace alm.Other.ConsoleStuff
         private const char emphChar = '~';
         private const ConsoleColor emphColor = ConsoleColor.Red;
 
-        private string filePath;
         private string[] lines;
 
         public void DrawError(CompilerError error)
         {
+            if (!error.HasContext)
+                return;
+
             if (!File.Exists(error.FilePath))
             {
                 ColorizedPrintln("Невозможно отрисовать ошибку в консоль,так как файла в котором произошла ошибка не существует.", ConsoleColor.Red);
                 return;
             }
-            if (!error.HasContext)
-                return;
 
             this.lines = File.ReadAllLines(error.FilePath);
 
@@ -38,7 +38,7 @@ namespace alm.Other.ConsoleStuff
             int difference;
             int emphLineLen = error.EndsAt.CharIndex - error.StartsAt.CharIndex;
 
-            if (this.lines.Length > 0 && this.lines.Length <= error.StartsAt.LineIndex - 1)
+            if (this.lines.Length > 0 && this.lines.Length >= error.StartsAt.LineIndex - 1)
                 erroredLine = this.lines[error.StartsAt.LineIndex - 1];
             else
             {

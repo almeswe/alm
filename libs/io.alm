@@ -1,0 +1,45 @@
+﻿@external "System.Console"
+func Write(string message) : void;
+
+@external "System.Console"
+func WriteLine(string message) : void;
+
+@external "System.Console"
+func ReadLine() : string;
+
+func print(string message) : void
+{
+	Write(message);
+}
+
+func println(string message) : void
+{
+	WriteLine(message);
+}
+
+func printn(float num) : void
+{
+	print(tostrf(num));	
+}
+
+func printlnn(float num) : void
+{
+	println(tostrf(num));	
+}
+
+func read() : string
+{
+	return ReadLine();
+}
+
+func read(string message) : string
+{
+	print(message);
+	return read();
+}
+
+func readln(string message) : string
+{
+	println(message);
+	return read();
+}

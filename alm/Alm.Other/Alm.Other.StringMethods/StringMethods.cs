@@ -2,46 +2,26 @@
 {
     public static class StringMethods
     {
-        public static string Reverse(string String)
+        public static string Reverse(string str)
         {
             string reversedstr = string.Empty;
-            for (int i = String.Length - 1; i >= 0; i--)
-                reversedstr += String[i];
+            for (int i = str.Length - 1; i >= 0; i--)
+                reversedstr += str[i];
             return reversedstr;
         }
-        public static string UpperCaseFirstChar(string String)
+        public static string UpperCaseFirstChar(string str)
         {
-            char fchar = String[0];
-            return fchar.ToString().ToUpper() + String.Substring(1,String.Length-1);
+            char fchar = str[0];
+            return fchar.ToString().ToUpper() + str.Substring(1,str.Length-1);
         }
-        public static string LastAfterDot(string String)
+        public static string LastAfterDot(string str)
         {
             string TypeWithoutNameSpace = string.Empty;
-            for (int i = String.Length - 1; i >= 0; i--)
-                if (String[i] != '.')
-                    TypeWithoutNameSpace += String[i];
+            for (int i = str.Length - 1; i >= 0; i--)
+                if (str[i] != '.')
+                    TypeWithoutNameSpace += str[i];
                 else break;
             return Reverse(TypeWithoutNameSpace);
-        }
-        public static string[] SplitStringByFours(string String)
-        {
-            string string4 = string.Empty;
-            System.Collections.Generic.List<string> strings4 = new System.Collections.Generic.List<string>();
-
-            for (int i = 0; i < String.Length; i++)
-            {
-                if (string4.Length == 4)
-                {
-                    strings4.Add(string4);
-                    string4 = string.Empty;
-                    string4 += String[i];
-                }
-                else string4 += String[i];
-                if (i == String.Length - 1)
-                    if (string4.Length <= 4)
-                        strings4.Add(string4);
-            }
-            return strings4.ToArray();
         }
         public static string CharNTimes(int n,char ch)
         {
@@ -50,36 +30,24 @@
                 str += ch.ToString();
             return str;
         }
-        public static string[] SplitSubstrings(string String)
+
+        public static string SubstractChar(string str, char ch)
         {
-            string sub = string.Empty;
-            bool marks = false;
-
-            System.Collections.Generic.List<string> subs = new System.Collections.Generic.List<string>();
-
-            for (int i = 0; i < String.Length; i++)
-            {
-                if (String[i] == '"') marks = marks ? false : true;
-                if(!marks)
-                    if (String[i] == ' ' || String[i] == '\t')
-                    {
-                        if (sub.Trim() == string.Empty) continue;
-                        subs.Add(sub);
-                        sub = string.Empty;
-                        continue;
-                    }
-                sub += String[i].ToString();
-            }
-            if (sub.Trim() != "") subs.Add(sub.Trim());
-            return subs.ToArray();
+            string newstr = string.Empty;
+            for (int i = 0; i < str.Length; i++)
+                if (str[i] != ch)
+                    newstr += str[i].ToString();
+            return newstr;
         }
-        public static string SubstractChar(string String,char ch)
+        public static int CountFirstSameChar(string str, char ch)
         {
-            string str = string.Empty;
-            for (int i = 0; i < String.Length; i++)
-                if (String[i] != ch)
-                    str += String[i].ToString();
-            return str;
+            int counter = 0;
+            for (int i = 0; i < str.Length; i++)
+                if (str[i] == ch)
+                    counter++;
+                else
+                    break;
+            return counter;
         }
         public static string DeleteFirstSameChar(string str, char ch)
         {
@@ -100,7 +68,6 @@
 
             return newstr;
         }
-
         public static string DeleteFirstSameChars(string str, char ch, char ch2)
         {
             bool meet = false;
@@ -121,23 +88,52 @@
             return newstr;
         }
 
-        public static int CountFirstChars(string str, char ch)
+        public static string[] Split(string str,char ch)
         {
-            int counter = 0;
+            string sub = string.Empty;
+            System.Collections.Generic.List<string> subs = new System.Collections.Generic.List<string>();
+
             for (int i = 0; i < str.Length; i++)
+            {
+                if (i == str.Length-1)
+                {
+                    if (str[i] != ch)
+                        sub += str[i];
+                    if (sub.Trim() != string.Empty)
+                        subs.Add(sub);
+                }
                 if (str[i] == ch)
-                    counter++;
+                {
+                    if (sub.Trim() != string.Empty)
+                        subs.Add(sub);
+                    sub = string.Empty;
+                }
                 else
-                    break;
-            return counter;
+                {
+                    sub += str[i];
+                }
+            }
+            return subs.ToArray();
         }
-        public static int Tabulations(string String)
+        public static string[] SplitStringByFours(string str)
         {
-            int t = 0;
-            for (int i = 0; i < String.Length; i++)
-                if (String[i] == '\t')
-                    t++;
-            return t;
+            string string4 = string.Empty;
+            System.Collections.Generic.List<string> strings4 = new System.Collections.Generic.List<string>();
+
+            for (int i = 0; i < str.Length; i++)
+            {
+                if (string4.Length == 4)
+                {
+                    strings4.Add(string4);
+                    string4 = string.Empty;
+                    string4 += str[i];
+                }
+                else string4 += str[i];
+                if (i == str.Length - 1)
+                    if (string4.Length <= 4)
+                        strings4.Add(string4);
+            }
+            return strings4.ToArray();
         }
     }
 }

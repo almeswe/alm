@@ -30,7 +30,7 @@ namespace alm.Core.Shell
 
         private void ParseInput(string input)
         {
-            string[] subs = SplitSubstrings(input);
+            string[] subs = Split(input,' ');
             if (subs.Length == 0)
             {
                 ColorizedPrintln($"Пустое поле.(Введите команду \"?\" для получения информации)", ConsoleColor.DarkRed);
@@ -105,7 +105,7 @@ namespace alm.Core.Shell
     {
         #if DEBUG
         //public static string SourcePath = @"C:\Users\Almes\source\repos\Compiler\compiler v.5\Alm\alm\Alm.Tests\TestScripts\AlmDebug.alm";
-        public static string SourcePath = @"C:\Users\Almes\source\repos\Compiler\compiler v.5\Libs\main.alm";
+        public static string SourcePath = @"C:\Users\Almes\source\repos\Compiler\compiler v.5\Alm\libs\main.alm";
         public static string DestinationPath = "alm.exe";
 
         #endif
@@ -143,7 +143,7 @@ namespace alm.Core.Shell
                     this.Value = ShellInfo.SourcePath;
                 if (this.Value == "here")
                     this.Value = Environment.CurrentDirectory;
-                else this.Value = SubstractSymbol(this.Value, '"');
+                else this.Value = SubstractChar(this.Value, '"');
                 return this.Value;
             }
             else return null;
@@ -223,6 +223,12 @@ namespace alm.Core.Shell
             ColorizedPrint("\t-"); ColorizedPrint("crfl", ConsoleColor.Red); ColorizedPrint(" [path {str}]", ConsoleColor.DarkCyan); ColorizedPrintln(" :"); ColorizedPrintln("\t\tСоздает файл по указанному пути, и задает значение команды [file] как указанный путь.");
             ColorizedPrint("\t-"); ColorizedPrint("cls", ConsoleColor.Red);  ColorizedPrint(" [null]", ConsoleColor.Yellow); ColorizedPrintln(" :"); ColorizedPrintln("\t\tОчищает консоль.");
             ColorizedPrint("\t-"); ColorizedPrint("exit", ConsoleColor.Red); ColorizedPrint(" [null]", ConsoleColor.Yellow); ColorizedPrintln(" :"); ColorizedPrintln("\t\tЗакрывает оболочку.");
+
+            #if DEBUG
+
+            //ColorizedPrintln("\tКоманды доступные только в режиме DEBUG :");
+            ColorizedPrint("\t-"); ColorizedPrint("shtree", ConsoleColor.Red); ColorizedPrint(" [show {bool}]", ConsoleColor.Blue); ColorizedPrintln(" :"); ColorizedPrintln("\t\tВыводит дерево разбора программы в консоль.");
+            #endif
         }
     }
 

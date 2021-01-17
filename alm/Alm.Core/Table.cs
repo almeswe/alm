@@ -27,8 +27,10 @@ namespace alm.Core.VariableTable
             new TableFunction("point",  new Real32(), new TableFunctionArgument[]{ new TableFunctionArgument(new Int32(), 1) }, 1),
             new TableFunction("round",  new Int32(), new TableFunctionArgument[]{ new TableFunctionArgument(new Real32(), 1) }, 1),
             new TableFunction("toint",  new Int32(), new TableFunctionArgument[]{ new TableFunctionArgument(new String(),1) }, 1),
-
+            new TableFunction("toint32",  new Int32(), new TableFunctionArgument[]{ new TableFunctionArgument(new Int32(),1) }, 1),
             new TableFunction("chartoint32",new Int32(),new TableFunctionArgument[]{ new TableFunctionArgument(new Char(),1) }, 1),
+
+            new TableFunction("len",new Int32(),new TableFunctionArgument[]{ new TableFunctionArgument(new AnyArray(),1) }, 1),
         };
 
         public Table(Table puttedIn, int level)
@@ -85,7 +87,17 @@ namespace alm.Core.VariableTable
         {
             for (Table table = this; table != null; table = table.PuttedIn)
                 foreach (TableIdentifier var in table.Identifiers)
-                    if (var.Name == identifierExpression.Name) return var;
+                    if (var.Name == identifierExpression.Name) 
+                        return var;
+            return null;
+        }
+
+        public TableIdentifier FetchIdentifier(string name)
+        {
+            for (Table table = this; table != null; table = table.PuttedIn)
+                foreach (TableIdentifier var in table.Identifiers)
+                    if (var.Name == name)
+                        return var;
             return null;
         }
 

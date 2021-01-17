@@ -33,15 +33,6 @@ namespace alm.Core.SyntaxAnalysis
             "false",
             "return"
         };
-        /*private enum escapeChars 
-        { 
-            n = '\n',
-
-        }
-        private readonly char[] escapeChars = new char[]
-        {
-
-        };*/
 
         private const int  EOF = -1;
         private const char chEOF = '\0';
@@ -71,8 +62,6 @@ namespace alm.Core.SyntaxAnalysis
             currentLineIndex = 1;
             currentTokenIndex = -1;
             GetTokens();
-            //foreach (var r in Tokens)
-            //    System.Console.WriteLine(r.ToExtendedString());
         }
         public Token GetNextToken()
         {
@@ -86,10 +75,10 @@ namespace alm.Core.SyntaxAnalysis
         }
         public Token Peek(int offset)
         {
-            if (currentTokenIndex + offset < Tokens.Count) 
-                return Tokens[currentTokenIndex + offset];
-            else if (currentTokenIndex + offset < 0) 
+            if (currentTokenIndex + offset < 0)
                 return default;
+            else if (currentTokenIndex + offset < Tokens.Count) 
+                return Tokens[currentTokenIndex + offset];
             else 
                 return new Token(tkEOF, new Position(currentCharIndex, currentLineIndex));
         }
@@ -116,26 +105,32 @@ namespace alm.Core.SyntaxAnalysis
 
                 case "func": 
                     return new Token(tkFunc, new Position(currentCharIndex-4, currentLineIndex),word);
-                case "of":   
-                    return new Token(tkOf,   new Position(currentCharIndex-2, currentLineIndex),word);
 
                 case "void":    
                     return new Token(tkType, new Position(currentCharIndex-4, currentLineIndex), word);
-                case "char":    
+                case "char":
+                    if (CharsForArray())
+                        return RecognizeArray(word);
                     return new Token(tkType, new Position(currentCharIndex-4, currentLineIndex), word);
-                case "float":   
+                case "float":
+                    if (CharsForArray())
+                        return RecognizeArray(word);
                     return new Token(tkType, new Position(currentCharIndex-5, currentLineIndex), word);
-                case "string":  
+                case "string":
+                    if (CharsForArray())
+                        return RecognizeArray(word);
                     return new Token(tkType, new Position(currentCharIndex-6, currentLineIndex), word);
-                case "boolean": 
+                case "boolean":
+                    if (CharsForArray())
+                        return RecognizeArray(word);
                     return new Token(tkType, new Position(currentCharIndex-7, currentLineIndex), word);
-                case "integer": 
+                case "integer":
+                    if (CharsForArray())
+                        return RecognizeArray(word);
                     return new Token(tkType, new Position(currentCharIndex-7, currentLineIndex), word);
 
                 case "import": 
                     return new Token(tkImport, new Position(currentCharIndex-6, currentLineIndex), word);
-                case "global": 
-                    return new Token(tkGlobal, new Position(currentCharIndex-6, currentLineIndex), word);
 
                 case "external": 
                     return new Token(tkExternalProp, new Position(currentCharIndex-8, currentLineIndex));
@@ -220,25 +215,40 @@ namespace alm.Core.SyntaxAnalysis
 
                 case '@':
                     return new Token(tkAt, new Position(currentCharIndex, currentLineIndex), "@");
+
                 case ';':
                     return new Token(tkSemicolon, new Position(currentCharIndex, currentLineIndex), ";");
+
                 case ':':
                     return new Token(tkColon, new Position(currentCharIndex, currentLineIndex), ":");
+
                 case '(':
                     return new Token(tkLpar, new Position(currentCharIndex, currentLineIndex), "(");
+
                 case ')':
                     return new Token(tkRpar, new Position(currentCharIndex, currentLineIndex), ")");
 
+                case '[':
+                    return new Token(tkSqLbra, new Position(currentCharIndex, currentLineIndex), "[");
+
+                case ']':
+                    return new Token(tkSqRbra, new Position(currentCharIndex, currentLineIndex), "]");
+
                 case '{':
                     return new Token(tkLbra, new Position(currentCharIndex, currentLineIndex), "{");
+
                 case '}':
                     return new Token(tkRbra, new Position(currentCharIndex, currentLineIndex), "}");
+
                 case '"':
                     return new Token(tkDQuote, new Position(currentCharIndex, currentLineIndex), "\"");
+
                 case '\'':
                     return new Token(tkSQuote, new Position(currentCharIndex, currentLineIndex), "\'");
+
                 case ',':
                     return new Token(tkComma, new Position(currentCharIndex, currentLineIndex), ",");
+
                 default:
                     return new Token(tkNull);
             }
@@ -248,7 +258,7 @@ namespace alm.Core.SyntaxAnalysis
             int line = currentLineIndex;
             int start = currentCharIndex;
             string ident = string.Empty;
-            while (CharForIdentifier())
+            while (CharForIdentifier() && line == currentLineIndex)
             {
                 ident += currentChar.ToString();
                 GetNextChar();
@@ -281,6 +291,16 @@ namespace alm.Core.SyntaxAnalysis
                 return new Token(tkFloatConst, new Position(start, currentLineIndex), num);
             else
                 return new Token(tkIntConst, new Position(start, currentLineIndex), num);
+        }
+        private Token RecognizeArray(string type)
+        {
+            //расширить до возможности определять многомерные массивы
+
+            string typeString = type + "[]";
+            //skip '[' and ']'
+            GetNextChar();
+            GetNextChar();
+            return new Token(tkType, new Position(currentCharIndex - typeString.Length, currentLineIndex), typeString);
         }
         private Token[] RecognizeString()
         {
@@ -460,6 +480,10 @@ namespace alm.Core.SyntaxAnalysis
             if (Match(chEOF))
                 return false;
             return true;
+        }
+        private bool CharsForArray()
+        {
+            return Match('[') && MatchPeeked(']') ? true : false;
         }
         private bool Match(char ch)
         {

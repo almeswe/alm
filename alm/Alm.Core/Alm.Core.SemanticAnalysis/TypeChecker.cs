@@ -203,13 +203,15 @@ namespace alm.Core.SemanticAnalysis
             else if (expression is FunctionCall)         return ResolveFunctionCallType((FunctionCall)expression);
             else if (expression is BinaryExpression)     return ResolveBinaryExpressionType((BinaryExpression)expression, false);
             else if (expression is BooleanExpression)    return ResolveBooleanExpressionType((BooleanExpression)expression,false);
+            else if (expression is ArrayInstance)        return ((ArrayInstance)expression).Type;
+            else if (expression is ArrayElement)         return ((ArrayElement)expression).Type;
             else                                         return ResolveNodeType(expression);
         }
 
         private static InnerType ResolveAssignmentExpressionType(AssignmentExpression assignmentExpression, bool alreadyCasted = false)
         {
             InnerType RightType;
-            InnerType LeftType = ((IdentifierExpression)assignmentExpression.Left).Type;
+            InnerType LeftType = ResolveExpressionType((Expression)assignmentExpression.Left);
 
             RightType = ResolveExpressionType((Expression)assignmentExpression.Right);
 
@@ -307,8 +309,18 @@ namespace alm.Core.SemanticAnalysis
     {
         public enum CastCase
         {
+            ByteToFloat,
+            ByteToInteger,
+            ByteToShort,
+
+            ShortToInteger,
+            ShortToFloat,
+
             IntegerToFloat,
+
+            CharToFloat,
             CharToInteger,
+
             Int32ToFloat64,
             Int64ToFloat32,
             Int64ToFloat64,
@@ -393,8 +405,21 @@ namespace alm.Core.SemanticAnalysis
                 CastIdentifierCall(expression.Parent, (IdentifierCall)expression, toType, castCase);
             else if (expression is FunctionCall)
                 CastFunctionCall(expression.Parent, (FunctionCall)expression, toType, castCase);
+            else if (expression is ArrayElement)
+                CastArrayElement(expression.Parent, (ArrayElement)expression, toType, castCase);
             else if (expression is BinaryExpression)
                 CastBinaryExpression((BinaryExpression)expression, toType, castCase);
+
+        }
+
+        public static void CastArrayElement(SyntaxTreeNode parent, ArrayElement arrayElement, InnerType toType, CastCase castCase)
+        {
+            if (!CanCast(arrayElement.Type, toType, false))
+                return;
+
+            FunctionCall pointFunctionCall = new FunctionCall(GetCastFunctionName(castCase), new Arguments(arrayElement), arrayElement.SourceContext);
+            pointFunctionCall.Type = toType;
+            Replace(parent, arrayElement, pointFunctionCall);
         }
 
         public static void CastBinaryExpression(BinaryExpression binaryExpression, InnerType toType, CastCase castCase)
@@ -453,25 +478,40 @@ namespace alm.Core.SemanticAnalysis
             {
                 Expression expression = (Expression)parent;
                 if (expression.Left == replaceThis)
-                    ((Expression)parent).Left = addThis;
+                {
+                    expression.Left = addThis;
+                    expression.Left.Parent = parent;
+                }
                 if (expression.Right == replaceThis)
-                    ((Expression)parent).Right = addThis;
+                {
+                    expression.Right = addThis;
+                    expression.Right.Parent = parent;
+                }
             }
 
             for (int i = 0; i < parent.Nodes.Count; i++)
                 if (parent.Nodes[i] == replaceThis)
+                {
                     parent.Nodes[i] = addThis;
+                    parent.Nodes[i].Parent = parent;
+                }
         }
 
         public static string GetCastFunctionName(CastCase castCase)
         {
             switch(castCase)
             {
+                case CastCase.CharToFloat:
                 case CastCase.IntegerToFloat:
                     return "point";
+                case CastCase.ByteToInteger:
+                case CastCase.ShortToInteger:
+                    return "toint32";
+
                 case CastCase.CharToInteger:
                     return "chartoint32";
-                default: throw new System.Exception("??");
+                default: 
+                    throw new System.Exception("??");
             }
         }
     }

@@ -35,7 +35,9 @@ namespace alm.Core.CodeGeneration.Emitter
                 else if (binexpr.Right is BinaryExpression)
                     EmitBinaryExpression(methodIL, (BinaryExpression)binexpr.Right);
                 else if (binexpr.Right is FunctionCall)
-                    EmitFunctionCall(methodIL,(FunctionCall)binexpr.Right);
+                    EmitFunctionCall(methodIL, (FunctionCall)binexpr.Right);
+                else if (binexpr.Right is ArrayElement)
+                    EmitArrayElement(methodIL, (ArrayElement)binexpr.Right);
             }
             else if (binexpr.Left is ConstExpression)
             {
@@ -48,6 +50,8 @@ namespace alm.Core.CodeGeneration.Emitter
                     EmitBinaryExpression(methodIL, (BinaryExpression)binexpr.Right);
                 else if (binexpr.Right is FunctionCall)
                     EmitFunctionCall(methodIL, (FunctionCall)binexpr.Right);
+                else if (binexpr.Left is ArrayElement)
+                    EmitArrayElement(methodIL, (ArrayElement)binexpr.Left);
             }
             else if (binexpr.Left is FunctionCall)
             {
@@ -60,6 +64,8 @@ namespace alm.Core.CodeGeneration.Emitter
                     EmitBinaryExpression(methodIL, (BinaryExpression)binexpr.Right);
                 else if (binexpr.Right is FunctionCall)
                     EmitFunctionCall(methodIL, (FunctionCall)binexpr.Right);
+                else if (binexpr.Right is ArrayElement)
+                    EmitArrayElement(methodIL, (ArrayElement)binexpr.Right);
             }
             else if (binexpr.Left is IdentifierExpression)
             {
@@ -72,14 +78,53 @@ namespace alm.Core.CodeGeneration.Emitter
                     EmitBinaryExpression(methodIL, (BinaryExpression)binexpr.Right);
                 else if (binexpr.Right is FunctionCall)
                     EmitFunctionCall(methodIL, (FunctionCall)binexpr.Right);
+                else if (binexpr.Right is ArrayElement)
+                    EmitArrayElement(methodIL, (ArrayElement)binexpr.Right);
             }
+
+            else if (binexpr.Left is ArrayElement)
+            {
+                EmitArrayElement(methodIL, (ArrayElement)binexpr.Left);
+                if (binexpr.Right is ConstExpression)
+                    EmitConstExpression(methodIL, (ConstExpression)binexpr.Right);
+                else if (binexpr.Right is IdentifierExpression)
+                    EmitIdentifierCall(methodIL, (IdentifierExpression)binexpr.Right);
+                else if (binexpr.Right is BinaryExpression)
+                    EmitBinaryExpression(methodIL, (BinaryExpression)binexpr.Right);
+                else if (binexpr.Right is FunctionCall)
+                    EmitFunctionCall(methodIL, (FunctionCall)binexpr.Right);
+                else if (binexpr.Right is ArrayElement)
+                    EmitArrayElement(methodIL, (ArrayElement)binexpr.Right);
+            }
+
             methodIL.Emit(DefineArithOpCode(binexpr.Op));
         }
         private static void EmitAssignmentExpression(ILGenerator methodIL, AssignmentExpression assignmentExpression)
         {
-            EmitExpression(methodIL,(Expression)assignmentExpression.Right);
-            methodIL.Emit(OpCodes.Stloc,(LocalBuilder)GetCreatedLocal(((IdentifierExpression)assignmentExpression.Left).Name));
+            if (assignmentExpression.Left is ArrayElement)
+            {
+                methodIL.Emit(OpCodes.Ldloc, (LocalBuilder)GetCreatedLocal(((ArrayElement)assignmentExpression.Left).ArrayName));
+                EmitExpression(methodIL,((ArrayElement)assignmentExpression.Left).IndexInEachDimension[0]);
+                EmitExpression(methodIL,(Expression)assignmentExpression.Right);
+                if (((ArrayElement)assignmentExpression.Left).Type.GetEquivalence() == typeof(string))
+                    methodIL.Emit(OpCodes.Stelem_Ref);
+                else
+                    methodIL.Emit(OpCodes.Stelem, ((ArrayElement)assignmentExpression.Left).Type.GetEquivalence());
+            }
+            else
+            {
+                string name = ((IdentifierExpression)assignmentExpression.Left).Name;
+                EmitExpression(methodIL, (Expression)assignmentExpression.Right);
+                if (IsArgument(name))
+                {
+                    int index = GetArgumentsIndex(name);
+                    methodIL.Emit(OpCodes.Starg, index);
+                }
+                else
+                    methodIL.Emit(OpCodes.Stloc, (LocalBuilder)GetCreatedLocal(name));
+            }
         }
+
         private static void EmitDeclarationExpression(ILGenerator methodIL, DeclarationExpression declarationExpression)
         {
             if (declarationExpression.Right is AssignmentExpression)
@@ -87,8 +132,10 @@ namespace alm.Core.CodeGeneration.Emitter
                 EmitIdentifierDeclaration(methodIL,(IdentifierExpression)((AssignmentExpression)declarationExpression.Right).Left);
                 EmitAssignmentExpression(methodIL, (AssignmentExpression)declarationExpression.Right);
             }
-            else if (declarationExpression.Right is IdentifierExpression) EmitIdentifierDeclaration(methodIL, (IdentifierExpression)declarationExpression.Right);
+            else if (declarationExpression.Right is IdentifierExpression) 
+                EmitIdentifierDeclaration(methodIL, (IdentifierExpression)declarationExpression.Right);
         }
+
         private static void EmitConstExpression(ILGenerator methodIL, ConstExpression constExpression)
         {
             if (constExpression.Type.GetEquivalence() == typeof(int))
@@ -100,7 +147,7 @@ namespace alm.Core.CodeGeneration.Emitter
             else if (constExpression.Type.GetEquivalence() == typeof(float))
                 methodIL.Emit(OpCodes.Ldc_R4, float.Parse(constExpression.Value));
             else if (constExpression.Type.GetEquivalence() == typeof(char))
-                methodIL.Emit(OpCodes.Ldc_I4, Convert.ToInt32(constExpression.Value[0]));
+                methodIL.Emit(OpCodes.Ldc_I4, Convert.ToChar(constExpression.Value));
         }
         private static void EmitIdentifierDeclaration(ILGenerator methodIL, IdentifierExpression identifierExpression)
         {
@@ -122,7 +169,8 @@ namespace alm.Core.CodeGeneration.Emitter
         }
         private static void EmitReturnExpression(ILGenerator methodIL, ReturnExpression returnExpression)
         {
-            if (returnExpression.Right != null) EmitExpression(methodIL, (Expression)returnExpression.Right);
+            if (returnExpression.Right != null) 
+                EmitExpression(methodIL, (Expression)returnExpression.Right);
             methodIL.Emit(OpCodes.Ret);
         }
         private static void EmitFunctionCall(ILGenerator methodIL ,FunctionCall functionCall)
@@ -136,9 +184,9 @@ namespace alm.Core.CodeGeneration.Emitter
 
             if (IsMethodExternal(functionCall.Name))
                 EmitExternalFunctionCall(methodIL, functionCall);
-
             else 
                 methodIL.EmitCall(OpCodes.Call, method, null);
+
             if (functionCall.Type.GetEquivalence() != typeof(void))
                 if (ReturnValueIsUseless(functionCall)) 
                     methodIL.Emit(OpCodes.Pop);
@@ -173,15 +221,48 @@ namespace alm.Core.CodeGeneration.Emitter
             methodArgs.Clear();
             methodLocals.Clear();
         }
+
+        private static void EmitArrayElement(ILGenerator methodIL, ArrayElement arrayElement)
+        {
+            Type arrayType;
+            if (IsArgument(arrayElement.ArrayName))
+            {
+                int index = GetArgumentsIndex(arrayElement.ArrayName);
+                arrayType = GetTypeOfArgument(arrayElement,arrayElement.ArrayName);
+                methodIL.Emit(OpCodes.Ldarg, index);
+            }
+            else
+            {
+                LocalBuilder local = (LocalBuilder)GetCreatedLocal(arrayElement.ArrayName);
+                arrayType = local.LocalType;
+                methodIL.Emit(OpCodes.Ldloc, local);
+            }
+
+            EmitExpression(methodIL, arrayElement.IndexInEachDimension[0]);
+            if (arrayType == typeof(string) && arrayElement.Type.GetEquivalence() == typeof(char))
+                methodIL.EmitCall(OpCodes.Callvirt, typeof(string).GetMethod("get_Chars", new Type[] { typeof(int) }), null);
+            else
+                methodIL.Emit(OpCodes.Ldelem, arrayElement.Type.GetEquivalence());
+        }
+
+        private static void EmitArrayConstruction(ILGenerator methodIL,ArrayInstance arrayConstruction)
+        {
+            EmitExpression(methodIL,arrayConstruction.SizeOfEachDimension[0]);
+            methodIL.Emit(OpCodes.Newarr, ((Other.InnerTypes.ArrayType)arrayConstruction.Type).GetElementType().GetEquivalence());
+        }
+
         private static void EmitExpression(ILGenerator methodIL, Expression expression)
         {
-            if (expression is FunctionCall) EmitFunctionCall(methodIL, (FunctionCall)expression);
-            else if (expression is ReturnExpression) EmitReturnExpression(methodIL, (ReturnExpression)expression);
-            else if (expression is ConstExpression) EmitConstExpression(methodIL, (ConstExpression)expression);
-            else if (expression is BinaryExpression) EmitBinaryExpression(methodIL, (BinaryExpression)expression);
-            else if (expression is IdentifierCall) EmitIdentifierCall(methodIL, (IdentifierCall)expression);
-            else if (expression is DeclarationExpression) EmitDeclarationExpression(methodIL, (DeclarationExpression)expression);
-            else if (expression is AssignmentExpression) EmitAssignmentExpression(methodIL, (AssignmentExpression)expression);
+            if      (expression is FunctionCall)           EmitFunctionCall(methodIL, (FunctionCall)expression);
+            else if (expression is ReturnExpression)       EmitReturnExpression(methodIL, (ReturnExpression)expression);
+            else if (expression is ConstExpression)        EmitConstExpression(methodIL, (ConstExpression)expression);
+            else if (expression is BinaryExpression)       EmitBinaryExpression(methodIL, (BinaryExpression)expression);
+            else if (expression is IdentifierCall)         EmitIdentifierCall(methodIL, (IdentifierCall)expression);
+            else if (expression is DeclarationExpression)  EmitDeclarationExpression(methodIL, (DeclarationExpression)expression);
+            else if (expression is AssignmentExpression)   EmitAssignmentExpression(methodIL, (AssignmentExpression)expression);
+            else if (expression is ArrayInstance)          EmitArrayConstruction(methodIL,(ArrayInstance)expression);
+            else if (expression is ArrayElement)           EmitArrayElement(methodIL,(ArrayElement)expression);
+
         }
         private static void EmitStatement(ILGenerator methodIL, Statement statement)
         {
@@ -357,7 +438,7 @@ namespace alm.Core.CodeGeneration.Emitter
 
             EmitExpression(methodIL, (Expression)booleanExpression.Right);
             EmitExpression(methodIL, (Expression)booleanExpression.Left);
-            if (BothAreStrings(booleanExpression))
+            if (BothAreSameType(booleanExpression,typeof(string)))
             {
                 //Сравнение на идентичность со строками работает только с методом string.Equals(string a,string b);
                 methodIL.EmitCall(OpCodes.Call, typeof(string).GetMethod("Equals", new Type[] { typeof(string), typeof(string) }), null);
@@ -384,7 +465,7 @@ namespace alm.Core.CodeGeneration.Emitter
 
             EmitExpression(methodIL, (Expression)booleanExpression.Right);
             EmitExpression(methodIL, (Expression)booleanExpression.Left);
-            if (BothAreStrings(booleanExpression))
+            if (BothAreSameType(booleanExpression, typeof(string)))
             {
                 //Сравнение на идентичность со строками работает только с методом string.Equals(string a,string b);
                 methodIL.EmitCall(OpCodes.Call, typeof(string).GetMethod("Equals", new Type[] { typeof(string), typeof(string) }), null);
@@ -473,11 +554,14 @@ namespace alm.Core.CodeGeneration.Emitter
                 case "tostr"  : EmitIntToStr(methodIL, functionCall);      return true;
                 case "tostrf" : EmitFloatToStr(methodIL, functionCall);    return true;
                 case "toint"  : EmitStrToInt(methodIL, functionCall);      return true;
+
                 case "tofloat": EmitStrToFloat(methodIL, functionCall);    return true;
                 case "point"  : EmitPoint(methodIL, functionCall);         return true;
                 case "round"  : EmitRound(methodIL, functionCall);         return true;
 
-                case "chartoint32": EmitCharToInt32(methodIL, functionCall); return true;
+                case "chartoint32": EmitCharToInt32(methodIL, functionCall);return true;
+                case "toint32"    : EmitIntToInt32(methodIL, functionCall); return true;
+                case "len"        : EmitLen(methodIL, functionCall);        return true;
                 default: return false;
             }
         }
@@ -542,6 +626,18 @@ namespace alm.Core.CodeGeneration.Emitter
             EmitExpression(methodIL, (Expression)functionCall.ArgumentsValues.Nodes[0]);
             methodIL.EmitCall(OpCodes.Call, typeof(Convert).GetMethod("ToInt32", new Type[] { typeof(char) }), null);
         }
+
+        private static void EmitIntToInt32(ILGenerator methodIL, FunctionCall functionCall)
+        {
+            EmitExpression(methodIL, (Expression)functionCall.ArgumentsValues.Nodes[0]);
+            methodIL.EmitCall(OpCodes.Call, typeof(Convert).GetMethod("ToInt32", new Type[] { typeof(sbyte) }), null);
+        }
+
+        private static void EmitLen(ILGenerator methodIL, FunctionCall functionCall)
+        {
+            EmitExpression(methodIL, (Expression)functionCall.ArgumentsValues.Nodes[0]);
+            methodIL.Emit(OpCodes.Ldlen);
+        }
         //
 
         public static void Reset()
@@ -572,6 +668,16 @@ namespace alm.Core.CodeGeneration.Emitter
                 default: throw new Exception($"?? [{op}]");
             }
         }
+
+        private static Type GetTypeOfArgument(SyntaxTreeNode node, string argumentName)
+        {
+            FunctionDeclaration functionDeclaration = (FunctionDeclaration)node.GetParentByType("FunctionDeclaration");
+            foreach (ArgumentDeclaration arg in functionDeclaration.Arguments.Nodes)
+                if (arg.Name == argumentName)
+                    return arg.Type.GetEquivalence();
+            return null;
+        }
+
         private static int GetArgumentsIndex(string ArgName)
         {
             foreach (var arg in methodArgs)
@@ -631,21 +737,24 @@ namespace alm.Core.CodeGeneration.Emitter
                 if (localName == l.Key) local = l.Value;
             return local;
         }
-        private static bool BothAreStrings(BooleanExpression booleanExpression)
+        private static bool BothAreSameType(BooleanExpression booleanExpression,Type type)
         {
             foreach (var node in booleanExpression.Nodes)
             {
                 if (node is IdentifierExpression)
                 {
-                    if (((IdentifierExpression)node).Type.GetEquivalence() != typeof(string)) return false;
+                    if (((IdentifierExpression)node).Type.GetEquivalence() != type) 
+                        return false;
                 }
-                else if (node is StringConst)
+                else if (node is ConstExpression)
                 {
-
+                    if (((ConstExpression)node).Type.GetEquivalence() != type)
+                        return false;
                 }
                 else if (node is FunctionCall)
                 {
-                    if (((FunctionCall)node).Type.GetEquivalence() != typeof(string)) return false;
+                    if (((FunctionCall)node).Type.GetEquivalence() != type)
+                        return false;
                 }
                 else return false;
             }

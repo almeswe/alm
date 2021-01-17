@@ -42,6 +42,8 @@
         tkRbra,
         tkLpar,
         tkRpar,
+        tkSqLbra,
+        tkSqRbra,
         tkComma,
         tkDQuote,
         tkSQuote,

@@ -212,8 +212,9 @@ namespace alm.Core.SyntaxAnalysis
                     if (!Match(tkRpar))
                         return new Arguments(new ReservedSymbolExpected(",", Lexer.CurrentToken));
                 }
-                else 
+                else
                     Lexer.GetNextToken();
+
                 args.AddNode(new ArgumentDeclaration(argType, argName));
             }
 
@@ -276,7 +277,6 @@ namespace alm.Core.SyntaxAnalysis
             }
 
             if (!Match(tkRbra)) 
-                //Сделать отображение строки в ConsoleErrorDrawer, тк без нее не понятно где ошибка
                 return new Body(new MissingRbra(Lexer.CurrentToken));
 
             body.SourceContext.EndsAt = new Position(Lexer.CurrentToken);
@@ -312,7 +312,11 @@ namespace alm.Core.SyntaxAnalysis
             if (type == null)
                 identifierExpression = new IdentifierDeclaration(Lexer.CurrentToken);
             else
-                identifierExpression = new IdentifierDeclaration(Lexer.CurrentToken,type);
+            {
+                if (type is Other.InnerTypes.Void)
+                    return new IdentifierDeclaration(new ErrorMessage("Тип void недопустим для переменной",Lexer.PreviousToken));
+                identifierExpression = new IdentifierDeclaration(Lexer.CurrentToken, type);
+            }
             Lexer.GetNextToken();
             return identifierExpression;
         }
@@ -364,7 +368,11 @@ namespace alm.Core.SyntaxAnalysis
         }
         public SyntaxTreeNode ParseAssignmentExpression()
         {
-            IdentifierExpression id = ParseIdentifierCall();
+            SyntaxTreeNode id;
+            if (Match(tkSqLbra, 1))
+                id = ParseArrayElement();
+            else
+                id = ParseIdentifierCall();
 
             if (!Match(tkAssign)     &&
                 !Match(tkAddAssign)  &&
@@ -374,7 +382,8 @@ namespace alm.Core.SyntaxAnalysis
                 return new AssignmentExpression(new ErrorMessage("Ожидался символ присваивания", Lexer.CurrentToken));
 
             Lexer.GetNextToken();
-            AssignmentExpression assign = new AssignmentExpression(id,GetOperatorFromTokenType(Lexer.PreviousToken.TokenType),ParseExpression());
+            AssignmentExpression assign;
+            assign = new AssignmentExpression(id, GetOperatorFromTokenType(Lexer.PreviousToken.TokenType), ParseExpression());
 
             if (!Match(tkSemicolon)) 
                 return new AssignmentExpression(new MissingSemi(Lexer.CurrentToken));
@@ -402,6 +411,40 @@ namespace alm.Core.SyntaxAnalysis
                 return ParseFunctionCall();
             else 
                 return ParseAssignmentExpression();
+        }
+
+        public SyntaxTreeNode ParseArrayInstance()
+        {
+            TypeExpression constructionType = ParseTypeExpression();
+            constructionType.Type = constructionType.Type.GetArrayType();
+
+            int constructionDimension = 1;
+            List<Expression> sizes = new List<Expression>();
+
+            Lexer.GetNextToken();
+
+            while (!Match(tkSqRbra) && !Match(tkEOF))
+            {
+                sizes.Add((Expression)ParseExpression());
+                if (!Match(tkComma))
+                {
+                    if (!Match(tkSqRbra))
+                        return new ArrayInstance(new ReservedSymbolExpected(",", Lexer.CurrentToken));
+                }
+                //Возможен баг с добавлением лишней размерности массива
+                else
+                {
+                    constructionDimension++;
+                    Lexer.GetNextToken();
+                }
+            }
+            Lexer.GetNextToken();
+
+            if (sizes.Count < 1)
+                return new ArrayInstance(new ErrorMessage("Ожидался размер массива", Lexer.CurrentToken));
+
+            //Вывод ошибки не очень (по позиции)
+            return new ArrayInstance(constructionType,sizes.ToArray());
         }
 
         public Condition ParseCondition()
@@ -445,9 +488,9 @@ namespace alm.Core.SyntaxAnalysis
             if (!Match(tkRet))
                 return new ReturnExpression(new ReservedWordExpected("return", Lexer.CurrentToken));
 
-            SourceContext retcontext = new SourceContext();
-            retcontext.FilePath = CurrentParsingFile;
-            retcontext.StartsAt = new Position(Lexer.CurrentToken);
+            SourceContext retContext = new SourceContext();
+            retContext.FilePath = CurrentParsingFile;
+            retContext.StartsAt = new Position(Lexer.CurrentToken);
 
             Lexer.GetNextToken();
             Expression expression;
@@ -455,13 +498,13 @@ namespace alm.Core.SyntaxAnalysis
                 expression = null;
             else
                 expression = (Expression)ParseExpression();
-            retcontext.EndsAt = new Position(Lexer.CurrentToken);
+            retContext.EndsAt = new Position(Lexer.CurrentToken);
 
             if (!Match(tkSemicolon)) 
                 return new ReturnExpression(new MissingSemi(Lexer.PreviousToken));
             Lexer.GetNextToken();
 
-            return new ReturnExpression(expression, retcontext);
+            return new ReturnExpression(expression, retContext);
         }
 
         public SyntaxTreeNode ParseIfStatement()
@@ -593,7 +636,7 @@ namespace alm.Core.SyntaxAnalysis
             SyntaxTreeNode node = ParseTerm();
             switch (Lexer.CurrentToken.TokenType)
             {
-                case tkMinus: Lexer.GetNextToken();  node = new BinaryExpression(node, Operator.Minus, ParseExpression()); break;
+                //case tkMinus: Lexer.GetNextToken();  node = new BinaryExpression(node, Operator.Minus, ParseExpression()); break;
                 case tkPlus:  Lexer.GetNextToken();  node = new BinaryExpression(node, Operator.Plus, ParseExpression()); break;
             }
             return node;
@@ -625,18 +668,25 @@ namespace alm.Core.SyntaxAnalysis
                 case tkId:
                     if (Match(tkLpar, 1))
                         node = ParseFunctionCall(false);
+                    else if (Match(tkSqLbra, 1))
+                        node = ParseArrayElement();
                     else
                         node = ParseIdentifierCall();
                     return node;
 
+                case tkType:
+                    node = ParseArrayInstance();
+                    return node;
+
                 case tkMinus:
                     //Переписать
-                    if (Match(tkMinus, -1)) return new BinaryExpression(new ErrorMessage("Возможно добавление только одного унарного минуса.",Lexer.CurrentToken));
+                    if (Match(tkMinus, -1)) 
+                        return new BinaryExpression(new ErrorMessage("Возможно добавление только одного унарного минуса.",Lexer.CurrentToken));
                     Lexer.GetNextToken();
-                    return new BinaryExpression(new IntegerConst("-1"), Operator.Multiplication, ParseFactor());
+                    return new BinaryExpression(new Int32Const("-1"), Operator.Multiplication, ParseFactor());
 
                 case tkIntConst:
-                    node = new IntegerConst(Lexer.CurrentToken);
+                    node = new Int32Const(Lexer.CurrentToken);
                     Lexer.GetNextToken();
                     return node;
 
@@ -658,9 +708,32 @@ namespace alm.Core.SyntaxAnalysis
 
                 case tkLpar: return ParseParentisizedExpression();
 
-                default: return new BinaryExpression(new ErrorMessage("Ожидалось число,переменная,или выражение в скобках", Lexer.CurrentToken));
+                default: return new BinaryExpression(new ErrorMessage("Ожидалось присваиваемое выражение", Lexer.CurrentToken));
             }
         }
+
+
+        public ConstExpression DetermineIntSize(Token token)
+        {
+            long value;
+            try
+            {
+                value = Convert.ToInt64(token.Value);
+            }
+            catch
+            {
+                return new Int32Const(new ErrorMessage("Превышена размерность 64-битового целого числа",token));
+            }
+
+            if (Math.Abs(value) <= sbyte.MaxValue)
+                return new Int8Const(token.Value);
+            else if (Math.Abs(value) <= short.MaxValue)
+                return new Int16Const(token.Value);
+            else if (Math.Abs(value) <= int.MaxValue)
+                return new Int32Const(token.Value);
+            return new Int32Const(token.Value);
+        }
+
         public SyntaxTreeNode ParseParentisizedExpression()
         {
             if (!Match(tkLpar)) 
@@ -714,6 +787,27 @@ namespace alm.Core.SyntaxAnalysis
             return charConst;
         }
 
+        private SyntaxTreeNode ParseArrayElement()
+        {
+            IdentifierExpression id = ParseIdentifierDeclaration();
+            List<Expression> indexes = new List<Expression>();
+
+            while(Match(tkSqLbra) && !Match(tkEOF))
+            {
+                if (!Match(tkSqLbra))
+                    return new ArrayElement(new ErrorMessage("Для получения элемента по индекск массива нужен символ \'[\'", Lexer.CurrentToken));
+                Lexer.GetNextToken();
+
+                indexes.Add((Expression)ParseExpression());
+
+                if (!Match(tkSqRbra))
+                    return new ArrayElement(new ErrorMessage("Для получения элемента по индексу массива нужен символ \']\'", Lexer.CurrentToken));
+                Lexer.GetNextToken();
+            }
+
+            return new ArrayElement(id, indexes.ToArray());
+        }
+
         public bool Match(TokenType expectedType, int offset = 0)
         {
             return Lexer.Peek(offset).TokenType == expectedType ? true : false;
@@ -764,8 +858,8 @@ namespace alm.Core.SyntaxAnalysis
         public void SetSourceContext(SyntaxTreeNode node)        => this.SourceContext = GetSourceContext(node);
         public void SetSourceContext(SyntaxTreeNode lnode, SyntaxTreeNode rnode) => this.SourceContext = GetSourceContext(lnode,rnode);
 
-        //public virtual string ToConsoleString() => $"{NodeType}";
-        public virtual string ToConsoleString() => $"{this.NodeType}+{this.SourceContext}";
+        public virtual string ToConsoleString() => $"{NodeType}";
+        //public virtual string ToConsoleString() => $"{this.NodeType}+{this.SourceContext}";
 
         public void AddNode(SyntaxTreeNode node)
         {
@@ -785,11 +879,12 @@ namespace alm.Core.SyntaxAnalysis
                     return Parent;
             return null;
         }
+
         public SyntaxTreeNode[] GetChildsByType(string typeString, bool recursive = false, bool once = true)
         {
             List<SyntaxTreeNode> Childs = new List<SyntaxTreeNode>();
             if (once) if (LastAfterDot(this.GetType().ToString()) == typeString) Childs.Add(this);
-            for (int i = 0;i < this.Nodes.Count; i++)
+            for (int i = 0; i < this.Nodes.Count; i++)
             {
                 if (LastAfterDot(this.Nodes[i].GetType().ToString()) == typeString) Childs.Add(this.Nodes[i]);
                 if (recursive) Childs.AddRange(this.Nodes[i].GetChildsByType(typeString, true, false));
@@ -894,7 +989,7 @@ namespace alm.Core.SyntaxAnalysis
             Diagnostics.SyntaxErrors.Add(error);
         }
 
-        public override string ToConsoleString() => $"{Name}:{Type.Representation}:[decl]" + (External ? ":[external]":"");
+        public override string ToConsoleString() => $"{Name}:{Type.Representation}" + (External ? ":[external]":"");
     }
 
     public sealed class FunctionCall : Expression , ITypeable
@@ -924,7 +1019,7 @@ namespace alm.Core.SyntaxAnalysis
             Diagnostics.SyntaxErrors.Add(error);
         }
 
-        public override string ToConsoleString() => $"{Name}:{Type}:[call]";
+        public override string ToConsoleString() => $"{Name}:{Type}";
     }
 
     public sealed class ImportExpression : Expression
@@ -1029,7 +1124,6 @@ namespace alm.Core.SyntaxAnalysis
     public sealed class WhileStatement : Statement
     {
         public override NodeType NodeType => NodeType.While;
-        //public override ConsoleColor Color => ConsoleColor.Blue;
 
         public WhileStatement(Condition condition, Body body)
         {
@@ -1098,7 +1192,7 @@ namespace alm.Core.SyntaxAnalysis
             Diagnostics.SyntaxErrors.Add(error);
         }
 
-        public override string ToConsoleString() => $"{Name}:{Type}";
+        public override string ToConsoleString() => $"{Name}:" + (Type is ArrayType?"array of ":"") + $"{Type}";
     }
 
     public sealed class IdentifierDeclaration : IdentifierExpression
@@ -1107,8 +1201,6 @@ namespace alm.Core.SyntaxAnalysis
         public IdentifierDeclaration(Token token, InnerType type) : base(token, type) { }
 
         public IdentifierDeclaration(SyntaxError error) : base(error) { }
-
-        public override string ToConsoleString() => base.ToConsoleString() + ":[decl]";
     }
 
     public sealed class IdentifierCall : IdentifierExpression
@@ -1117,8 +1209,6 @@ namespace alm.Core.SyntaxAnalysis
         public IdentifierCall(Token token, InnerType type) : base(token, type) { }
 
         public IdentifierCall(SyntaxError error) : base(error) { }
-
-        public override string ToConsoleString() => base.ToConsoleString() + ":[call]";
     }
 
     public abstract class ConstExpression : Expression, ITypeable
@@ -1153,25 +1243,73 @@ namespace alm.Core.SyntaxAnalysis
             Diagnostics.SyntaxErrors.Add(error);
         }
     }
-    public sealed class IntegerConst : ConstExpression
+    public sealed class Int8Const : ConstExpression
+    {
+        public override NodeType NodeType => NodeType.IntegerConstant;
+        public override ConsoleColor Color => ConsoleColor.DarkMagenta;
+
+        public override InnerType Type => new Other.InnerTypes.Int8();
+
+        public Int8Const(string value)
+        {
+            this.Value = value;
+        }
+
+        public Int8Const(Token token)
+        {
+            this.SetSourceContext(token);
+            this.Value = token.Value;
+        }
+
+        public Int8Const(SyntaxError error)
+        {
+            this.Errored = true;
+            Diagnostics.SyntaxErrors.Add(error);
+        }
+    }
+    public sealed class Int16Const : ConstExpression
+    {
+        public override NodeType NodeType => NodeType.IntegerConstant;
+        public override ConsoleColor Color => ConsoleColor.DarkMagenta;
+
+        public override InnerType Type => new Other.InnerTypes.Int16();
+
+        public Int16Const(string value)
+        {
+            this.Value = value;
+        }
+
+        public Int16Const(Token token)
+        {
+            this.SetSourceContext(token);
+            this.Value = token.Value;
+        }
+
+        public Int16Const(SyntaxError error)
+        {
+            this.Errored = true;
+            Diagnostics.SyntaxErrors.Add(error);
+        }
+    }
+    public sealed class Int32Const : ConstExpression
     {
         public override NodeType NodeType  => NodeType.IntegerConstant;
         public override ConsoleColor Color => ConsoleColor.DarkMagenta;
 
         public override InnerType Type => new Other.InnerTypes.Int32();
 
-        public IntegerConst(string value)
+        public Int32Const(string value)
         {
             this.Value = value;
         }
 
-        public IntegerConst(Token token)
+        public Int32Const(Token token)
         {
             this.SetSourceContext(token);
             this.Value = token.Value;
         }
 
-        public IntegerConst(SyntaxError error)
+        public Int32Const(SyntaxError error)
         {
             this.Errored = true;
             Diagnostics.SyntaxErrors.Add(error);
@@ -1276,7 +1414,7 @@ namespace alm.Core.SyntaxAnalysis
             switch(op)
             {
                 case Operator.Minus:
-                    this.Right = new BinaryExpression(new IntegerConst("-1"),Operator.Multiplication,right);
+                    this.Right = new BinaryExpression(new Int32Const("-1"),Operator.Multiplication,right);
                     break;
                 /*case Operator.PrefixIncrement:
                     this.Right = new BinaryExpression(right,Operator )
@@ -1327,6 +1465,7 @@ namespace alm.Core.SyntaxAnalysis
         }
 
     }
+
     public sealed class BooleanExpression : Expression
     {
         private NodeType type;
@@ -1412,22 +1551,56 @@ namespace alm.Core.SyntaxAnalysis
         }
     }
 
-    public sealed class GlobalDeclarationExpression : Expression
+    public sealed class ArrayElement : Expression, ITypeable
     {
-        public override NodeType NodeType => NodeType.Declaration;
+        public override ConsoleColor Color => ConsoleColor.DarkBlue;
+        public override NodeType NodeType => NodeType.ArrayConstruction;
 
-        public GlobalDeclarationExpression(SyntaxTreeNode declarationExpression)
+        public InnerType Type { get; set; }
+        public string ArrayName { get; private set; }
+        public Expression[] IndexInEachDimension { get; private set; }
+
+        public ArrayElement(IdentifierExpression identifierExpression,Expression[] indexInEachDimension)
         {
-            this.SetSourceContext(declarationExpression);
-            this.Right = declarationExpression;
-            this.AddNodes(Right);
+            this.SetSourceContext(identifierExpression,indexInEachDimension[indexInEachDimension.Length-1]);
+            this.ArrayName = identifierExpression.Name;
+            this.IndexInEachDimension = indexInEachDimension;
+            this.AddNodes(indexInEachDimension);
         }
 
-        public GlobalDeclarationExpression(SyntaxError error)
+        public ArrayElement(SyntaxError error)
         {
             this.Errored = true;
             Diagnostics.SyntaxErrors.Add(error);
         }
+        public override string ToConsoleString() => $"{ArrayName}[index]";
+    }
+
+    public sealed class ArrayInstance : Expression, ITypeable
+    {
+        public override ConsoleColor Color => ConsoleColor.Magenta;
+        public override NodeType NodeType  => NodeType.ArrayConstruction;
+
+        public InnerType Type { get; set; }
+        public int Dimensions { get; private set; }
+        public Expression[] SizeOfEachDimension { get; private set; }
+
+        public ArrayInstance(TypeExpression typeExpression, Expression[] sizeOfEachDimension)
+        {
+            SetSourceContext(typeExpression);
+            this.Type = typeExpression.Type;
+            this.SizeOfEachDimension = sizeOfEachDimension;
+            this.Dimensions = this.SizeOfEachDimension.Length;
+            this.AddNodes(typeExpression);
+        }
+
+        public ArrayInstance(SyntaxError error)
+        {
+            this.Errored = true;
+            Diagnostics.SyntaxErrors.Add(error);
+        }
+
+        public override string ToConsoleString() => $"array:{Type}:[{Dimensions}x{Dimensions}]";
     }
 
     public sealed class DeclarationExpression : Expression
@@ -1480,10 +1653,5 @@ namespace alm.Core.SyntaxAnalysis
     public interface ITypeable
     {
         InnerType Type { get; }
-    }
-
-    public interface IArrayTypeable
-    {
-
     }
 }

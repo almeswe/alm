@@ -13,8 +13,6 @@ namespace alm.Core.SemanticAnalysis
         public static void ResolveProgram(AbstractSyntaxTree ast)
         {
             IsMainDeclared = false;
-            //foreach (GlobalDeclarationExpression globalDeclarationExpression in Ast.Root.GetChildsByType("GlobalDeclarationExpression", true))
-            //    ResolveGlobalDeclarationExpression(globalDeclarationExpression, GlobalTable.Table);
 
             foreach (FunctionDeclaration function in ast.Root.GetChildsByType("FunctionDeclaration", true))
             {
@@ -64,7 +62,8 @@ namespace alm.Core.SemanticAnalysis
         {
             Body Block = (Body)condition.GetParentByType("Body");
 
-            foreach (IdentifierExpression testId in condition.GetChildsByType("IdentifierCall", true)) ResolveIdExression(testId, table, false, true, Block);
+            foreach (IdentifierExpression testId in condition.GetChildsByType("IdentifierCall", true)) ResolveIdExpression(testId, table, false, true, Block);
+            foreach (ArrayElement array in condition.GetChildsByType("ArrayElement", true)) ResolveArrayElement(array, table);
             foreach (FunctionCall testFunc in condition.GetChildsByType("FunctionCall",true)) ResolveFunctionCall(testFunc, table);
         }
 
@@ -72,7 +71,8 @@ namespace alm.Core.SemanticAnalysis
         {
             Body Block = (Body)binaryExpression.GetParentByType("Body");
 
-            foreach (IdentifierExpression testId in binaryExpression.GetChildsByType("IdentifierCall", true)) ResolveIdExression(testId, table, false, true, Block);
+            foreach (IdentifierExpression testId in binaryExpression.GetChildsByType("IdentifierCall", true)) ResolveIdExpression(testId, table, false, true, Block);
+            foreach (ArrayElement array in binaryExpression.GetChildsByType("ArrayElement", true)) ResolveArrayElement(array, table);
             foreach (FunctionCall testFunc in binaryExpression.GetChildsByType("FunctionCall",true)) ResolveFunctionCall(testFunc, table);
         }
 
@@ -84,16 +84,17 @@ namespace alm.Core.SemanticAnalysis
 
         public static void ResolveArgumentDeclaration(ArgumentDeclaration argumentDeclaration, Table table)
         {
-            ResolveIdExression((IdentifierExpression)argumentDeclaration.Right, table, true);
+            ResolveIdExpression((IdentifierExpression)argumentDeclaration.Right, table, true);
         }
 
-        public static int ResolveIdExression(IdentifierExpression identifierExpression, Table table, bool initOnStart = false, bool checkInit = false, Body inBlock = null)
+        public static int ResolveIdExpression(IdentifierExpression identifierExpression, Table table, bool initOnStart = false, bool checkInit = false, Body inBlock = null)
         {
             if (identifierExpression is IdentifierDeclaration)
             {
                 if (table.PushIdentifier(identifierExpression))
                 {
-                    if (initOnStart) table.SetGlobalInitialization(identifierExpression);
+                    if (initOnStart) 
+                        table.SetGlobalInitialization(identifierExpression);
                     return 0;
                 }
                 else
@@ -175,10 +176,11 @@ namespace alm.Core.SemanticAnalysis
         {
             Body Block = (Body)returnExpression.GetParentByType("Body");
 
-            if (returnExpression.Right is IdentifierExpression) ResolveIdExression((IdentifierExpression)returnExpression.Right, table, false, true, Block);
+            if (returnExpression.Right is IdentifierExpression) ResolveIdExpression((IdentifierExpression)returnExpression.Right, table, false, true, Block);
             else if (returnExpression.Right is Expression)
             {
-                foreach (IdentifierExpression testId in returnExpression.Right.GetChildsByType("IdentifierCall", true)) ResolveIdExression(testId, table, false, true, Block);
+                foreach (IdentifierExpression testId in returnExpression.Right.GetChildsByType("IdentifierCall", true)) ResolveIdExpression(testId, table, false, true, Block);
+                foreach (ArrayElement array in returnExpression.GetChildsByType("ArrayElement", true)) ResolveArrayElement(array, table);
                 foreach (FunctionCall testFunc in returnExpression.Right.GetChildsByType("FunctionCall",true)) ResolveFunctionCall(testFunc, table);
             }
 
@@ -188,10 +190,33 @@ namespace alm.Core.SemanticAnalysis
         {
             if      (expression is AssignmentExpression)  ResolveAssignmentExpression((AssignmentExpression)expression, table);
             else if (expression is DeclarationExpression) ResolveDeclarationExpression((DeclarationExpression)expression, table);
-            else if (expression is IdentifierExpression)  ResolveIdExression((IdentifierExpression)expression,table,false,true, (Body)expression.GetParentByType("Body"));
+            else if (expression is IdentifierExpression)  ResolveIdExpression((IdentifierExpression)expression,table,false,true, (Body)expression.GetParentByType("Body"));
             else if (expression is ReturnExpression)      ResolveReturnExpression((ReturnExpression)expression, table);
             else if (expression is BinaryExpression)      ResolveBinaryExpression((BinaryExpression)expression,table);
             else if (expression is FunctionCall)          ResolveFunctionCall((FunctionCall)expression,table);
+            else if (expression is ArrayElement)          ResolveArrayElement((ArrayElement)expression, table);
+        }
+
+        public static bool ResolveArrayElement(ArrayElement arrayElement, Table table)
+        {
+            if (table.CheckIdentifier(arrayElement.ArrayName))
+            {
+                TableIdentifier id = table.FetchIdentifier(arrayElement.ArrayName);
+                if (id.Type is Other.InnerTypes.ArrayType)
+                {
+                    //При многомерном массиве не сработает
+                    arrayElement.Type = ((Other.InnerTypes.ArrayType)id.Type).GetElementType();
+                    return true;
+                }
+                else
+                {
+                    Diagnostics.SemanticErrors.Add(new ArrayDoesNotExist(arrayElement.ArrayName, arrayElement.SourceContext));
+                    return false;
+                }
+                
+            }
+            Diagnostics.SemanticErrors.Add(new ArrayDoesNotExist(arrayElement.ArrayName, arrayElement.SourceContext));
+            return false;
         }
 
         public static void ResolveAssignmentExpression(AssignmentExpression assignmentExpression, Table table)
@@ -199,28 +224,34 @@ namespace alm.Core.SemanticAnalysis
             bool failed = false;
             Body Block  = (Body)assignmentExpression.GetParentByType("Body");
 
-            if (ResolveIdExression((IdentifierExpression)assignmentExpression.Left, table) == 1) failed = true;
+            if (assignmentExpression.Left is IdentifierExpression)
+            {
+                if (ResolveIdExpression((IdentifierExpression)assignmentExpression.Left, table) == 1)
+                    failed = true;
+            }
+            else if (assignmentExpression.Left is ArrayElement)
+            {
+                failed = true;
+                ResolveArrayElement((ArrayElement)assignmentExpression.Left, table);
+            }
 
             foreach (IdentifierExpression testId in assignmentExpression.Right.GetChildsByType("IdentifierCall", true))
-                if (ResolveIdExression(testId, table, false, true, Block) == 1) failed = true;
+                if (ResolveIdExpression(testId, table, false, true, Block) == 1) failed = true;
+            foreach (ArrayElement element in assignmentExpression.Right.GetChildsByType("ArrayElement", true))
+                if (!ResolveArrayElement(element, table)) failed = true;
             foreach (FunctionCall testFunc in assignmentExpression.Right.GetChildsByType("FunctionCall",true))
                 if (ResolveFunctionCall(testFunc, table) == 1) failed = true;
 
-            if (!failed) table.SetLocalBlockInitialization((IdentifierExpression)assignmentExpression.Left,Block);
-        }
-
-        public static void ResolveGlobalDeclarationExpression(GlobalDeclarationExpression globalDeclarationExpression, Table table)
-        {
-            DeclarationExpression declarationExpression = (DeclarationExpression)globalDeclarationExpression.Right;
-            if (declarationExpression.Right is IdentifierExpression)      ResolveIdExression((IdentifierExpression)declarationExpression.Right, table,true);
-            else if (declarationExpression.Right is AssignmentExpression) ResolveAssignmentExpression((AssignmentExpression)declarationExpression.Right, table);
+            if (!failed) 
+                table.SetLocalBlockInitialization((IdentifierExpression)assignmentExpression.Left,Block);
         }
 
         public static void ResolveDeclarationExpression(DeclarationExpression declarationExpression, Table table)
         {
-            if      (declarationExpression.Right is IdentifierExpression) ResolveIdExression((IdentifierExpression)declarationExpression.Right, table);
+            if      (declarationExpression.Right is IdentifierExpression) ResolveIdExpression((IdentifierExpression)declarationExpression.Right, table);
             else if (declarationExpression.Right is AssignmentExpression) ResolveAssignmentExpression((AssignmentExpression)declarationExpression.Right, table);
         }
+
         public static bool ResolveBlockForReturn(Body block)
         {
             bool Resolved = false;

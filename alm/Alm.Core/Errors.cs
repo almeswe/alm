@@ -234,6 +234,16 @@ namespace alm.Core.Errors
         public ThisFunctionAlreadyDeclared(string name, SourceContext context) : base($"Функция [{name}] с таким количеством параметров уже объявлена.", context) { }
     }
 
+    public sealed class ElementNotFromThisDimension : SemanticError
+    {
+        public ElementNotFromThisDimension(SourceContext context) : base($"Попытка получения элемента массива который не соответствует его размерности.", context) { }
+    }
+
+    public sealed class ArrayDoesNotExist : SemanticError
+    {
+        public ArrayDoesNotExist(string name,SourceContext context) : base($"Массив [{name}] с таким именем не объявлен.", context) { }
+    }
+
     public sealed class InExexutableFileMainExprected : SemanticError
     {
         public InExexutableFileMainExprected() : base($"В запускаемом файле должен быть метод main.",new SourceContext()) { }

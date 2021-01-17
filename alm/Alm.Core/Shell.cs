@@ -105,7 +105,7 @@ namespace alm.Core.Shell
     {
         #if DEBUG
         //public static string SourcePath = @"C:\Users\Almes\source\repos\Compiler\compiler v.5\Alm\alm\Alm.Tests\TestScripts\AlmDebug.alm";
-        public static string SourcePath = @"C:\Users\Almes\source\repos\Compiler\compiler v.5\Alm\libs\main.alm";
+        public static string SourcePath = @"C:\Users\Almes\source\repos\Compiler\compiler v.5\src\libs\main.alm";
         public static string DestinationPath = "alm.exe";
 
         #endif

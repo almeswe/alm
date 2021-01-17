@@ -50,10 +50,10 @@ namespace alm.Other.ConsoleStuff
 
             reducedErroredLine = DeleteFirstSameChars(erroredLine, ' ', '\t');
 
-            difference = erroredLine.Length - reducedErroredLine.Length + 1;
+            difference = erroredLine.Length - reducedErroredLine.Length+1;
 
             for (int i = error.StartsAt.CharIndex - difference; i < error.EndsAt.CharIndex - difference; i++)
-                if (erroredLine[i] == '\t')
+                if (reducedErroredLine[i] == '\t')
                     emphLineLen += tabSize;
 
             separateString = string.Empty;

@@ -266,22 +266,26 @@ namespace alm.Core.SyntaxAnalysis
             body.SourceContext.FilePath = CurrentParsingFile;
             body.SourceContext.StartsAt = new Position(Lexer.CurrentToken);
 
-            if (!Match(tkLbra)) 
-                return new Body(new MissingLbra(Lexer.CurrentToken));
-            Lexer.GetNextToken();
-
-            while (!Match(tkRbra) && !Match(tkEOF))
+            if (!Match(tkLbra))
             {
                 body.AddNode(ParseStatement());
-                if (body.Nodes.Last().Errored) break;
+                body.SourceContext.EndsAt = new Position(Lexer.CurrentToken);
+            }
+            else
+            {
+                Lexer.GetNextToken();
+                while (!Match(tkRbra) && !Match(tkEOF))
+                {
+                    body.AddNode(ParseStatement());
+                    if (body.Nodes.Last().Errored) break;
+                }
+
+                if (!Match(tkRbra))
+                    return new Body(new MissingRbra(Lexer.CurrentToken));
+                body.SourceContext.EndsAt = new Position(Lexer.CurrentToken);
+                Lexer.GetNextToken();
             }
 
-            if (!Match(tkRbra)) 
-                return new Body(new MissingRbra(Lexer.CurrentToken));
-
-            body.SourceContext.EndsAt = new Position(Lexer.CurrentToken);
-
-            Lexer.GetNextToken();
             return body;
         }
 

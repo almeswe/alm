@@ -1,0 +1,27 @@
+import chr;
+
+func IsCorrectNumberInput(string input) : boolean
+{
+	string a = input;
+	integer i = 0;
+	while (i < len(input))
+	{
+		if (not IsDigit(a[i]))
+			{return false;}
+		i += 1;
+	}
+	return true;
+}
+
+func IsCorrectNumberInput(string input,integer size) : boolean
+{
+	string a = input;
+	integer i = 0;
+	while (i < size)
+	{
+		if (not IsDigit(a[i]))
+			{return false;}
+		i += 1;
+	}
+	return true;
+}

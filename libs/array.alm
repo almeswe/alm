@@ -1,0 +1,55 @@
+import str;
+
+func print_array(integer[] arr,boolean inLine) : void
+{
+	integer i = 0;
+	while(i < len(arr))
+	{
+		if (inLine)
+			{
+			   if (i != 0)
+				{ print(Concat(tostrf(arr[i]),",")); }
+			}
+		else
+		   {println(tostrf(arr[i]));}
+		i += 1;
+	}
+}
+
+func init_int32_array(integer arrSize) : integer[]
+{
+	integer[] arr = integer[arrSize];
+	integer i = 0;
+	while(i < arrSize)
+	{
+		arr[i] = 0;
+		i +=1;
+	}	
+	return arr;
+}
+
+func selection_sort(integer[] arr) : integer[]
+{
+	integer i = 0;
+	integer j = 0;
+	integer buff;
+
+	integer[] sorted_arr = arr;
+
+	while(i < len(arr))
+	{
+		j = i+1;
+		while (j < len(arr))
+		{
+			if (sorted_arr[i] < sorted_arr[j])
+			{
+				buff = sorted_arr[i];
+				sorted_arr[i] = sorted_arr[j];
+				sorted_arr[j] = buff;
+			}
+			j += 1;
+		}
+		i += 1;
+	}
+	return 	sorted_arr;
+}

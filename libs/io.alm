@@ -7,6 +7,14 @@ func WriteLine(string message) : void;
 @external "System.Console"
 func ReadLine() : string;
 
+@external "System.Console"
+func Clear() : void;
+
+func clear() : void
+{
+	Clear();
+}
+
 func print(string message) : void
 {
 	Write(message);

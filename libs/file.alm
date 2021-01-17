@@ -1,0 +1,29 @@
+@external "System.IO.File"
+func ReadAllLines(string path) : string[];
+
+@external "System.IO.File"
+func ReadAllText(string path) : string;
+
+@external "System.IO.File"
+func Exists(string path) : boolean;
+
+@external "System.IO.File"
+func Delete(string path) : void;
+
+@external "System.IO.File"
+func Copy(string source,string destination) : void;
+
+@external "System.IO.File"
+func AppendAllText(string path,string contents) : void;
+
+@external "System.IO.File"
+func WriteAllText(string path,string contents) : void;
+
+@external "System.IO.File"
+func AppendAllLines(string path,string[] contents) : void;
+
+@external "System.IO.File"
+func Encrypt(string path) : void;
+
+@external "System.IO.File"
+func Decrypt(string path) : void;

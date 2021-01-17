@@ -1,0 +1,53 @@
+@external "System.Char"
+func IsLetter(char ch) : boolean;
+
+@external "System.Char"
+func IsDigit(char ch) : boolean;
+
+@external "System.Char" 
+func IsLetterOrDigit(char ch) : boolean;
+
+@external "System.Char" 
+func IsWhiteSpace(char ch) : boolean;
+
+@external "System.Char" 
+func IsControl(char ch) : boolean;
+
+@external "System.Char" 
+func IsSeparator(char ch) : boolean;
+
+@external "System.Char" 
+func IsSurrogate(char ch) : boolean;
+
+@external "System.Char" 
+func IsSurrogatePair(char ch,integer index) : boolean;
+
+@external "System.Char" 
+func IsHighSurrogate(char ch) : boolean;
+
+@external "System.Char" 
+func IsNumber(char ch) : boolean;
+
+@external "System.Char" 
+func IsUpper(char ch) : boolean;
+
+@external "System.Char" 
+func IsLower(char ch) : boolean;
+
+@external "System.Char" 
+func IsPunctuation(char ch) : boolean;
+
+@external "System.Char" 
+func IsLowSurrogate(char ch) : boolean;
+
+@external "System.Char" 
+func ToUpperInvariant(char ch) : char;
+
+@external "System.Char" 
+func ToLowerInvariant(char ch) : char;
+
+@external "System.Char" 
+func ToUpper(char ch) : char;
+
+@external "System.Char" 
+func ToLower(char ch) : char;

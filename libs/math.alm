@@ -2,6 +2,27 @@
 
 func e() : float { return 2.7182818284; }
 
+func Mod(integer a,integer b) : integer
+{
+	return a-((a/b)*b);	
+}
+
+func IsNumSimple(integer num) : boolean
+{	
+	if (num <= 0 or num == 1) 
+		{ return false; }
+	
+	integer i = 2;
+	while(i < num)
+	{
+		if (Mod(num,i) == 0)
+			{ return false; }
+		i +=1;
+	}
+	
+	return true;
+}
+
 @external "System.Math"
 func Abs(float value) : float;
 

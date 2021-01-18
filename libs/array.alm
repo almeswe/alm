@@ -6,12 +6,12 @@ func print_array(integer[] arr,boolean inLine) : void
 	while(i < len(arr))
 	{
 		if (inLine)
-			{
-			   if (i != 0)
-				{ print(Concat(tostrf(arr[i]),",")); }
-			}
+		{
+			if (i != 0)
+				print(Concat(tostrf(arr[i]),","));
+		}
 		else
-		   {println(tostrf(arr[i]));}
+		   println(tostrf(arr[i]));
 		i += 1;
 	}
 }

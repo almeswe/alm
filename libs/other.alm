@@ -7,7 +7,7 @@ func IsCorrectNumberInput(string input) : boolean
 	while (i < len(input))
 	{
 		if (not IsDigit(a[i]))
-			{return false;}
+			return false;
 		i += 1;
 	}
 	return true;
@@ -20,7 +20,7 @@ func IsCorrectNumberInput(string input,integer size) : boolean
 	while (i < size)
 	{
 		if (not IsDigit(a[i]))
-			{return false;}
+			return false;
 		i += 1;
 	}
 	return true;

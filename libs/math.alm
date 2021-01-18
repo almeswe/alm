@@ -1,22 +1,28 @@
-﻿func pi() : float { return 3.1415926535; }
+﻿func pi() : float 
+	return 3.1415926535;
 
-func e() : float { return 2.7182818284; }
+func e() : float 
+	return 2.7182818284; 
+
+func Lg(float d) : float
+	return Log(d, 10);
+
+func Ln(float d) : float
+	return Log(d, e());
 
 func Mod(integer a,integer b) : integer
-{
 	return a-((a/b)*b);	
-}
 
 func IsNumSimple(integer num) : boolean
 {	
 	if (num <= 0 or num == 1) 
-		{ return false; }
+		return false;
 	
 	integer i = 2;
 	while(i < num)
 	{
 		if (Mod(num,i) == 0)
-			{ return false; }
+			return false;
 		i +=1;
 	}
 	
@@ -47,7 +53,6 @@ func Cosh(float d) : float;
 @external "System.Math"
 func Exp(float d) : float;
 
-//decimal d
 @external "System.Math"
 func Floor(integer d) : float;
 
@@ -56,16 +61,6 @@ func IEEERemainder(float a,float b) : float;
 
 @external "System.Math"
 func Log(float a,float newBase) : float;
-
-func Lg(float d) : float
-{
-	return Log(d,10);
-}
-
-func Ln(float d) : float
-{
-	return Log(d,e());
-}
 
 @external "System.Math"
 func Max(float a,float b) : float;

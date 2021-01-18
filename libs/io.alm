@@ -11,34 +11,22 @@ func ReadLine() : string;
 func Clear() : void;
 
 func clear() : void
-{
 	Clear();
-}
 
 func print(string message) : void
-{
 	Write(message);
-}
 
 func println(string message) : void
-{
 	WriteLine(message);
-}
 
 func printn(float num) : void
-{
 	print(tostrf(num));	
-}
 
 func printlnn(float num) : void
-{
 	println(tostrf(num));	
-}
 
 func read() : string
-{
 	return ReadLine();
-}
 
 func read(string message) : string
 {

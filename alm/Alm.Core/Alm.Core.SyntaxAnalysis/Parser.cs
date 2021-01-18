@@ -796,18 +796,23 @@ namespace alm.Core.SyntaxAnalysis
             IdentifierExpression id = ParseIdentifierDeclaration();
             List<Expression> indexes = new List<Expression>();
 
-            while(Match(tkSqLbra) && !Match(tkEOF))
-            {
-                if (!Match(tkSqLbra))
-                    return new ArrayElement(new ErrorMessage("Для получения элемента по индекск массива нужен символ \'[\'", Lexer.CurrentToken));
-                Lexer.GetNextToken();
+            if (!Match(tkSqLbra))
+                return new ArrayElement(new ErrorMessage("Для получения элемента по индексу массива нужен символ \'[\'", Lexer.CurrentToken));
+            Lexer.GetNextToken();
 
+            while (!Match(tkSqRbra) && !Match(tkEOF))
+            {
                 indexes.Add((Expression)ParseExpression());
 
-                if (!Match(tkSqRbra))
-                    return new ArrayElement(new ErrorMessage("Для получения элемента по индексу массива нужен символ \']\'", Lexer.CurrentToken));
-                Lexer.GetNextToken();
+                if (!Match(tkComma))
+                {
+                    if (!Match(tkSqRbra))
+                        return new ArrayElement(new ReservedSymbolExpected(",", Lexer.CurrentToken));
+                }
+                else 
+                    Lexer.GetNextToken();
             }
+            Lexer.GetNextToken();
 
             return new ArrayElement(id, indexes.ToArray());
         }
@@ -1561,6 +1566,7 @@ namespace alm.Core.SyntaxAnalysis
         public override NodeType NodeType => NodeType.ArrayConstruction;
 
         public InnerType Type { get; set; }
+        public int Dimension { get; private set; }
         public string ArrayName { get; private set; }
         public Expression[] IndexInEachDimension { get; private set; }
 
@@ -1569,6 +1575,7 @@ namespace alm.Core.SyntaxAnalysis
             this.SetSourceContext(identifierExpression,indexInEachDimension[indexInEachDimension.Length-1]);
             this.ArrayName = identifierExpression.Name;
             this.IndexInEachDimension = indexInEachDimension;
+            this.Dimension = this.IndexInEachDimension.Length;
             this.AddNodes(indexInEachDimension);
         }
 

@@ -13,7 +13,7 @@ namespace alm.Core.Compiler
 {
     public sealed class Compiler
     {
-        public static readonly string version = "v.1.2.0";
+        public static readonly string version = "v.1.3.0";
 
         public bool ErrorsOccured = false;
 

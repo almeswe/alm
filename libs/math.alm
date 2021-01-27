@@ -4,6 +4,9 @@
 func e() : float 
 	return 2.7182818284; 
 
+@external "System.Math"
+func Log(float a,float newBase) : float;
+
 func Lg(float d) : float
 	return Log(d, 10);
 
@@ -58,9 +61,6 @@ func Floor(integer d) : float;
 
 @external "System.Math"
 func IEEERemainder(float a,float b) : float;
-
-@external "System.Math"
-func Log(float a,float newBase) : float;
 
 @external "System.Math"
 func Max(float a,float b) : float;

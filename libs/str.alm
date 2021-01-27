@@ -1,13 +1,18 @@
 ﻿func Empty() : string
-{
 	return "";
-}
-
-@external "System.String"
-func Concat(string s1,string s2) : string;
 
 @external "System.String"
 func Compare(string s1,string s2) : integer;
 
 @external "System.String"
 func Copy(string s) : string;
+
+@external "System.String"
+func Concat(string s1,string s2) : string;
+
+//???
+func Concat(string s1,string s2,string s3) : string
+{
+	string s = Concat(s1,s2);
+	return Concat(s,s3);
+}

@@ -1,0 +1,33 @@
+﻿import io;
+import str;
+
+func test_case(float got, float expect, integer test_case_num) : void
+{
+	printn(test_case_num);
+	if (expect == got)
+		println(") success!");
+	else
+		println(Concat(") failure, got: ", tostrf(got), Concat(", instead of: ", tostrf(expect))));
+}
+
+func main() : integer
+{
+	test_case(-2 + 3 - 4 * 5 * 15 - 15 * 15,-524,1);
+
+	test_case(73 + (100 - 85) - (35 - 24),77,2);
+	test_case(20 - 17 - (20 - 18) + (97 - 86),12,3);
+	test_case(44 + 56 * (78 + 11) - (54 + 48),4926,4);
+
+	test_case(73 - (100 + 85) + (35 + 24),-53,5);
+	test_case(20 + 17 + (20 + 18) - (97 + 86),-108,6);
+	test_case(44 - 56 * (78 - 11) + (54 - 48),-3702,7);
+
+	test_case(73 - (-(100 + 85) + (35 + 24)),199,8);
+	test_case(20 - (17 + (20 + 18) - (97 + 86)),148,9);
+	test_case(44 - (-56 * (78 - 11)) + 54 - 48,3802,10);
+
+	test_case(-2 - 2 + 2,-2,11);
+
+	read();
+	return 0;
+}

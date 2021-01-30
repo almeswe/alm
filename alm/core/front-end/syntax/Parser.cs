@@ -104,6 +104,7 @@ namespace alm.Core.FrontEnd.SyntaxAnalysis
             return root;
         }
 
+
         #region For Debug Cases 
 
         private Root RunParserOnlyOnArithExpression(string path)
@@ -144,7 +145,7 @@ namespace alm.Core.FrontEnd.SyntaxAnalysis
                 StringConst stringImport = ParseStringConst();
                 return Import(stringImport);
             }
-            else if (Match(tkId))
+            else if (Match(tkIdentifier))
             {
                 IdentifierExpression idImport = ParseIdentifierDeclaration();
 
@@ -301,7 +302,7 @@ namespace alm.Core.FrontEnd.SyntaxAnalysis
 
         public IdentifierCall ParseIdentifierCall()
         {
-            if (!Match(tkId))
+            if (!Match(tkIdentifier))
                 return new IdentifierCall(new IdentifierExpected(Lexer.CurrentToken));
             IdentifierCall identifierCall = new IdentifierCall(Lexer.CurrentToken);
             Lexer.GetNextToken();
@@ -310,7 +311,7 @@ namespace alm.Core.FrontEnd.SyntaxAnalysis
 
         public IdentifierDeclaration ParseIdentifierDeclaration(InnerType type = null)
         {
-            if (!Match(tkId))
+            if (!Match(tkIdentifier))
                 return new IdentifierDeclaration(new IdentifierExpected(Lexer.CurrentToken));
             IdentifierDeclaration identifierExpression;
 
@@ -400,7 +401,7 @@ namespace alm.Core.FrontEnd.SyntaxAnalysis
         {
             switch (Lexer.CurrentToken.TokenType)
             {
-                case tkId:   return ParseIdentifierAmbiguity();
+                case tkIdentifier:   return ParseIdentifierAmbiguity();
                 case tkIf:   return ParseIfStatement();
                 case tkWhile:return ParseWhileStatement();
                 case tkDo:   return ParseDoWhileStatement();
@@ -713,7 +714,7 @@ namespace alm.Core.FrontEnd.SyntaxAnalysis
             SyntaxTreeNode node;
             switch (Lexer.CurrentToken.TokenType)
             {
-                case tkId:
+                case tkIdentifier:
                     if (Match(tkLpar, 1))
                         node = ParseFunctionCall(false);
                     else if (Match(tkSqLbra, 1))
@@ -738,7 +739,7 @@ namespace alm.Core.FrontEnd.SyntaxAnalysis
                     Lexer.GetNextToken();
                     return node;
 
-                case tkFloatConst:
+                case tkRealConst:
                     node = new FloatConst(Lexer.CurrentToken);
                     Lexer.GetNextToken();
                     return node;

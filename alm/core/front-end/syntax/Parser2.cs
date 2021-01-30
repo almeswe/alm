@@ -1,29 +1,40 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
+using System.Collections.Generic;
 
+using alm.Core.Errors;
 using alm.Core.InnerTypes;
+
 using alm.Other.Enums;
 using alm.Other.Structs;
-using alm.Core.Errors;
-
 using alm.Other.ConsoleStuff;
+
 using static alm.Other.Enums.TokenType;
 using static alm.Core.FrontEnd.SyntaxAnalysis.new_parser_concept.syntax_tree.SourceContext;
 
 namespace alm.Core.FrontEnd.SyntaxAnalysis.new_parser_concept.syntax_tree
 {
+    public static class CompilationVariables
+    {
+        //Executable file path
+        public static string CompilationEntryModule;
+        //Current parsing file
+        public static string CurrentParsingModule;
+        //All imports mentioned in this compilation
+        public static Dictionary<string, List<string>> CompilationImports = new Dictionary<string, List<string>>();
+    }
+
     public static class Program
     {
-        public static string CurrentExecutableModule, CurrentParsingModule;
-
         public static void Main(string[] args)
         {
             while (true)
             {
                 string path = @"C:\Users\Almes\source\repos\Compiler\compiler v.5\src\tests\main.alm";
-                CurrentExecutableModule = path;
-                CurrentParsingModule = path;
+                CompilationVariables.CompilationEntryModule = path;
+                CompilationVariables.CurrentParsingModule = path;
+                CompilationVariables.CompilationImports.Clear();
+
                 var ast = new AbstractSyntaxTree();
                 ast.BuildTree(path);
                 ast.ShowTree();
@@ -46,19 +57,22 @@ namespace alm.Core.FrontEnd.SyntaxAnalysis.new_parser_concept.syntax_tree
         public SyntaxTreeNode Parse(string path)
         {
             CurrentParsingFile = path;
-            Program.CurrentParsingModule = path;
+            CompilationVariables.CurrentParsingModule = path;
             this.CurrentParsingFile = path;
             Lexer.GetNextToken();
             return ParseModule(path);
         }
 
-        public SyntaxTreeNode ParseModule(string modulePath)
+        public SyntaxTreeNode ParseModule(string module)
         {
-            ModuleRoot moduleRoot = new ModuleRoot(modulePath);
+            ModuleRoot moduleRoot = new ModuleRoot(module);
 
             while(Match(tkImport))
             {
-                moduleRoot.AddNode(ParseImportStatement());
+                Statement import = ParseImportStatement();
+                if (import.Childs.Count == 0)
+                    continue;
+                moduleRoot.AddNode(import);
                 if (moduleRoot.Childs.Count > 0 && IsErrored(moduleRoot.Childs.Last()))
                     return moduleRoot;
             }
@@ -82,7 +96,7 @@ namespace alm.Core.FrontEnd.SyntaxAnalysis.new_parser_concept.syntax_tree
             Lexer.GetNextToken();
             while (!Match(tkRpar) && !Match(tkEOF))
             {
-                parameters.Add(new ParameterDeclaration(ParseArithExpression()));
+                parameters.Add(new ParameterDeclaration(ParseExpression()));
 
                 if (!Match(tkComma))
                 {
@@ -205,7 +219,7 @@ namespace alm.Core.FrontEnd.SyntaxAnalysis.new_parser_concept.syntax_tree
 
             while (!Match(tkRpar) && !Match(tkEOF))
             {
-                sizes.Add(ParseArithExpression());
+                sizes.Add(ParseExpression());
                 if (!Match(tkComma))
                 {
                     if (!Match(tkRpar))
@@ -240,7 +254,7 @@ namespace alm.Core.FrontEnd.SyntaxAnalysis.new_parser_concept.syntax_tree
 
             while (!Match(tkSqRbra) && !Match(tkEOF))
             {
-                indexes.Add(ParseArithExpression());
+                indexes.Add(ParseExpression());
 
                 if (!Match(tkComma))
                 {
@@ -369,7 +383,7 @@ namespace alm.Core.FrontEnd.SyntaxAnalysis.new_parser_concept.syntax_tree
             if (Match(tkAssign))
             {
                 Lexer.GetNextToken();
-                assign = new AssignmentStatement(identifier, AssignmentStatement.AssignOperator.Assignment, ParseArithExpression());
+                assign = new AssignmentStatement(identifier, AssignmentStatement.AssignOperator.Assignment, ParseExpression());
 
                 if (!Match(tkSemicolon))
                     return new ErroredStatement(new MissingSemi(Lexer.PreviousToken));
@@ -398,7 +412,7 @@ namespace alm.Core.FrontEnd.SyntaxAnalysis.new_parser_concept.syntax_tree
                 return new ErroredStatement(new ErrorMessage("Ожидался символ присваивания", Lexer.CurrentToken));
             Lexer.GetNextToken();
 
-            AssignmentStatement assign = new AssignmentStatement(identifier, AssignmentStatement.ConvertTokenType(Lexer.PreviousToken.TokenType), ParseArithExpression());
+            AssignmentStatement assign = new AssignmentStatement(identifier, AssignmentStatement.ConvertTokenType(Lexer.PreviousToken.TokenType), ParseExpression());
 
             if (!Match(tkSemicolon))
                 return new ErroredStatement(new MissingSemi(Lexer.CurrentToken));
@@ -613,7 +627,7 @@ namespace alm.Core.FrontEnd.SyntaxAnalysis.new_parser_concept.syntax_tree
 
             Expression expression = null;
             if (!Match(tkSemicolon))
-                expression = ParseArithExpression();
+                expression = ParseExpression();
 
             retContext.EndsAt = new Position(Lexer.CurrentToken);
 
@@ -676,15 +690,15 @@ namespace alm.Core.FrontEnd.SyntaxAnalysis.new_parser_concept.syntax_tree
                 case tkLpar:
                     return ParseBooleanParentisizedExpression();
                 default:
-                    node = ParseArithExpression();
+                    node = ParseExpression();
                     switch (Lexer.CurrentToken.TokenType)
                     {
-                        case tkLess:    Lexer.GetNextToken();   node = new BinaryBooleanExpression(node, BinaryExpression.BinaryOperator.LessThan, ParseArithExpression()); break;
-                        case tkGreater: Lexer.GetNextToken();   node = new BinaryBooleanExpression(node, BinaryExpression.BinaryOperator.GreaterThan, ParseArithExpression()); break;
-                        case tkEqual:   Lexer.GetNextToken();   node = new BinaryBooleanExpression(node, BinaryExpression.BinaryOperator.Equal, ParseArithExpression()); break;
-                        case tkNotEqual:  Lexer.GetNextToken(); node = new BinaryBooleanExpression(node, BinaryExpression.BinaryOperator.NotEqual, ParseArithExpression()); break;
-                        case tkEqualLess: Lexer.GetNextToken(); node = new BinaryBooleanExpression(node, BinaryExpression.BinaryOperator.LessEqualThan, ParseArithExpression()); break;
-                        case tkEqualGreater: Lexer.GetNextToken(); node = new BinaryBooleanExpression(node, BinaryExpression.BinaryOperator.GreaterEqualThan, ParseArithExpression()); break;
+                        case tkLess:    Lexer.GetNextToken();   node = new BinaryBooleanExpression(node, BinaryExpression.BinaryOperator.LessThan, ParseExpression()); break;
+                        case tkGreater: Lexer.GetNextToken();   node = new BinaryBooleanExpression(node, BinaryExpression.BinaryOperator.GreaterThan, ParseExpression()); break;
+                        case tkEqual:   Lexer.GetNextToken();   node = new BinaryBooleanExpression(node, BinaryExpression.BinaryOperator.Equal, ParseExpression()); break;
+                        case tkNotEqual:  Lexer.GetNextToken(); node = new BinaryBooleanExpression(node, BinaryExpression.BinaryOperator.NotEqual, ParseExpression()); break;
+                        case tkEqualLess: Lexer.GetNextToken(); node = new BinaryBooleanExpression(node, BinaryExpression.BinaryOperator.LessEqualThan, ParseExpression()); break;
+                        case tkEqualGreater: Lexer.GetNextToken(); node = new BinaryBooleanExpression(node, BinaryExpression.BinaryOperator.GreaterEqualThan, ParseExpression()); break;
                     }
                     return node;
             }
@@ -704,7 +718,7 @@ namespace alm.Core.FrontEnd.SyntaxAnalysis.new_parser_concept.syntax_tree
             return node;
         }
 
-        public Expression ParseArithExpression()
+        public Expression ParseExpression()
         {
             return ParseBitwiseOr();
         }
@@ -836,7 +850,7 @@ namespace alm.Core.FrontEnd.SyntaxAnalysis.new_parser_concept.syntax_tree
                 return new ErroredExpression(new MissingLpar(Lexer.CurrentToken));
             Lexer.GetNextToken();
 
-            Expression node = ParseArithExpression();
+            Expression node = ParseExpression();
 
             if (!Match(tkRpar))
                 return new ErroredExpression(new MissingRpar(Lexer.CurrentToken));
@@ -1097,7 +1111,6 @@ namespace alm.Core.FrontEnd.SyntaxAnalysis.new_parser_concept.syntax_tree
     }
     public sealed class ImportStatement : Statement
     {
-        private string[] ExecutableModuleImports;
         private string LibPath = @"C:\Users\Almes\source\repos\Compiler\compiler v.5\src\libs";
 
         public string ImportPath { get; private set; }
@@ -1109,52 +1122,91 @@ namespace alm.Core.FrontEnd.SyntaxAnalysis.new_parser_concept.syntax_tree
         public ImportStatement(StringConstant longImportPath)
         {
             this.SetSourceContext(longImportPath);
-            this.ImportPath = GetDirectImportPath(longImportPath.Value);
-            this.JoinImportedModule();
+            this.ImportPath = this.GetDirectImportPath(longImportPath.Value);
+            this.TryToJoinImportedModule();
         }
         public ImportStatement(IdentifierExpression shortImportPath)
         {
             this.SetSourceContext(shortImportPath);
-            this.ImportPath = System.IO.Path.Combine(this.LibPath, shortImportPath.Name+".alm");
-            this.JoinImportedModule();
+            this.ImportPath = this.GetLibImportPath(shortImportPath.Name);
+            this.TryToJoinImportedModule();
         }
-
-        private void CheckImport()
+        
+        private string GetLibImportPath(string path)
         {
-            /*if (ExecutableModuleImports == null)
-            {
-                List<string> imports = new List<string>();
-                SyntaxTreeNode mainRoot = this.GetParentByType(typeof(ModuleRoot));
-                foreach (SyntaxTreeNode import in mainRoot.GetChildsByType(typeof(ImportStatement)))
-                    imports.Add(((ImportStatement)import).ImportPath);
-                this.ExecutableModuleImports = imports.ToArray();
-            }*/
+            return System.IO.Path.Combine(this.LibPath, path + ".alm");
         }
-
         private string GetDirectImportPath(string path)
         {
             //change
-            string ExecPath = Program.CurrentParsingModule;
-            string ExecDir = System.IO.Path.GetDirectoryName(ExecPath);
-
-            string NewExecPath = System.IO.Path.Combine(ExecDir, path);
-            if (System.IO.File.Exists(NewExecPath))
-                return NewExecPath;
-            else
-                return path;
+            string parsingDir  = System.IO.Path.GetDirectoryName(CompilationVariables.CurrentParsingModule);
+            string newParsingPath = System.IO.Path.Combine(parsingDir, path);
+            return System.IO.File.Exists(newParsingPath) ? newParsingPath : path;
         }
 
-        private void JoinImportedModule()
+        //trying to create the ast from module
+        private void TryToJoinImportedModule()
         {
             if (!System.IO.File.Exists(this.ImportPath))
-                throw new Exception(this.ImportPath);
+            {
+                this.ImportRoot = new ErroredStatement(new WrongImport());
+                return;
+            }
+
+            if (System.IO.Path.GetExtension(this.ImportPath) != ".alm")
+            {
+                this.ImportRoot = new ErroredStatement(new WrongImport());
+                return;
+            }
+            //case when trying import module where this import was called
+            if (this.ImportPath == CompilationVariables.CurrentParsingModule)
+            {
+                this.ImportRoot = new ErroredStatement(new WrongImport());
+                return;
+            }
+            //case when trying import already imported module
+            if (this.GetImportsModules(this.ImportPath).Contains(CompilationVariables.CurrentParsingModule))
+            {
+                this.ImportRoot = new ErroredStatement(new WrongImport());
+                return;
+            }
+            //if find import at list in 1 module, skip it (because it alrealdy imported) 
+            if (this.GetImportsModules(this.ImportPath).Length > 0)
+            {
+                return;
+            }
+
+            if (!CompilationVariables.CompilationImports.ContainsKey(CompilationVariables.CurrentParsingModule))
+                CompilationVariables.CompilationImports.Add(CompilationVariables.CurrentParsingModule, new List<string>() { this.ImportPath });
+            else
+                CompilationVariables.CompilationImports[CompilationVariables.CurrentParsingModule].Add(this.ImportPath);
+
+            //Parsing module by path 
             Lexer lexer = new Lexer(this.ImportPath);
             Parser2 parser = new Parser2(lexer);
             this.ImportRoot = parser.Parse(this.ImportPath);
+
+            CompilationVariables.CurrentParsingModule = CompilationVariables.CompilationEntryModule;
+
             foreach (SyntaxTreeNode child in this.ImportRoot.Childs)
                 this.AddNode(child);
-
-            //CheckImport();
+        }
+        //gets modules where this import was mentioned
+        private string[] GetImportsModules(string import)
+        {
+            List<string> modules = new List<string>();
+            foreach (string key in CompilationVariables.CompilationImports.Keys)
+            {
+                foreach (string value in CompilationVariables.CompilationImports[key])
+                {
+                    if (value == import)
+                    {
+                        modules.Add(key);
+                        break;
+                    }
+                }
+            }
+            return modules.ToArray();
         }
 
         public override string ToString() => $"Imported Module [{this.ImportPath}]";

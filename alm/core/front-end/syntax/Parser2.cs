@@ -15,11 +15,15 @@ namespace alm.Core.FrontEnd.SyntaxAnalysis.new_parser_concept.syntax_tree
 {
     public static class Program
     {
+        public static string CurrentExecutableModule, CurrentParsingModule;
+
         public static void Main(string[] args)
         {
             while (true)
             {
-                string path = @"C:\Users\Almes\source\repos\Compiler\compiler v.5\src\libs\main.alm";
+                string path = @"C:\Users\Almes\source\repos\Compiler\compiler v.5\src\tests\main.alm";
+                CurrentExecutableModule = path;
+                CurrentParsingModule = path;
                 var ast = new AbstractSyntaxTree();
                 ast.BuildTree(path);
                 ast.ShowTree();
@@ -31,8 +35,8 @@ namespace alm.Core.FrontEnd.SyntaxAnalysis.new_parser_concept.syntax_tree
 
     public sealed class Parser2
     {
-        private string CurrentParsingFile = @"C:\Users\Almes\source\repos\Compiler\compiler v.5\src\libs\main.alm";
         private Lexer Lexer;
+        private string CurrentParsingFile;
 
         public Parser2(Lexer lexer)
         {
@@ -41,8 +45,31 @@ namespace alm.Core.FrontEnd.SyntaxAnalysis.new_parser_concept.syntax_tree
 
         public SyntaxTreeNode Parse(string path)
         {
+            CurrentParsingFile = path;
+            Program.CurrentParsingModule = path;
+            this.CurrentParsingFile = path;
             Lexer.GetNextToken();
-            return new ModuleRoot(path, ParseMethodDeclaration());
+            return ParseModule(path);
+        }
+
+        public SyntaxTreeNode ParseModule(string modulePath)
+        {
+            ModuleRoot moduleRoot = new ModuleRoot(modulePath);
+
+            while(Match(tkImport))
+            {
+                moduleRoot.AddNode(ParseImportStatement());
+                if (moduleRoot.Childs.Count > 0 && IsErrored(moduleRoot.Childs.Last()))
+                    return moduleRoot;
+            }
+
+            while (!Match(tkEOF))
+            {
+                moduleRoot.AddNode(ParseMethodDeclaration());
+                if (IsErrored(moduleRoot.Childs.Last()))
+                    return moduleRoot;
+            }
+            return moduleRoot;
         }
 
         public Expression[] ParseParametersDeclarations()
@@ -55,7 +82,7 @@ namespace alm.Core.FrontEnd.SyntaxAnalysis.new_parser_concept.syntax_tree
             Lexer.GetNextToken();
             while (!Match(tkRpar) && !Match(tkEOF))
             {
-                parameters.Add(ParseArithExpression());
+                parameters.Add(new ParameterDeclaration(ParseArithExpression()));
 
                 if (!Match(tkComma))
                 {
@@ -161,6 +188,47 @@ namespace alm.Core.FrontEnd.SyntaxAnalysis.new_parser_concept.syntax_tree
                 return identifierExpression;
             }
         }
+        public Expression ParseArrayInstance()
+        {
+            SourceContext arrayContext = new SourceContext();
+            arrayContext.FilePath = CurrentParsingFile;
+            arrayContext.StartsAt = new Position(Lexer.CurrentToken);
+
+            Expression constructionType = ParseTypeExpression();
+            if (IsErrored(constructionType))
+                return new ErroredExpression(new TypeExpected(Lexer.CurrentToken));
+
+            int constructionDimension = 1;
+            List<Expression> sizes = new List<Expression>();
+
+            Lexer.GetNextToken();
+
+            while (!Match(tkRpar) && !Match(tkEOF))
+            {
+                sizes.Add(ParseArithExpression());
+                if (!Match(tkComma))
+                {
+                    if (!Match(tkRpar))
+                        return new ErroredExpression(new ReservedSymbolExpected(",", Lexer.CurrentToken));
+                }
+                else
+                {
+                    constructionDimension++;
+                    Lexer.GetNextToken();
+                }
+            }
+            Lexer.GetNextToken();
+            ((TypeExpression)constructionType).Type = ((TypeExpression)constructionType).Type.CreateArrayInstance(sizes.Count);
+
+            arrayContext.EndsAt = new Position(Lexer.CurrentToken);
+            constructionType.SourceContext = arrayContext;
+
+            if (sizes.Count < 1)
+                return new ErroredExpression(new ErrorMessage("Ожидался размер массива", Lexer.CurrentToken));
+
+            //Вывод ошибки не очень (по позиции)
+            return new ArrayInstance(constructionType, sizes.ToArray());
+        }
         public Expression ParseArrayElementExpression()
         {
             List<Expression> indexes = new List<Expression>();
@@ -193,31 +261,98 @@ namespace alm.Core.FrontEnd.SyntaxAnalysis.new_parser_concept.syntax_tree
                 return ParseIdentifierExpression(state);
         }
 
+        public Statement ParseImportStatement()
+        {
+            if (!Match(tkImport))
+                return new ErroredStatement(new ReservedWordExpected("import", Lexer.CurrentToken));
+            Lexer.GetNextToken();
+
+            //ident | string const
+            Expression import = ParseFactor();
+
+            if (!Match(tkSemicolon))
+                return new ErroredStatement(new MissingSemi(Lexer.PreviousToken));
+            Lexer.GetNextToken();
+
+            if (import is StringConstant)
+                return new ImportStatement((StringConstant)import);
+            else if (import is IdentifierExpression)
+                return new ImportStatement((IdentifierExpression)import);
+            else 
+                return new ErroredStatement(new ExpectedCorrectImport(Lexer.CurrentToken.Context));
+
+        }
+
         public Statement ParseMethodDeclaration()
         {
-            /*if (Match(tkAt))
-                return ParseExternalFunctionDeclaration();*/
+            if (Match(tkAt))
+                return ParseExternalMethodDeclaration();
             if (!Match(tkFunc))
                 return new ErroredStatement(new ReservedWordExpected("func", Lexer.CurrentToken));
             Lexer.GetNextToken();
 
             Expression funcName = ParseIdentifierExpression(IdentifierExpression.State.Decl);
+            if (IsErrored(funcName))
+                return new ErroredStatement(new IdentifierExpected(Lexer.CurrentToken));
             //SourceContext funcContext = Lexer.PreviousToken.Context;
             SourceContext funcContext = new SourceContext();
             funcContext.StartsAt = new Position(Lexer.PreviousToken);
             funcContext.FilePath = CurrentParsingFile;
+
             Expression[] args = ParseArgumentDeclarations();
             if (IsErrored(args))
-                //return new ErroredStatement(new ErrorMessage("Ошибка при объявлении аргумента",GetErrored(args).SourceContext));
                 return new ErroredStatement(new ErrorMessage("Ошибка при объявлении аргумента", Lexer.CurrentToken));
 
             if (!Match(tkColon))
                 return new ErroredStatement(new ReservedSymbolExpected(":", Lexer.CurrentToken));
 
             Lexer.GetNextToken();
+
             Expression funcType = ParseTypeExpression();
+            if (IsErrored(funcType))
+                return new ErroredStatement(new TypeExpected(Lexer.CurrentToken));
+
             Statement funcBody = ParseEmbeddedStatement();
             return new MethodDeclaration(funcName, args, funcType, funcBody, funcContext);
+        }
+        public Statement ParseExternalMethodDeclaration()
+        {
+            Lexer.GetNextToken();
+            if (!Match(tkExternalProp))
+                return new ErroredStatement(new ReservedWordExpected("external", Lexer.CurrentToken));
+            Lexer.GetNextToken();
+
+            Expression packageName = ParseStringConstant();
+            if (IsErrored(packageName))
+                return new ErroredStatement(new ErrorMessage("Ожидалось имя библиотеки .NET",Lexer.CurrentToken));
+
+            if (!Match(tkFunc))
+                return new ErroredStatement(new ReservedWordExpected("func", Lexer.CurrentToken));
+            Lexer.GetNextToken();
+
+            Expression funcName = ParseIdentifierExpression(IdentifierExpression.State.Decl);
+            if (IsErrored(funcName))
+                return new ErroredStatement(new IdentifierExpected(Lexer.CurrentToken));
+
+            SourceContext funcContext = new SourceContext();
+            funcContext.StartsAt = new Position(Lexer.CurrentToken);
+
+            Expression[] arguments = ParseArgumentDeclarations();
+
+            if (!Match(tkColon))
+                return new ErroredStatement(new ReservedSymbolExpected(":", Lexer.CurrentToken));
+            Lexer.GetNextToken();
+
+            Expression funcType = ParseTypeExpression();
+            if (IsErrored(funcType))
+                return new ErroredStatement(new TypeExpected(Lexer.CurrentToken));
+            funcContext.EndsAt = new Position(Lexer.CurrentToken);
+
+            if (!Match(tkSemicolon))
+                return new ErroredStatement(new ReservedSymbolExpected(";", Lexer.CurrentToken));
+            Lexer.GetNextToken();
+
+            return new MethodDeclaration(funcName, arguments, funcType,null, funcContext, ((StringConstant)packageName).Value);
         }
         public Statement ParseDeclarationStatement()
         {
@@ -309,16 +444,28 @@ namespace alm.Core.FrontEnd.SyntaxAnalysis.new_parser_concept.syntax_tree
             switch(Lexer.CurrentToken.TokenType)
             {
                 case tkIdentifier:
-                    return ParseIdentifierAmbiguity();
+                    return ParseIdentifierAmbiguityStatement();
                 case tkIf:
                     return ParseIfStatement();
                 case tkType:
                     return ParseDeclarationStatement();
+                case tkRet:
+                    return ParseReturnStatement();
+                case tkBreak:
+                    return ParseBreakStatement();
+                case tkContinue:
+                    return ParseContinueStatement();
+                case tkWhile:
+                    return ParseWhileLoopStatement();
+                case tkDo:
+                    return ParseDoLoopStatement();
+                case tkFor:
+                    return ParseForLoopStatement();
                 default:
                     return new ErroredStatement(new ErrorMessage("Ожидалось выражение", Lexer.CurrentToken));
             }
         }
-        public Statement ParseIdentifierAmbiguity()
+        public Statement ParseIdentifierAmbiguityStatement()
         {
             if (Match(tkLpar, 1))
                 return ParseMethodInvokationStatement();
@@ -336,7 +483,7 @@ namespace alm.Core.FrontEnd.SyntaxAnalysis.new_parser_concept.syntax_tree
 
             Lexer.GetNextToken();
 
-            Expression ifCondition = ParseBooleanExpression();
+            Expression ifCondition = ParseBooleanParentisizedExpression();
             Statement ifBody = ParseEmbeddedStatement();
             ifContext.EndsAt = new Position(Lexer.CurrentToken);
             IfStatement ifStmt = new IfStatement(ifCondition, ifBody, ifContext);
@@ -350,7 +497,7 @@ namespace alm.Core.FrontEnd.SyntaxAnalysis.new_parser_concept.syntax_tree
             }
             return ifStmt;
         }
-        /*public Statement ParseWhileLoopStatement()
+        public Statement ParseWhileLoopStatement()
         {
             if (!Match(tkWhile))
                 return new ErroredStatement(new ReservedWordExpected("while", Lexer.CurrentToken));
@@ -360,11 +507,67 @@ namespace alm.Core.FrontEnd.SyntaxAnalysis.new_parser_concept.syntax_tree
             loopContext.FilePath = CurrentParsingFile;
             loopContext.StartsAt = new Position(Lexer.CurrentToken);
 
-            Expression loopCondition = ParseBooleanExpression();
+            Expression loopCondition = ParseBooleanParentisizedExpression();
             Statement loopBody = ParseEmbeddedStatement();
 
-            return new WhileLoopStatement(loopCondition, loopBody);
-        }*/
+            loopContext.EndsAt = new Position(Lexer.CurrentToken);
+
+            return new WhileLoopStatement(loopCondition, loopBody, loopContext);
+        }
+        public Statement ParseDoLoopStatement()
+        {
+            if (!Match(tkDo))
+                return new ErroredStatement(new ReservedWordExpected("do", Lexer.CurrentToken));
+            Lexer.GetNextToken();
+
+            SourceContext loopContext = new SourceContext();
+            loopContext.FilePath = CurrentParsingFile;
+            loopContext.StartsAt = new Position(Lexer.CurrentToken);
+
+            Statement loopBody = ParseEmbeddedStatement();
+
+            if (!Match(tkWhile))
+                return new ErroredStatement(new ReservedWordExpected("while", Lexer.CurrentToken));
+            Lexer.GetNextToken();
+
+            Expression loopCondition = ParseBooleanParentisizedExpression();
+
+            if (!Match(tkSemicolon))
+                return new ErroredStatement(new MissingSemi(Lexer.PreviousToken));
+            Lexer.GetNextToken();
+
+            loopContext.EndsAt = new Position(Lexer.CurrentToken);
+
+            return new DoLoopStatement(loopCondition,loopBody,loopContext);
+        }
+        public Statement ParseForLoopStatement()
+        {
+            if (!Match(tkFor))
+                return new ErroredStatement(new ReservedWordExpected("for", Lexer.CurrentToken));
+            Lexer.GetNextToken();
+
+            if (!Match(tkLpar))
+                return new ErroredStatement(new MissingLpar(Lexer.CurrentToken));
+            Lexer.GetNextToken();
+
+            SourceContext loopContext = new SourceContext();
+            loopContext.FilePath = CurrentParsingFile;
+            loopContext.StartsAt = new Position(Lexer.CurrentToken);
+
+            Statement loopInit = ParseDeclarationStatement();
+            Statement loopStep = ParseAssignmentStatement();
+            Expression loopCondition = ParseBooleanExpression();
+
+            if (!Match(tkRpar))
+                return new ErroredStatement(new MissingRpar(Lexer.CurrentToken));
+            Lexer.GetNextToken();
+
+            Statement loopBody = ParseEmbeddedStatement();
+
+            loopContext.EndsAt = new Position(Lexer.CurrentToken);
+
+            return new ForLoopStatement(loopInit, loopCondition, loopStep, loopBody, loopContext);
+        }
         public Statement ParseMethodInvokationStatement()
         {
             Expression method = ParseMethodInvokationExpression();
@@ -374,6 +577,51 @@ namespace alm.Core.FrontEnd.SyntaxAnalysis.new_parser_concept.syntax_tree
             Lexer.GetNextToken();
 
             return new MethodInvokationStatement(method);
+        }
+
+        public Statement ParseContinueStatement()
+        {
+            if (!Match(tkContinue))
+                return new ErroredStatement(new ReservedWordExpected("continue", Lexer.CurrentToken));
+            Token continueToken = Lexer.CurrentToken;
+            Lexer.GetNextToken();
+            if (!Match(tkSemicolon))
+                return new ErroredStatement(new MissingSemi(Lexer.PreviousToken));
+            Lexer.GetNextToken();
+            return new ContinueStatement(continueToken);
+        }
+        public Statement ParseBreakStatement()
+        {
+            if (!Match(tkBreak))
+                return new ErroredStatement(new ReservedWordExpected("break", Lexer.CurrentToken));
+            Token breakToken = Lexer.CurrentToken;
+            Lexer.GetNextToken();
+            if (!Match(tkSemicolon))
+                return new ErroredStatement(new MissingSemi(Lexer.PreviousToken));
+            Lexer.GetNextToken();
+            return new BreakStatement(breakToken);
+        }
+        public Statement ParseReturnStatement()
+        {
+            if (!Match(tkRet))
+                return new ErroredStatement(new ReservedWordExpected("return", Lexer.CurrentToken));
+
+            SourceContext retContext = new SourceContext();
+            retContext.FilePath = CurrentParsingFile;
+            retContext.StartsAt = new Position(Lexer.CurrentToken);
+            Lexer.GetNextToken();
+
+            Expression expression = null;
+            if (!Match(tkSemicolon))
+                expression = ParseArithExpression();
+
+            retContext.EndsAt = new Position(Lexer.CurrentToken);
+
+            if (!Match(tkSemicolon))
+                return new ErroredStatement(new MissingSemi(Lexer.PreviousToken));
+            Lexer.GetNextToken();
+
+            return new ReturnStatement(expression, retContext);
         }
 
         public Expression ParseBooleanExpression()
@@ -560,48 +808,20 @@ namespace alm.Core.FrontEnd.SyntaxAnalysis.new_parser_concept.syntax_tree
         }
         public Expression ParseFactor()
         {
-            Expression node;
             switch (Lexer.CurrentToken.TokenType)
             {
                 case tkIdentifier:
-                    if (Match(tkLpar, 1))
-                        node = ParseMethodInvokationExpression();
-                    else if (Match(tkSqLbra, 1))
-                        node = ParseArrayElementExpression();
-                    else
-                        node = ParseIdentifierExpression(IdentifierExpression.State.Call);
-                    return node;
-
-                /*case tkType:
-                    return ParseArrayConst();*/
-
+                    return ParseIdentifierAmbiguityExpression();
                 case tkMinus:
-                    if (Match(tkMinus, -1))
-                        return new ErroredExpression(new ErrorMessage("Возможно добавление только одного унарного минуса", Lexer.CurrentToken));
-                    Lexer.GetNextToken();
+                    return ParseUnaryMinusExpression();
 
-                    return new UnaryArithExpression(UnaryExpression.UnaryOperator.UnaryMinus,ParseMultiplicative());
-
-                case tkIntConst:
-                    node = new Int32Constant(Lexer.CurrentToken);
-                    Lexer.GetNextToken();
-                    return node;
-
-                case tkFloatConst:
-                    node = new SingleConstant(Lexer.CurrentToken);
-                    Lexer.GetNextToken();
-                    return node;
-
-                case tkBooleanConst:
-                    node = new BooleanConstant(Lexer.CurrentToken);
-                    Lexer.GetNextToken();
-                    return node;
-
-                /*case tkDQuote:
-                    return ParseStringConst();
-
+                case tkType:
+                case tkDQuote:
                 case tkSQuote:
-                    return ParseCharConst();*/
+                case tkIntConst:
+                case tkRealConst:
+                case tkBooleanConst:
+                    return ParseConstantExpression();
 
                 case tkLpar:
                     return ParseArithParentisizedExpression();
@@ -625,6 +845,106 @@ namespace alm.Core.FrontEnd.SyntaxAnalysis.new_parser_concept.syntax_tree
             return node;
         }
 
+        public Expression ParseUnaryMinusExpression()
+        {
+            if (Match(tkMinus, -1))
+                return new ErroredExpression(new ErrorMessage("Возможно добавление только одного унарного минуса", Lexer.CurrentToken));
+            Lexer.GetNextToken();
+
+            return new UnaryArithExpression(UnaryExpression.UnaryOperator.UnaryMinus, ParseMultiplicative());
+        }
+        public Expression ParseIdentifierAmbiguityExpression()
+        {
+            if (Match(tkLpar, 1))
+                return ParseMethodInvokationExpression();
+            else if (Match(tkSqLbra, 1))
+                return ParseArrayElementExpression();
+            else
+                return ParseIdentifierExpression(IdentifierExpression.State.Call);
+        }
+        public Expression ParseConstantExpression()
+        {
+            switch (Lexer.CurrentToken.TokenType)
+            {
+                case tkDQuote:
+                    return ParseStringConstant();
+                case tkSQuote:
+                    return ParseCharConstant();
+                case tkIntConst:
+                    //todo integral type -> byte,short .. long
+                    return ParseIntegralConstant();
+                case tkRealConst:
+                    return ParseRealConstant();
+                case tkBooleanConst:
+                    return ParseBooleanConstant();
+                //array instance
+                case tkType:
+                    return ParseArrayInstance();
+                default:
+                    return new ErroredExpression(new ErrorMessage("Ожидалось константное выражение",Lexer.CurrentToken));
+            }
+        }
+        public Expression ParseIntegralConstant()
+        {
+            if (!Match(tkIntConst))
+                return new ErroredExpression(new ErrorMessage("Ожидалась целочисленная константа", Lexer.CurrentToken));
+            Lexer.GetNextToken();
+            //for the short time
+            return new Int32Constant(Lexer.PreviousToken);
+        }
+        public Expression ParseRealConstant()
+        {
+            if (!Match(tkRealConst))
+                return new ErroredExpression(new ErrorMessage("Ожидалась вещественная константа", Lexer.CurrentToken));
+            Lexer.GetNextToken();
+            //for the short time
+            return new SingleConstant(Lexer.PreviousToken);
+        }
+        public Expression ParseStringConstant()
+        {
+            if (!Match(tkDQuote))
+                return new ErroredExpression(new ReservedSymbolExpected("\"", Lexer.CurrentToken));
+            Lexer.GetNextToken();
+
+            if (!Match(tkStringConst))
+                return new ErroredExpression(new ErrorMessage("Ожидалась строка.", Lexer.CurrentToken));
+
+            StringConstant stringConst = new StringConstant(Lexer.CurrentToken);
+            Lexer.GetNextToken();
+
+            if (!Match(tkDQuote))
+                return new ErroredExpression(new ReservedSymbolExpected("\"", Lexer.CurrentToken));
+            Lexer.GetNextToken();
+
+            return stringConst;
+        }
+        public Expression ParseCharConstant()
+        {
+            if (!Match(tkSQuote))
+                return new ErroredExpression(new ReservedSymbolExpected("\'", Lexer.CurrentToken));
+            Lexer.GetNextToken();
+
+            if (!Match(tkCharConst))
+                return new ErroredExpression(new ErrorMessage("Ожидался символ", Lexer.CurrentToken));
+
+            CharConstant charConst = new CharConstant(Lexer.CurrentToken);
+            Lexer.GetNextToken();
+
+            if (!Match(tkSQuote))
+                return new ErroredExpression(new ReservedSymbolExpected("\'", Lexer.CurrentToken));
+            Lexer.GetNextToken();
+
+            return charConst;
+        }
+        public Expression ParseBooleanConstant()
+        {
+            if (!Match(tkBooleanConst))
+                return new ErroredExpression(new ErrorMessage("Ожидалась логическая константа", Lexer.CurrentToken));
+            Lexer.GetNextToken();
+            //for the short time
+            return new BooleanConstant(Lexer.PreviousToken);
+        }
+
         public Expression GetErrored(Expression[] expressions)
         {
             foreach (Expression expression in expressions)
@@ -646,6 +966,10 @@ namespace alm.Core.FrontEnd.SyntaxAnalysis.new_parser_concept.syntax_tree
         public bool IsErrored(Statement statement)
         {
             return statement is ErroredStatement ? true : false;
+        }
+        public bool IsErrored(SyntaxTreeNode node)
+        {
+            return node is ErroredStatement ? true : false;
         }
         public bool Match(TokenType[] expectations, int offset = 0)
         {
@@ -752,6 +1076,11 @@ namespace alm.Core.FrontEnd.SyntaxAnalysis.new_parser_concept.syntax_tree
 
         public override NodeType NodeKind => NodeType.Program;
 
+        public ModuleRoot(string modulePath)
+        {
+            this.ModulePath = modulePath;
+        }
+
         public ModuleRoot(string modulePath,SyntaxTreeNode root)
         {
             this.ModulePath = modulePath;
@@ -759,7 +1088,7 @@ namespace alm.Core.FrontEnd.SyntaxAnalysis.new_parser_concept.syntax_tree
             this.AddNode(root);
         }
 
-        public override string ToString() => this.ModulePath;
+        public override string ToString() => $"Executable Module [{this.ModulePath}]";
     }
 
     public abstract class Statement : SyntaxTreeNode
@@ -768,49 +1097,67 @@ namespace alm.Core.FrontEnd.SyntaxAnalysis.new_parser_concept.syntax_tree
     }
     public sealed class ImportStatement : Statement
     {
-        //public static List<string> ListOfImports 
+        private string[] ExecutableModuleImports;
+        private string LibPath = @"C:\Users\Almes\source\repos\Compiler\compiler v.5\src\libs";
 
-        public bool IsShortPath { get; private set; }
         public string ImportPath { get; private set; }
-        public ModuleRoot ImportRoot { get; private set; }
+        public SyntaxTreeNode ImportRoot { get; private set; }
 
         public override NodeType NodeKind => NodeType.Import;
+        public override ConsoleColor ConsoleColor => ConsoleColor.White;
 
-        public ImportStatement(StringConstant longImportPath, ModuleRoot importedRoot)
+        public ImportStatement(StringConstant longImportPath)
         {
             this.SetSourceContext(longImportPath);
-            this.IsShortPath = false;
-            this.ImportPath = longImportPath.Value;
-            this.ImportRoot = importedRoot;
-            this.AddNode(importedRoot);        
+            this.ImportPath = GetDirectImportPath(longImportPath.Value);
+            this.JoinImportedModule();
         }
-
-        public ImportStatement(IdentifierExpression shortImportPath, ModuleRoot importedRoot)
+        public ImportStatement(IdentifierExpression shortImportPath)
         {
             this.SetSourceContext(shortImportPath);
-            this.IsShortPath = true;
-            this.ImportPath = shortImportPath.Name;
-            this.ImportRoot = importedRoot;
-            this.AddNode(importedRoot);
+            this.ImportPath = System.IO.Path.Combine(this.LibPath, shortImportPath.Name+".alm");
+            this.JoinImportedModule();
         }
 
-        private string GetLongPath()
+        private void CheckImport()
         {
-            throw new Exception("Set curr parsing file.");
-
-            if (!this.IsShortPath)
-                return this.ImportPath;
-
-            string envdir = System.IO.Path.GetDirectoryName("TEST");
-            //                                              ~~~~~~ curr parsing file
-            string longPath = System.IO.Path.Combine(envdir, this.ImportPath) + ".alm";
-            if (System.IO.File.Exists(longPath))
-                return longPath;
-            return string.Empty;
+            /*if (ExecutableModuleImports == null)
+            {
+                List<string> imports = new List<string>();
+                SyntaxTreeNode mainRoot = this.GetParentByType(typeof(ModuleRoot));
+                foreach (SyntaxTreeNode import in mainRoot.GetChildsByType(typeof(ImportStatement)))
+                    imports.Add(((ImportStatement)import).ImportPath);
+                this.ExecutableModuleImports = imports.ToArray();
+            }*/
         }
-        //logic for correct imports ?
 
-        //public string 
+        private string GetDirectImportPath(string path)
+        {
+            //change
+            string ExecPath = Program.CurrentParsingModule;
+            string ExecDir = System.IO.Path.GetDirectoryName(ExecPath);
+
+            string NewExecPath = System.IO.Path.Combine(ExecDir, path);
+            if (System.IO.File.Exists(NewExecPath))
+                return NewExecPath;
+            else
+                return path;
+        }
+
+        private void JoinImportedModule()
+        {
+            if (!System.IO.File.Exists(this.ImportPath))
+                throw new Exception(this.ImportPath);
+            Lexer lexer = new Lexer(this.ImportPath);
+            Parser2 parser = new Parser2(lexer);
+            this.ImportRoot = parser.Parse(this.ImportPath);
+            foreach (SyntaxTreeNode child in this.ImportRoot.Childs)
+                this.AddNode(child);
+
+            //CheckImport();
+        }
+
+        public override string ToString() => $"Imported Module [{this.ImportPath}]";
     }
 
     public sealed class MethodDeclaration : Statement
@@ -952,10 +1299,10 @@ namespace alm.Core.FrontEnd.SyntaxAnalysis.new_parser_concept.syntax_tree
 
     public abstract class IterationStatement : Statement
     {
-        public override ConsoleColor ConsoleColor => ConsoleColor.Blue;
+        public override ConsoleColor ConsoleColor => ConsoleColor.DarkBlue;
 
         public Expression Condition { get; protected set; }
-        public EmbeddedStatement Body { get; protected set; }
+        public Statement  Body { get; protected set; }
 
         public override string ToString() => $"{this.NodeKind}";
     }
@@ -963,19 +1310,21 @@ namespace alm.Core.FrontEnd.SyntaxAnalysis.new_parser_concept.syntax_tree
     {
         public override NodeType NodeKind => NodeType.Do;
 
-        public DoLoopStatement(Expression condition,EmbeddedStatement body,SourceContext context)
+        public DoLoopStatement(Expression condition,Statement body,SourceContext context)
         {
             this.SourceContext = context;
             this.Condition = condition;
             this.Body = body;
             this.AddNodes(condition,body);
         }
+
+        public override string ToString() => "Do-While";
     }
     public sealed class WhileLoopStatement : IterationStatement
     {
         public override NodeType NodeKind => NodeType.While;
 
-        public WhileLoopStatement(Expression condition, EmbeddedStatement body, SourceContext context)
+        public WhileLoopStatement(Expression condition, Statement body, SourceContext context)
         {
             this.SourceContext = context;
             this.Condition = condition;
@@ -987,22 +1336,23 @@ namespace alm.Core.FrontEnd.SyntaxAnalysis.new_parser_concept.syntax_tree
     {
         public IdentifierExpression[] IterationIdentifiers { get; private set; } 
 
-        public Expression InitExpression { get; private set; }
-        public Expression StepExpression { get; private set; }
+        public Statement InitExpression { get; private set; }
+        public Statement StepExpression { get; private set; }
 
         public override NodeType NodeKind => NodeType.For;
 
-        public ForLoopStatement(Expression initBlock, Expression conditionalBlock, Expression stepBlock, SourceContext context)
+        public ForLoopStatement(Statement initBlock, Expression conditionalBlock, Statement stepBlock,Statement body, SourceContext context)
         {
             this.SourceContext = context;
             this.InitExpression = initBlock;
             this.Condition = conditionalBlock;
             this.StepExpression = stepBlock;
+            this.Body = body;
 
-            if (initBlock != null)
-                this.IterationIdentifiers = GetIdentifiers(initBlock);
+            //if (initBlock != null)
+             //   this.IterationIdentifiers = GetIdentifiers(initBlock);
 
-            this.AddNodes(initBlock,conditionalBlock,stepBlock);
+            this.AddNodes(initBlock,conditionalBlock,stepBlock,body);
         }
 
         //bad
@@ -1049,7 +1399,9 @@ namespace alm.Core.FrontEnd.SyntaxAnalysis.new_parser_concept.syntax_tree
     {
         //represents method invoke expression like single statement
         public Expression Instance { get; private set; } 
+
         public override NodeType NodeKind => NodeType.MethodInvokationAsStatement;
+        public override ConsoleColor ConsoleColor => ConsoleColor.Blue;
 
         public MethodInvokationStatement(Expression methodInvokation)
         {
@@ -1064,7 +1416,7 @@ namespace alm.Core.FrontEnd.SyntaxAnalysis.new_parser_concept.syntax_tree
             if (Instance is MethodInvokationExpression)
             {
                 MethodInvokationExpression copy = (MethodInvokationExpression)Instance;
-                return $"{copy.Name}(args:{copy.ArgCount})->{copy.ReturnType}";
+                return $"{copy.Name}(params:{copy.ArgCount})->{copy.ReturnType}";
             }
             else
                 return "MethodInvoke";
@@ -1097,7 +1449,6 @@ namespace alm.Core.FrontEnd.SyntaxAnalysis.new_parser_concept.syntax_tree
         public Expression AdressableExpression { get; private set; }
 
         public override NodeType NodeKind => NodeType.AssignmentExpression;
-        public override ConsoleColor ConsoleColor => ConsoleColor.DarkCyan;
 
         public AssignmentStatement(Expression adressor,AssignOperator operatorKind, Expression adressable)
         {
@@ -1214,19 +1565,19 @@ namespace alm.Core.FrontEnd.SyntaxAnalysis.new_parser_concept.syntax_tree
         public override NodeType NodeKind => NodeType.ArrayInstance;
         public override ConsoleColor ConsoleColor => ConsoleColor.DarkMagenta;
     
-        public ArrayInstance(TypeExpression type, Expression[] dimensionSizes)
+        public ArrayInstance(Expression type, Expression[] dimensionSizes)
         {
             this.SetSourceContext(type);
-            this.Type = type.Type;
+            this.Type = ((TypeExpression)type).Type;
             //+1 ??
             this.Dimension = (ushort)(dimensionSizes.Length+1);
             this.DimensionSizes = dimensionSizes;
-            this.AddNode(type);
+            //this.AddNode(type);
             foreach (Expression dimensionSize in dimensionSizes)
                 this.AddNode(dimensionSize);
         }
 
-        //public override string ToString() => $"";        
+        public override string ToString() => $"{this.Type} instance";        
     }
     public sealed class ArgumentDeclaration : Expression
     {
@@ -1243,6 +1594,22 @@ namespace alm.Core.FrontEnd.SyntaxAnalysis.new_parser_concept.syntax_tree
             this.Name = ((IdentifierExpression)identifierExpression).Name;
             //this.AddNodes(typeExpression, identifierExpression);
             this.AddNodes(identifierExpression);
+        }
+    }
+    public sealed class ParameterDeclaration : Expression
+    {
+        public InnerType Type { get; set; }
+        public Expression ParameterInstance { get; private set; }
+
+        public override NodeType NodeKind => NodeType.Parameter;
+        public override ConsoleColor ConsoleColor => ConsoleColor.DarkCyan;
+
+        public ParameterDeclaration(Expression parameter)
+        {
+            this.SetSourceContext(parameter);
+
+            this.ParameterInstance = parameter;
+            this.AddNodes(parameter);
         }
     }
 
@@ -1323,7 +1690,7 @@ namespace alm.Core.FrontEnd.SyntaxAnalysis.new_parser_concept.syntax_tree
         public bool IsIdentifierCall() => this.IdentifierState == State.Call ? true : false;
         public bool IsIdentifierDecl() => this.IdentifierState == State.Decl ? true : false;
 
-        public override string ToString() => $"{Name}->" + (Type is ArrayType ? "array of " : "") + $"{Type}";
+        public override string ToString() => $"{this.Name}->{this.Type}";
     }
     public sealed class TypeExpression : Expression
     {
@@ -1362,7 +1729,7 @@ namespace alm.Core.FrontEnd.SyntaxAnalysis.new_parser_concept.syntax_tree
                 this.AddNode(parameter);
         }
 
-        public override string ToString() => $"{this.Name}(args:{this.ArgCount})->{this.ReturnType}";
+        public override string ToString() => $"{this.Name}(params:{this.ArgCount})->{this.ReturnType}";
     }
 
     public abstract class ConstantExpression : Expression
@@ -1414,45 +1781,55 @@ namespace alm.Core.FrontEnd.SyntaxAnalysis.new_parser_concept.syntax_tree
     }
     public sealed class BooleanConstant : ConstantExpression
     {
-        public override InnerType Type => new InnerTypes.Char();
+        public override InnerType Type => new InnerTypes.Boolean();
         public override NodeType NodeKind => NodeType.BooleanConstant;
+        public override ConsoleColor ConsoleColor => ConsoleColor.Green;
 
         public BooleanConstant(string value) : base(value) { }
         public BooleanConstant(Token token) : base(token) { }
-
-        /*public BooleanConstant(SyntaxError error)
-        {
-            this.Errored = true;
-            Diagnostics.SyntaxErrors.Add(error);
-        }*/
     }
     public sealed class CharConstant : ConstantExpression
     {
+        private static char[] escapeChars = new char[]
+        {
+            '\'',
+            '\"',
+            '\\',
+            '\n',
+            '\t',
+            '\b',
+            '\f',
+            '\v',
+            '\0'
+        };
+
         public override InnerType Type => new InnerTypes.Char();
         public override NodeType NodeKind => NodeType.CharConstant;
+        public override ConsoleColor ConsoleColor => ConsoleColor.Yellow;
 
         public CharConstant(string value) : base(value) { }
         public CharConstant(Token token) : base(token) { }
 
-        /*public CharConstant(SyntaxError error)
+        private bool IsEscapeChar()
         {
-            this.Errored = true;
-            Diagnostics.SyntaxErrors.Add(error);
-        }*/
+            foreach (char escapeChar in escapeChars)
+                if (this.Value == escapeChar.ToString())
+                    return true;
+            return false;
+        }
+
+        public override string ToString() => $"\'" + (this.IsEscapeChar() ? "[esc char]" : this.Value) + "\'" + $"->{this.Type}";
     }
     public sealed class StringConstant : ConstantExpression
     {
         public override InnerType Type => new InnerTypes.String();
         public override NodeType NodeKind => NodeType.StringConstant;
+        public override ConsoleColor ConsoleColor => ConsoleColor.Yellow;
 
         public StringConstant(string value) : base(value) { }
         public StringConstant(Token token)  : base(token) { }
 
-        /*public StringConstant(SyntaxError error)
-        {
-            this.Errored = true;
-            Diagnostics.SyntaxErrors.Add(error);
-        }*/
+        public override string ToString() => $"\"{this.Value}\"->{this.Type}";
     }
 
     public abstract class BinaryExpression : Expression

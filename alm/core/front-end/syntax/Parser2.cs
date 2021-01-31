@@ -69,10 +69,10 @@ namespace alm.Core.FrontEnd.SyntaxAnalysis.new_parser_concept.syntax_tree
 
             while(Match(tkImport))
             {
-                Statement import = ParseImportStatement();
-                if (import.Childs.Count == 0)
-                    continue;
-                moduleRoot.AddNode(import);
+                foreach (Statement import in ParseImportStatement())
+                    if (import.Childs.Count != 0)
+                        moduleRoot.AddNode(import);
+
                 if (moduleRoot.Childs.Count > 0 && IsErrored(moduleRoot.Childs.Last()))
                     return moduleRoot;
             }
@@ -275,26 +275,40 @@ namespace alm.Core.FrontEnd.SyntaxAnalysis.new_parser_concept.syntax_tree
                 return ParseIdentifierExpression(state);
         }
 
-        public Statement ParseImportStatement()
+        public Statement[] ParseImportStatement()
         {
+            List<Statement> imports = new List<Statement>();
+
             if (!Match(tkImport))
-                return new ErroredStatement(new ReservedWordExpected("import", Lexer.CurrentToken));
+                return new Statement[] { new ErroredStatement(new ReservedWordExpected("import", Lexer.CurrentToken)) };
             Lexer.GetNextToken();
 
-            //ident | string const
-            Expression import = ParseFactor();
+            
+            //import first,second,third ... ;
+            while (!Match(tkEOF) && !Match(tkSemicolon))
+            {
+                Expression import = ParseFactor();
+                if (import is StringConstant)
+                    imports.Add(new ImportStatement((StringConstant)import));
+                else if (import is IdentifierExpression)
+                    imports.Add(new ImportStatement((IdentifierExpression)import));
+                else
+                    imports.Add(new ErroredStatement(new ExpectedCorrectImport(Lexer.CurrentToken.Context)));
+
+                if (!Match(tkComma))
+                {
+                    if (!Match(tkSemicolon))
+                        return new Statement[] { new ErroredStatement(new MissingComma(Lexer.CurrentToken)) };
+                }
+                else
+                    Lexer.GetNextToken();
+            }
 
             if (!Match(tkSemicolon))
-                return new ErroredStatement(new MissingSemi(Lexer.PreviousToken));
+                return new Statement[] { new ErroredStatement(new MissingSemi(Lexer.PreviousToken)) };
             Lexer.GetNextToken();
 
-            if (import is StringConstant)
-                return new ImportStatement((StringConstant)import);
-            else if (import is IdentifierExpression)
-                return new ImportStatement((IdentifierExpression)import);
-            else 
-                return new ErroredStatement(new ExpectedCorrectImport(Lexer.CurrentToken.Context));
-
+            return imports.ToArray();
         }
 
         public Statement ParseMethodDeclaration()
@@ -370,20 +384,34 @@ namespace alm.Core.FrontEnd.SyntaxAnalysis.new_parser_concept.syntax_tree
         }
         public Statement ParseDeclarationStatement()
         {
+            int a = 2, b = 0;
             Expression type = ParseTypeExpression();
             if (IsErrored(type))
                 return new ErroredStatement(new TypeExpected(Lexer.CurrentToken));
-            
-            Expression identifier = ParseIdentifierExpression(IdentifierExpression.State.Decl,((TypeExpression)type).Type);
-            if (IsErrored(identifier))
-                return new ErroredStatement(new IdentifierExpected(Lexer.CurrentToken));
 
-            AssignmentStatement assign;
+            //integer a,b,c ... ;|=
+            List<Expression> identifiers = new List<Expression>();
+
+            while (!Match(tkEOF) && !Match(tkAssign) && !Match(tkSemicolon))
+            {
+                Expression identifier = ParseIdentifierExpression(IdentifierExpression.State.Decl, ((TypeExpression)type).Type);
+                if (IsErrored(identifier))
+                    return new ErroredStatement(new IdentifierExpected(Lexer.CurrentToken));
+                else
+                    identifiers.Add(identifier);
+                if (!Match(tkComma))
+                {
+                    if (!Match(tkSemicolon) && !Match(tkAssign))
+                        return new ErroredStatement(new MissingComma(Lexer.CurrentToken));
+                }
+                else
+                    Lexer.GetNextToken();
+            }
 
             if (Match(tkAssign))
             {
                 Lexer.GetNextToken();
-                assign = new AssignmentStatement(identifier, AssignmentStatement.AssignOperator.Assignment, ParseExpression());
+                AssignmentStatement assign = new AssignmentStatement(identifiers.ToArray(), AssignmentStatement.AssignOperator.Assignment, ParseExpression());
 
                 if (!Match(tkSemicolon))
                     return new ErroredStatement(new MissingSemi(Lexer.PreviousToken));
@@ -394,7 +422,7 @@ namespace alm.Core.FrontEnd.SyntaxAnalysis.new_parser_concept.syntax_tree
             else if (Match(tkSemicolon))
             {
                 Lexer.GetNextToken();
-                return new IdentifierDeclaration(type, identifier);
+                return new IdentifierDeclaration(type, identifiers.ToArray());
             }
 
             //else if -> mult decls 
@@ -1258,20 +1286,23 @@ namespace alm.Core.FrontEnd.SyntaxAnalysis.new_parser_concept.syntax_tree
     {
         // <identifier_type> <identifier> | <identifier_type> <identifier> '=' <expression>
         public InnerType DecringIdentifierType { get; private set; }
-        public IdentifierExpression DeclaringIdentifier { get; private set; }
+        public IdentifierExpression[] DeclaringIdentifiers { get; private set; }
         public AssignmentStatement AssingningExpression { get; private set; }
 
         public override NodeType NodeKind => NodeType.Declaration;
         public override ConsoleColor ConsoleColor => ConsoleColor.Blue;
 
-        public IdentifierDeclaration(Expression type, Expression identifier)
+        public IdentifierDeclaration(Expression type, Expression[] identifiers)
         {
-            this.SetSourceContext(type, identifier);
+            if (identifiers.Length > 0)
+                this.SetSourceContext(type, identifiers.Last());
+            else
+                this.SetSourceContext(type);
+
             this.DecringIdentifierType = ((TypeExpression)type).Type;
-            this.DeclaringIdentifier = (IdentifierExpression)identifier;
-            this.DeclaringIdentifier.Type = this.DecringIdentifierType;
+            this.DeclaringIdentifiers = this.CreateIdentifierInstances(identifiers, ((TypeExpression)type).Type);
             // add type ?this.AddNodes(type, identifier);
-            this.AddNode(identifier);
+            this.AddNodes(identifiers);
         }
 
         //declaration with assignment
@@ -1285,6 +1316,17 @@ namespace alm.Core.FrontEnd.SyntaxAnalysis.new_parser_concept.syntax_tree
         }
 
         //TODO mult decls -> integer a,b,c = 2; | float a,v,c;
+
+        private IdentifierExpression[] CreateIdentifierInstances(Expression[] expressions,InnerType withType)
+        {
+            IdentifierExpression[] identifiers = new IdentifierExpression[expressions.Length];
+            for (int i =0; i < expressions.Length; i++)
+            {
+                identifiers[i] = (IdentifierExpression)expressions[i];
+                identifiers[i].Type = withType;
+            }
+            return identifiers;
+        }
 
         public override string ToString() => this.AssingningExpression == null ? "Declaration" : "Decl & Init";
     }
@@ -1497,8 +1539,10 @@ namespace alm.Core.FrontEnd.SyntaxAnalysis.new_parser_concept.syntax_tree
 
         public AssignOperator OperatorKind { get; private set; }
 
-        public Expression AdressorExpression   { get; private set; }
-        public Expression AdressableExpression { get; private set; }
+        public Expression[] AdressorExpressions   { get; private set; }
+        public Expression   AdressableExpression { get; private set; }
+
+        public bool MultipleAssign { get; private set; }
 
         public override NodeType NodeKind => NodeType.AssignmentExpression;
 
@@ -1506,9 +1550,20 @@ namespace alm.Core.FrontEnd.SyntaxAnalysis.new_parser_concept.syntax_tree
         {
             this.SetSourceContext(adressor,adressable);
             this.OperatorKind = operatorKind;
-            this.AdressorExpression = adressor;
+            this.AdressorExpressions = new Expression[] { adressor };
             this.AdressableExpression = GetExtendedAdressableExpression(adressable);
             this.AddNodes(adressor, this.AdressableExpression);
+        }
+
+        //constructor for multiple declaring & initialization
+        public AssignmentStatement(Expression[] adressors, AssignOperator operatorKind, Expression adressable)
+        {
+            this.SetSourceContext(adressors[0], adressable);
+            this.OperatorKind = operatorKind;
+            this.AdressorExpressions = adressors;
+            this.AdressableExpression = adressable;
+            this.AddNodes(adressors);
+            this.AddNode(adressable);
         }
 
         public static BinaryArithExpression.BinaryOperator ConvertToBinaryArithOperator(AssignOperator assignOperator)
@@ -1579,7 +1634,7 @@ namespace alm.Core.FrontEnd.SyntaxAnalysis.new_parser_concept.syntax_tree
             if (this.OperatorKind == AssignOperator.Assignment)
                 return expression;
 
-            return new BinaryArithExpression(this.AdressorExpression, AssignmentStatement.ConvertToBinaryArithOperator(this.OperatorKind), expression);
+            return new BinaryArithExpression(this.AdressorExpressions[0], AssignmentStatement.ConvertToBinaryArithOperator(this.OperatorKind), expression);
         }
 
         public override string ToString() => $"{this.OperatorKind}";

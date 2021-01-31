@@ -69,10 +69,9 @@ namespace alm.Core.FrontEnd.SyntaxAnalysis.new_parser_concept.syntax_tree
 
             while(Match(tkImport))
             {
-                foreach (Statement import in ParseImportStatement())
-                    if (import.Childs.Count != 0)
-                        moduleRoot.AddNode(import);
-
+                Statement import = ParseImportStatement();
+                if (import.Childs.Count > 0)
+                    moduleRoot.AddNode(import);
                 if (moduleRoot.Childs.Count > 0 && IsErrored(moduleRoot.Childs.Last()))
                     return moduleRoot;
             }
@@ -101,7 +100,7 @@ namespace alm.Core.FrontEnd.SyntaxAnalysis.new_parser_concept.syntax_tree
                 if (!Match(tkComma))
                 {
                     if (!Match(tkRpar))
-                        return new Expression[] { new ErroredExpression(new ReservedSymbolExpected(",", Lexer.CurrentToken)) };
+                        return new Expression[] { new ErroredExpression(new MissingComma(Lexer.CurrentToken)) };
                 }
                 else
                     Lexer.GetNextToken();
@@ -136,7 +135,7 @@ namespace alm.Core.FrontEnd.SyntaxAnalysis.new_parser_concept.syntax_tree
                 if (!Match(tkComma))
                 {
                     if (!Match(tkRpar))
-                        return new Expression[] { new ErroredExpression(new ReservedSymbolExpected(",", Lexer.CurrentToken)) };
+                        return new Expression[] { new ErroredExpression(new MissingComma(Lexer.CurrentToken)) };
                 }
                 else
                     Lexer.GetNextToken();
@@ -275,40 +274,37 @@ namespace alm.Core.FrontEnd.SyntaxAnalysis.new_parser_concept.syntax_tree
                 return ParseIdentifierExpression(state);
         }
 
-        public Statement[] ParseImportStatement()
+        public Statement ParseImportStatement()
         {
-            List<Statement> imports = new List<Statement>();
+            List<Expression> modules = new List<Expression>();
 
             if (!Match(tkImport))
-                return new Statement[] { new ErroredStatement(new ReservedWordExpected("import", Lexer.CurrentToken)) };
+                return new ErroredStatement(new ReservedWordExpected("import", Lexer.CurrentToken));
             Lexer.GetNextToken();
-
             
             //import first,second,third ... ;
             while (!Match(tkEOF) && !Match(tkSemicolon))
             {
                 Expression import = ParseFactor();
-                if (import is StringConstant)
-                    imports.Add(new ImportStatement((StringConstant)import));
-                else if (import is IdentifierExpression)
-                    imports.Add(new ImportStatement((IdentifierExpression)import));
+                if (import is StringConstant | import is IdentifierExpression)
+                    modules.Add(import);
                 else
-                    imports.Add(new ErroredStatement(new ExpectedCorrectImport(Lexer.CurrentToken.Context)));
+                    return new ErroredStatement(new ExpectedCorrectImport(Lexer.CurrentToken.Context));
 
                 if (!Match(tkComma))
                 {
                     if (!Match(tkSemicolon))
-                        return new Statement[] { new ErroredStatement(new MissingComma(Lexer.CurrentToken)) };
+                        return new ErroredStatement(new MissingComma(Lexer.CurrentToken));
                 }
                 else
                     Lexer.GetNextToken();
             }
 
             if (!Match(tkSemicolon))
-                return new Statement[] { new ErroredStatement(new MissingSemi(Lexer.PreviousToken)) };
+                return new ErroredStatement(new MissingSemi(Lexer.PreviousToken));
             Lexer.GetNextToken();
 
-            return imports.ToArray();
+            return new ImportStatement(modules.ToArray());
         }
 
         public Statement ParseMethodDeclaration()
@@ -1130,7 +1126,7 @@ namespace alm.Core.FrontEnd.SyntaxAnalysis.new_parser_concept.syntax_tree
             this.AddNode(root);
         }
 
-        public override string ToString() => $"Executable Module [{this.ModulePath}]";
+        public override string ToString() => $"Module [{this.ModulePath}]";
     }
 
     public abstract class Statement : SyntaxTreeNode
@@ -1141,23 +1137,20 @@ namespace alm.Core.FrontEnd.SyntaxAnalysis.new_parser_concept.syntax_tree
     {
         private string LibPath = @"C:\Users\Almes\source\repos\Compiler\compiler v.5\src\libs";
 
-        public string ImportPath { get; private set; }
-        public SyntaxTreeNode ImportRoot { get; private set; }
+        public string[] ImportPaths { get; private set; }
+        public SyntaxTreeNode[] ImportRoots { get; private set; }
 
         public override NodeType NodeKind => NodeType.Import;
-        public override ConsoleColor ConsoleColor => ConsoleColor.White;
+        public override ConsoleColor ConsoleColor => ConsoleColor.Red;
 
-        public ImportStatement(StringConstant longImportPath)
+        public ImportStatement(Expression[] modules)
         {
-            this.SetSourceContext(longImportPath);
-            this.ImportPath = this.GetDirectImportPath(longImportPath.Value);
-            this.TryToJoinImportedModule();
-        }
-        public ImportStatement(IdentifierExpression shortImportPath)
-        {
-            this.SetSourceContext(shortImportPath);
-            this.ImportPath = this.GetLibImportPath(shortImportPath.Name);
-            this.TryToJoinImportedModule();
+            if (modules.Length > 2)
+                this.SetSourceContext(modules[0], modules.Last());
+            else
+                this.SetSourceContext(modules[0]);
+            this.ImportPaths = this.CreatePathInstances(modules);
+            this.TryToJoinImportedModules();
         }
         
         private string GetLibImportPath(string path)
@@ -1173,51 +1166,58 @@ namespace alm.Core.FrontEnd.SyntaxAnalysis.new_parser_concept.syntax_tree
         }
 
         //trying to create the ast from module
-        private void TryToJoinImportedModule()
+        private void TryToJoinImportedModules()
         {
-            if (!System.IO.File.Exists(this.ImportPath))
+            List<SyntaxTreeNode> importedModules = new List<SyntaxTreeNode>(); 
+            foreach (string currentImportedModule in this.ImportPaths)
             {
-                this.ImportRoot = new ErroredStatement(new WrongImport());
-                return;
-            }
+                if (!System.IO.File.Exists(currentImportedModule))
+                {
+                    importedModules.Add(new ErroredStatement(new WrongImport()));
+                    return;
+                }
 
-            if (System.IO.Path.GetExtension(this.ImportPath) != ".alm")
-            {
-                this.ImportRoot = new ErroredStatement(new WrongImport());
-                return;
-            }
-            //case when trying import module where this import was called
-            if (this.ImportPath == CompilationVariables.CurrentParsingModule)
-            {
-                this.ImportRoot = new ErroredStatement(new WrongImport());
-                return;
-            }
-            //case when trying import already imported module
-            if (this.GetImportsModules(this.ImportPath).Contains(CompilationVariables.CurrentParsingModule))
-            {
-                this.ImportRoot = new ErroredStatement(new WrongImport());
-                return;
-            }
-            //if find import at list in 1 module, skip it (because it alrealdy imported) 
-            if (this.GetImportsModules(this.ImportPath).Length > 0)
-            {
-                return;
-            }
+                if (System.IO.Path.GetExtension(currentImportedModule) != ".alm")
+                {
+                    importedModules.Add(new ErroredStatement(new WrongImport()));
+                    return;
+                }
+                //case when trying import module where this import was called
+                if (currentImportedModule == CompilationVariables.CurrentParsingModule)
+                {
+                    importedModules.Add(new ErroredStatement(new WrongImport()));
+                    return;
+                }
+                //case when trying import already imported module
+                if (this.GetImportsModules(currentImportedModule).Contains(CompilationVariables.CurrentParsingModule))
+                {
+                    importedModules.Add(new ErroredStatement(new WrongImport()));
+                    return;
+                }
+                //if find import at list in 1 module, skip it (because it alrealdy imported) 
+                if (this.GetImportsModules(currentImportedModule).Length > 0)
+                {
+                    return;
+                }
 
-            if (!CompilationVariables.CompilationImports.ContainsKey(CompilationVariables.CurrentParsingModule))
-                CompilationVariables.CompilationImports.Add(CompilationVariables.CurrentParsingModule, new List<string>() { this.ImportPath });
-            else
-                CompilationVariables.CompilationImports[CompilationVariables.CurrentParsingModule].Add(this.ImportPath);
+                if (!CompilationVariables.CompilationImports.ContainsKey(CompilationVariables.CurrentParsingModule))
+                    CompilationVariables.CompilationImports.Add(CompilationVariables.CurrentParsingModule, new List<string>() { currentImportedModule });
+                else
+                    CompilationVariables.CompilationImports[CompilationVariables.CurrentParsingModule].Add(currentImportedModule);
 
-            //Parsing module by path 
-            Lexer lexer = new Lexer(this.ImportPath);
-            Parser2 parser = new Parser2(lexer);
-            this.ImportRoot = parser.Parse(this.ImportPath);
+                //Parsing module by path 
+                Lexer lexer = new Lexer(currentImportedModule);
+                Parser2 parser = new Parser2(lexer);
+                SyntaxTreeNode importedModule = parser.Parse(currentImportedModule);
 
-            CompilationVariables.CurrentParsingModule = CompilationVariables.CompilationEntryModule;
+                CompilationVariables.CurrentParsingModule = CompilationVariables.CompilationEntryModule;
 
-            foreach (SyntaxTreeNode child in this.ImportRoot.Childs)
-                this.AddNode(child);
+                //foreach (SyntaxTreeNode child in importedModule.Childs)
+                    this.AddNode(importedModule);
+
+                importedModules.Add(importedModule);
+            }
+            this.ImportRoots = importedModules.ToArray();
         }
         //gets modules where this import was mentioned
         private string[] GetImportsModules(string import)
@@ -1237,7 +1237,18 @@ namespace alm.Core.FrontEnd.SyntaxAnalysis.new_parser_concept.syntax_tree
             return modules.ToArray();
         }
 
-        public override string ToString() => $"Imported Module [{this.ImportPath}]";
+        private string[] CreatePathInstances(Expression[] expressions)
+        {
+            string[] paths = new string[expressions.Length];
+            for (int i = 0; i < expressions.Length; i++)
+                if (expressions[i] is StringConstant)
+                    paths[i] = this.GetDirectImportPath(((StringConstant)expressions[i]).Value);
+                else
+                    paths[i] = this.GetLibImportPath(((IdentifierExpression)expressions[i]).Name);
+            return paths;
+        }
+
+        public override string ToString() => $"Import [modules:{this.ImportPaths.Length}]";
     }
 
     public sealed class MethodDeclaration : Statement

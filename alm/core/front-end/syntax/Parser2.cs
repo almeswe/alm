@@ -11,6 +11,8 @@ using alm.Other.ConsoleStuff;
 
 using static alm.Other.Enums.TokenType;
 using static alm.Core.FrontEnd.SyntaxAnalysis.new_parser_concept.syntax_tree.SourceContext;
+using alm.Core.FrontEnd.SemanticAnalysis.new_label_checker2;
+using alm.Core.FrontEnd.SemanticAnalysis.type_checker_new;
 
 namespace alm.Core.FrontEnd.SyntaxAnalysis.new_parser_concept.syntax_tree
 {
@@ -38,6 +40,7 @@ namespace alm.Core.FrontEnd.SyntaxAnalysis.new_parser_concept.syntax_tree
                 var ast = new AbstractSyntaxTree();
                 ast.BuildTree(path);
                 ast.ShowTree();
+                
                 Console.ReadLine();
                 Console.Clear();
             }
@@ -337,6 +340,8 @@ namespace alm.Core.FrontEnd.SyntaxAnalysis.new_parser_concept.syntax_tree
                 return new ErroredStatement(new TypeExpected(Lexer.CurrentToken));
 
             Statement funcBody = ParseEmbeddedStatement();
+            if (IsErrored(funcBody))
+                return new ErroredStatement(new ErrorMessage("Ожидалось выражение",Lexer.CurrentToken));
             return new MethodDeclaration(funcName, args, funcType, funcBody, funcContext);
         }
         public Statement ParseExternalMethodDeclaration()
@@ -380,7 +385,6 @@ namespace alm.Core.FrontEnd.SyntaxAnalysis.new_parser_concept.syntax_tree
         }
         public Statement ParseDeclarationStatement()
         {
-            int a = 2, b = 0;
             Expression type = ParseTypeExpression();
             if (IsErrored(type))
                 return new ErroredStatement(new TypeExpected(Lexer.CurrentToken));
@@ -420,9 +424,6 @@ namespace alm.Core.FrontEnd.SyntaxAnalysis.new_parser_concept.syntax_tree
                 Lexer.GetNextToken();
                 return new IdentifierDeclaration(type, identifiers.ToArray());
             }
-
-            //else if -> mult decls 
-
             else 
                 return new ErroredStatement(new ErrorMessage("Ожидался символ [=] или [;]", Lexer.CurrentToken));
         }
@@ -430,7 +431,7 @@ namespace alm.Core.FrontEnd.SyntaxAnalysis.new_parser_concept.syntax_tree
         {
             Expression identifier = ParseAdressor(IdentifierExpression.State.Call);
 
-            TokenType[] expectSymbols = new TokenType[] { tkAssign,tkAddAssign,tkSubAssign,tkIDivAssign,tkFDivAssign,tkMultAssign,tkRemndrAssign,tkLShiftAssign,tkRShiftAssign,tkBitwiseOrAssign,tkBitwiseAndAssign,tkBitwiseXorAssign };
+            TokenType[] expectSymbols = new TokenType[] { tkAssign,tkAddAssign,tkSubAssign,tkIDivAssign,tkFDivAssign,tkMultAssign,tkPowerAssign,tkRemndrAssign,tkLShiftAssign,tkRShiftAssign,tkBitwiseOrAssign,tkBitwiseAndAssign,tkBitwiseXorAssign };
 
             if (!Match(expectSymbols))
                 return new ErroredStatement(new ErrorMessage("Ожидался символ присваивания", Lexer.CurrentToken));
@@ -826,7 +827,7 @@ namespace alm.Core.FrontEnd.SyntaxAnalysis.new_parser_concept.syntax_tree
         }
         public Expression ParseMultiplicative()
         {
-            Expression node = ParseFactor();
+            Expression node = ParseExponentiation();
             switch (Lexer.CurrentToken.TokenType)
             {
                 case tkMult: 
@@ -841,6 +842,16 @@ namespace alm.Core.FrontEnd.SyntaxAnalysis.new_parser_concept.syntax_tree
                     Lexer.GetNextToken(); 
                     node = new BinaryArithExpression(node, BinaryExpression.BinaryOperator.FDiv, ParseMultiplicative()); 
                     break;
+            }
+            return node;
+        }
+        public Expression ParseExponentiation()
+        {
+            Expression node = ParseFactor();
+            if (Match(tkPower))
+            {
+                Lexer.GetNextToken();
+                node = new BinaryArithExpression(node, BinaryExpression.BinaryOperator.Power, ParseExponentiation());
             }
             return node;
         }
@@ -1038,8 +1049,8 @@ namespace alm.Core.FrontEnd.SyntaxAnalysis.new_parser_concept.syntax_tree
         public virtual NodeType NodeKind { get; }
         public virtual ConsoleColor ConsoleColor { get; protected set; } = ConsoleColor.Gray;
 
-        public SyntaxTreeNode Parent { get; protected set; }
-        public List<SyntaxTreeNode> Childs { get; protected set; } = new List<SyntaxTreeNode>();
+        public SyntaxTreeNode Parent { get; set; }
+        public List<SyntaxTreeNode> Childs { get; set; } = new List<SyntaxTreeNode>();
 
         public bool ErrorReported { get; private set; }
 
@@ -1085,7 +1096,7 @@ namespace alm.Core.FrontEnd.SyntaxAnalysis.new_parser_concept.syntax_tree
                 if (this.Childs[i].GetType().ToString() == type.ToString())
                     Childs.Add(this.Childs[i]);
                 if (recursive)
-                    Childs.AddRange(this.Childs[i].GetChildsByType(Childs.GetType(), true, false));
+                    Childs.AddRange(this.Childs[i].GetChildsByType(type, true, false));
             }
             return Childs.ToArray();
         }
@@ -1257,7 +1268,8 @@ namespace alm.Core.FrontEnd.SyntaxAnalysis.new_parser_concept.syntax_tree
         public ushort ArgCount { get; private set; }
         public InnerType ReturnType { get; private set; }
 
-        public Expression[] Arguments { get; private set; }
+        public EmbeddedStatement Body { get; private set; }
+        public ArgumentDeclaration[] Arguments { get; private set; }
 
         public bool IsExternal { get; private set; }
         public string NETPackage { get; private set; }
@@ -1268,7 +1280,8 @@ namespace alm.Core.FrontEnd.SyntaxAnalysis.new_parser_concept.syntax_tree
         public MethodDeclaration(Expression identifier, Expression[] arguments, Expression type, Statement body, SourceContext context, string package = "")
         {
             this.IsExternal = package == "" ? false : true;
-            this.Arguments = arguments;
+            this.Arguments = this.CreateArgumentDeclarationInstances(arguments);
+            this.Body = (EmbeddedStatement)body;
             this.Name = ((IdentifierExpression)identifier).Name;
             this.ReturnType = ((TypeExpression)type).Type;
             this.SourceContext = context;
@@ -1285,18 +1298,26 @@ namespace alm.Core.FrontEnd.SyntaxAnalysis.new_parser_concept.syntax_tree
         public InnerType GetArgumentsType(string argName)
         {
             foreach (ArgumentDeclaration argument in Arguments)
-                if (argName == argument.Name)
+                if (argName == argument.Identifier.Name)
                     return argument.Type;
             return null;
         }
-        public EmbeddedStatement GetMethodsBody() => IsExternal ? null : (EmbeddedStatement)this.Childs[ArgCount];
+        public ArgumentDeclaration[] CreateArgumentDeclarationInstances(Expression[] expressions)
+        {
+            ArgumentDeclaration[] arguments = new ArgumentDeclaration[expressions.Length];
+
+            for (int i = 0; i < expressions.Length; i++)
+                arguments[i] = (ArgumentDeclaration)expressions[i];
+
+            return arguments;
+        }
 
         public override string ToString() => (this.IsExternal?"ext ":"") + $"func {this.Name}(args:{this.ArgCount})->{this.ReturnType}";
     }
     public sealed class IdentifierDeclaration : Statement
     {
         // <identifier_type> <identifier> | <identifier_type> <identifier> '=' <expression>
-        public InnerType DecringIdentifierType { get; private set; }
+        public InnerType DeclaringIdentifierType { get; private set; }
         public IdentifierExpression[] DeclaringIdentifiers { get; private set; }
         public AssignmentStatement AssingningExpression { get; private set; }
 
@@ -1310,9 +1331,8 @@ namespace alm.Core.FrontEnd.SyntaxAnalysis.new_parser_concept.syntax_tree
             else
                 this.SetSourceContext(type);
 
-            this.DecringIdentifierType = ((TypeExpression)type).Type;
+            this.DeclaringIdentifierType = ((TypeExpression)type).Type;
             this.DeclaringIdentifiers = this.CreateIdentifierInstances(identifiers, ((TypeExpression)type).Type);
-            // add type ?this.AddNodes(type, identifier);
             this.AddNodes(identifiers);
         }
 
@@ -1321,8 +1341,8 @@ namespace alm.Core.FrontEnd.SyntaxAnalysis.new_parser_concept.syntax_tree
         {
             this.SetSourceContext(type, assignment);
             this.AssingningExpression = assignment;
-            this.DecringIdentifierType = ((TypeExpression)type).Type;
-            // add type ?this.AddNodes(type, identifier);
+            this.DeclaringIdentifierType = ((TypeExpression)type).Type;
+            this.DeclaringIdentifiers = this.CreateIdentifierInstances(assignment.AdressorExpressions, ((TypeExpression)type).Type);
             this.AddNode(assignment);
         }
 
@@ -1345,11 +1365,6 @@ namespace alm.Core.FrontEnd.SyntaxAnalysis.new_parser_concept.syntax_tree
     public abstract class JumpStatement : Statement
     {
         //return , continue , break , goto(?)
-        /*
-        public bool CanSkipIteration { get; private set; } = false;
-        public bool CanExitLoop   { get; private set; } = false;
-        public bool CanExitMethod { get; private set; } = false;
-        */
         public override ConsoleColor ConsoleColor => ConsoleColor.Red;
 
         //??
@@ -1357,7 +1372,13 @@ namespace alm.Core.FrontEnd.SyntaxAnalysis.new_parser_concept.syntax_tree
         public bool IsContinue() => this is ContinueStatement ? true : false;
         public bool IsBreak() => this is BreakStatement ? true : false;
 
-        protected bool IsSituatedInLoop() => this.GetParentByType(typeof(IterationStatement)) == null ? false : true;
+        public bool IsSituatedInLoop()
+        {
+            if (this.GetParentByType(typeof(WhileLoopStatement)) == null &&
+               this.GetParentByType(typeof(DoLoopStatement)) == null)
+                return false;
+            return true;
+        }
     }
     public sealed class ContinueStatement : JumpStatement
     {
@@ -1536,6 +1557,7 @@ namespace alm.Core.FrontEnd.SyntaxAnalysis.new_parser_concept.syntax_tree
             AssignmentFDiv,
             AssignmentIDiv,
             AssignmentMult,
+            AssignmentPower,
             AssignmentAddition,
             AssignmentRemainder,
             AssignmentSubtraction,
@@ -1550,20 +1572,19 @@ namespace alm.Core.FrontEnd.SyntaxAnalysis.new_parser_concept.syntax_tree
 
         public AssignOperator OperatorKind { get; private set; }
 
-        public Expression[] AdressorExpressions   { get; private set; }
-        public Expression   AdressableExpression { get; private set; }
+        public Expression[] AdressorExpressions { get; private set; }
+        public Expression AdressableExpression => (Expression)this.Childs.Last();
 
         public bool MultipleAssign { get; private set; }
 
-        public override NodeType NodeKind => NodeType.AssignmentExpression;
+        public override NodeType NodeKind => NodeType.AssignmentStatement;
 
         public AssignmentStatement(Expression adressor,AssignOperator operatorKind, Expression adressable)
         {
             this.SetSourceContext(adressor,adressable);
             this.OperatorKind = operatorKind;
             this.AdressorExpressions = new Expression[] { adressor };
-            this.AdressableExpression = GetExtendedAdressableExpression(adressable);
-            this.AddNodes(adressor, this.AdressableExpression);
+            this.AddNodes(adressor, GetExtendedAdressableExpression(adressable));
         }
 
         //constructor for multiple declaring & initialization
@@ -1572,7 +1593,6 @@ namespace alm.Core.FrontEnd.SyntaxAnalysis.new_parser_concept.syntax_tree
             this.SetSourceContext(adressors[0], adressable);
             this.OperatorKind = operatorKind;
             this.AdressorExpressions = adressors;
-            this.AdressableExpression = adressable;
             this.AddNodes(adressors);
             this.AddNode(adressable);
         }
@@ -1595,6 +1615,9 @@ namespace alm.Core.FrontEnd.SyntaxAnalysis.new_parser_concept.syntax_tree
 
                 case AssignOperator.AssignmentIDiv:
                     return BinaryExpression.BinaryOperator.IDiv;
+
+                case AssignOperator.AssignmentPower:
+                    return BinaryExpression.BinaryOperator.Power;
 
                 case AssignOperator.AssignmentRemainder:
                     return BinaryExpression.BinaryOperator.Remainder;
@@ -1628,6 +1651,7 @@ namespace alm.Core.FrontEnd.SyntaxAnalysis.new_parser_concept.syntax_tree
                 case tkFDivAssign:   return AssignOperator.AssignmentFDiv;
                 case tkSubAssign:    return AssignOperator.AssignmentSubtraction;
                 case tkMultAssign:   return AssignOperator.AssignmentMult;
+                case tkPowerAssign:  return AssignOperator.AssignmentPower;
                 case tkRemndrAssign: return AssignOperator.AssignmentRemainder;
 
                 case tkBitwiseOrAssign:  return AssignOperator.AssignmentBitwiseOr;
@@ -1699,8 +1723,8 @@ namespace alm.Core.FrontEnd.SyntaxAnalysis.new_parser_concept.syntax_tree
     }
     public sealed class ArgumentDeclaration : Expression
     {
-        public string Name { get; private set; }
         public InnerType Type { get; private set; }
+        public IdentifierExpression Identifier { get; private set; }
 
         public override NodeType NodeKind => NodeType.Argument;
 
@@ -1709,7 +1733,7 @@ namespace alm.Core.FrontEnd.SyntaxAnalysis.new_parser_concept.syntax_tree
             this.SetSourceContext(typeExpression, identifierExpression);
 
             this.Type = ((TypeExpression)typeExpression).Type;
-            this.Name = ((IdentifierExpression)identifierExpression).Name;
+            this.Identifier = (IdentifierExpression)identifierExpression;
             //this.AddNodes(typeExpression, identifierExpression);
             this.AddNodes(identifierExpression);
         }
@@ -1733,7 +1757,7 @@ namespace alm.Core.FrontEnd.SyntaxAnalysis.new_parser_concept.syntax_tree
 
     public sealed class ArrayElementExpression : Expression
     {
-        public InnerType Type { get; private set; }
+        public InnerType Type { get; set; }
         public ushort Dimension { get; private set; }
         //?
         public ushort ArrayDimension { get; set; }
@@ -1876,12 +1900,6 @@ namespace alm.Core.FrontEnd.SyntaxAnalysis.new_parser_concept.syntax_tree
 
         public Int32Constant(string value) : base(value) { }
         public Int32Constant(Token token)  : base(token) { }
-
-        /*public Int32Constant(SyntaxError error)
-        {
-            this.Errored = true;
-            Diagnostics.SyntaxErrors.Add(error);
-        }*/
     }
     public sealed class SingleConstant : ConstantExpression
     {
@@ -1890,12 +1908,6 @@ namespace alm.Core.FrontEnd.SyntaxAnalysis.new_parser_concept.syntax_tree
 
         public SingleConstant(string value) : base(value) { }
         public SingleConstant(Token token)  : base(token) { }
-
-        /*public SingleConstant(SyntaxError error)
-        {
-            this.Errored = true;
-            Diagnostics.SyntaxErrors.Add(error);
-        }*/
     }
     public sealed class BooleanConstant : ConstantExpression
     {
@@ -1970,6 +1982,7 @@ namespace alm.Core.FrontEnd.SyntaxAnalysis.new_parser_concept.syntax_tree
             Mult,
             FDiv, //float point division 
             IDiv, //integer division
+            Power,
             Addition,
             Remainder,
             Substraction,
@@ -2003,7 +2016,6 @@ namespace alm.Core.FrontEnd.SyntaxAnalysis.new_parser_concept.syntax_tree
                     return binaryOperator.ToString();
             }
         }
-
         public override string ToString() => $"{CheckDefine(this.OperatorKind)}";
     }
     public sealed class BinaryBooleanExpression : BinaryExpression
@@ -2019,14 +2031,6 @@ namespace alm.Core.FrontEnd.SyntaxAnalysis.new_parser_concept.syntax_tree
             this.OperatorKind = operatorKind;
             this.AddNodes(leftOperand,rightOperand);
         }
-
-        /*public InnerType GetResultType()
-        { 
-            switch(OperatorKind)
-            {
-                case 
-            }
-        }*/
     }
     public sealed class BinaryArithExpression : BinaryExpression
     {
@@ -2041,17 +2045,6 @@ namespace alm.Core.FrontEnd.SyntaxAnalysis.new_parser_concept.syntax_tree
             this.OperatorKind = operatorKind;
             this.AddNodes(leftOperand, rightOperand);
         }
-
-        /*public InnerType GetResultType()
-        {
-            switch (this.OperatorKind)
-            {
-                case ArithOperator.FDiv:
-                    return new InnerTypes.Single();
-                case ArithOperator.IDiv:
-                    return new InnerTypes.Int32();
-            }
-        }*/
     }
 
     public abstract class UnaryExpression : Expression
@@ -2182,7 +2175,6 @@ namespace alm.Core.FrontEnd.SyntaxAnalysis.new_parser_concept.syntax_tree
 {
     public sealed class AbstractSyntaxTree
     {
-        public bool Builded { get; private set; } = false;
         public SyntaxTreeNode Root { get; private set; }
 
         public void BuildTree(string path)
@@ -2191,17 +2183,22 @@ namespace alm.Core.FrontEnd.SyntaxAnalysis.new_parser_concept.syntax_tree
             Lexer lexer = new Lexer(path);
             Parser2 parser = new Parser2(lexer);
             this.Root = parser.Parse(path);
-            this.Builded = true;
+
+            if (!Diagnostics.SyntaxAnalysisFailed)
+            {
+                LabelChecker2.ResolveModule(this.Root);
+                if (!Diagnostics.SemanticAnalysisFailed)
+                    TypeChecker2.ResolveModuleTypes(this.Root);
+            }
         }
 
         public void ShowTree()
         {
-            if (!Diagnostics.SyntaxAnalysisFailed)
+            if (!Diagnostics.SyntaxAnalysisFailed && !Diagnostics.SemanticAnalysisFailed)
                 ShowTreeInConsole(Root, "", true);
             else
                 Diagnostics.ShowErrorsInConsole();
         }
-
         private void ShowTreeInConsole(SyntaxTreeNode startNode, string indent = "", bool root = false)
         {
             //├── └── │

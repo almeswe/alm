@@ -41,9 +41,12 @@ namespace alm.Core.FrontEnd.SemanticAnalysis.new_label_checker2
             {
                 ResolveMainDeclaration(method);
                 ResolveMethodArguments(method.Arguments, MethodTable);
-                if (!method.IsExternal && !(method.ReturnType is Void))
-                    if (ResolveReturnInBody(method.Body))
-                        ResolveEmbeddedStatement(method.Body, MethodTable);
+                if (!method.IsExternal)
+                {
+                    if (!(method.ReturnType is Void))
+                        ResolveReturnInBody(method.Body);
+                   ResolveEmbeddedStatement(method.Body, MethodTable);
+                }
             }
         }
         public static void ResolveEmbeddedStatement(EmbeddedStatement body, Table table)
@@ -138,7 +141,9 @@ namespace alm.Core.FrontEnd.SemanticAnalysis.new_label_checker2
                     Diagnostics.SemanticErrors.Add(new ErrorForDebug($"Переменная [{identifier.Name}] уже объявлена"));
                 }
                 if (initializedInBlock != null)
-                    table.InitializeInBlock(identifier,initializedInBlock);
+                {
+                    table.InitializeInBlock(identifier, initializedInBlock);
+                }
             }
             else
             {
@@ -176,14 +181,18 @@ namespace alm.Core.FrontEnd.SemanticAnalysis.new_label_checker2
         }
 
         public static void ResolveMethodInvokation(MethodInvokationExpression method,Table table)
-        {
+        {   
             if (table.CheckMethod(method.Name,method.ArgCount))
             {
                 TableMethod tableMethod = table.FetchMethod(method.Name,method.ArgCount);
                 if (method.ArgCount != tableMethod.ArgCount)
                     Diagnostics.SemanticErrors.Add(new ErrorForDebug($"Функция [{method.Name}] не содержит такое количество аргументов [{method.ArgCount}], ожидалось [{tableMethod.ArgCount}]"));
                 else
+                {
+                    for (int i = 0; i < method.ArgCount; i++)
+                        ((ParameterDeclaration)method.Parameters[i]).Type = tableMethod.Arguments[i].Type;
                     method.ReturnType = tableMethod.ReturnType;
+                }
             }
             else
                 Diagnostics.SemanticErrors.Add(new ErrorForDebug($"Функция [{method.Name}] не объявлена, либо не принимает такое количество аргументов"));
@@ -201,9 +210,9 @@ namespace alm.Core.FrontEnd.SemanticAnalysis.new_label_checker2
         }
         public static void ResolveMethodArguments(ArgumentDeclaration[] arguments, Table table)
         {
-            MethodDeclaration method = null;
-            if (arguments.Length > 0)
-                method = (MethodDeclaration)arguments[0].GetParentByType(typeof(MethodDeclaration));
+            if (arguments.Length == 0)
+                return;
+            MethodDeclaration method = (MethodDeclaration)arguments[0].GetParentByType(typeof(MethodDeclaration));
             foreach (ArgumentDeclaration argument in arguments)
                 ResolveIdentifierExpression(argument.Identifier, table, method.Body);
         }

@@ -10,12 +10,17 @@ using alm.Core.FrontEnd.SemanticAnalysis.new_label_checker2;
 
 namespace alm.Core.FrontEnd.SemanticAnalysis.type_checker_new
 {
-    public sealed class TypeChecker2
+    public sealed class TypeChecker
     {
+        //This field uses for disabling error reporting inside class
+        //It is used when the typecaster want get type of something(by calling method from here),and if smth goes wrong with types,it doesnt report any error
+        public static bool ReportErrors;
+
         private static bool ErrorInArithReported, ErrorInBooleanReported;
 
         public static void ResolveModuleTypes(SyntaxTreeNode moduleRoot)
         {
+            ReportErrors = true;
             ErrorInArithReported = false;
             ErrorInBooleanReported = false;
             ResolveReturnStatemetsTypes(moduleRoot);
@@ -31,7 +36,6 @@ namespace alm.Core.FrontEnd.SemanticAnalysis.type_checker_new
             else
                 return ResolveArrayElementExpressionType((ArrayElementExpression)adressor);
         }
-
         public static InnerType ResolveExpressionType(Expression expression)
         {
             switch (expression.NodeKind)
@@ -100,8 +104,6 @@ namespace alm.Core.FrontEnd.SemanticAnalysis.type_checker_new
             InnerType LOperandType = ResolveExpressionType(binaryArithExpression.LeftOperand);
             InnerType ROperandType = ResolveExpressionType(binaryArithExpression.RightOperand);
 
-            //try to cast
-
             switch (binaryArithExpression.OperatorKind)
             {
                 case BinaryExpression.BinaryOperator.FDiv:
@@ -114,17 +116,33 @@ namespace alm.Core.FrontEnd.SemanticAnalysis.type_checker_new
                     else
                         return ROperandType;
 
-                case BinaryExpression.BinaryOperator.Power:
                 case BinaryExpression.BinaryOperator.Mult:
-                case BinaryExpression.BinaryOperator.Addition:
+                case BinaryExpression.BinaryOperator.Power:
                 case BinaryExpression.BinaryOperator.Substraction:
+                    if (LOperandType is Char && ROperandType is Char)
+                        return new Int32();
                     if (LOperandType is NumericType && ROperandType is NumericType)
                         return TypeCaster.HigherPriorityType(LOperandType, ROperandType);
-                    ReportErrorInArithExpression(new ErrorForDebug($"Оператор [+,-,*,**] должен использоваться с операндами числового типа"));
+                    ReportErrorInArithExpression(new ErrorForDebug($"Оператор [-,*,**] должен использоваться с операндами числового типа"));
                     if (!(LOperandType is NumericType))
                         return LOperandType;
                     else
                         return ROperandType;
+
+                case BinaryExpression.BinaryOperator.Addition:
+                    if (LOperandType is Char && ROperandType is Char)
+                        return new Int32();
+                    if ((LOperandType is NumericType && ROperandType is NumericType) | (LOperandType is String && ROperandType is String))
+                        if (LOperandType is String)
+                            return new String();
+                        else
+                            return TypeCaster.HigherPriorityType(LOperandType, ROperandType);
+                    ReportErrorInArithExpression(new ErrorForDebug($"Оператор [+] должен использоваться с операндами числового типа, или для конкатенации строк"));
+                    if (!(LOperandType is NumericType) && !(LOperandType is String))
+                        return LOperandType;
+                    else
+                        return ROperandType;
+
 
                 case BinaryExpression.BinaryOperator.LShift:
                 case BinaryExpression.BinaryOperator.RShift:
@@ -239,6 +257,8 @@ namespace alm.Core.FrontEnd.SemanticAnalysis.type_checker_new
         }
         public static void ResolveConditionExpressionType(Expression condition)
         {
+            TypeCaster.TryToCastConditionExpression(condition);
+            ReportErrors = false;
             InnerType ConditionType = ResolveExpressionType(condition);
             if (!(ConditionType is Boolean))
                 Diagnostics.SemanticErrors.Add(new ErrorForDebug($"Выражение условия должно быть типа [boolean]"));
@@ -251,10 +271,10 @@ namespace alm.Core.FrontEnd.SemanticAnalysis.type_checker_new
         public static void ResolveAssignmentStatementType(AssignmentStatement assignment)
         {
             TypeCaster.TryToCastAssignmentStatement(assignment);
+            ReportErrors = true;
             InnerType AdressorType = ResolveAdressorExpressionType(assignment.AdressorExpressions[0]);
             InnerType AdressableType = ResolveExpressionType(assignment.AdressableExpression);
 
-            //try to cast 
             if (AdressorType != AdressableType)
                 ReportError(new ErrorForDebug($"Несовместимые типы при присваивании значения переменной, ожидался тип [{AdressorType}], а встречен тип [{AdressableType}]"));
         }
@@ -267,7 +287,7 @@ namespace alm.Core.FrontEnd.SemanticAnalysis.type_checker_new
                 ParameterDeclaration methodParameter = (ParameterDeclaration)method.Parameters[i];
                 InnerType methodParameterType = ResolveExpressionType(methodParameter.ParameterInstance);
                 if (tableArgument.Type != methodParameterType)
-                    Diagnostics.SemanticErrors.Add(new ErrorForDebug($"Несовместимый тип параметра функции, ожидался тип [{tableArgument.Type}], а встречен тип [{methodParameterType}]"));
+                    ReportError(new ErrorForDebug($"Несовместимый тип параметра функции [{method.Name}], ожидался тип [{tableArgument.Type}], а встречен тип [{methodParameterType}]"));
             }
         }
         public static void ResolveReturnStatemetsTypes(SyntaxTreeNode inNode)
@@ -277,11 +297,13 @@ namespace alm.Core.FrontEnd.SemanticAnalysis.type_checker_new
         }
         public static void ResolveReturnStatementType(ReturnStatement returnStatement)
         {
+            TypeCaster.TryToCastReturnStatement(returnStatement);
+            ReportErrors = true;
             MethodDeclaration method = (MethodDeclaration)returnStatement.GetParentByType(typeof(MethodDeclaration));
-            InnerType returnStatementType = ResolveExpressionType(returnStatement.ReturnBody);
-
             if (returnStatement.IsVoidReturn && method.ReturnType is Void)
                 return;
+
+            InnerType returnStatementType = ResolveExpressionType(returnStatement.ReturnBody);
 
             if (method.ReturnType != returnStatementType)
                 ReportError(new ErrorForDebug($"Несовместимый тип возвращаемого значения функции, ожидался тип [{method.ReturnType}], а встречен тип [{returnStatementType}]"));
@@ -293,6 +315,8 @@ namespace alm.Core.FrontEnd.SemanticAnalysis.type_checker_new
         }
         public static void ResolveMethodInvokationStatementTypes(MethodInvokationStatement method)
         {
+            TypeCaster.TryToCastMethodInvokationStatement(method);
+            ReportErrors = true;
             MethodInvokationExpression methodInvokationExpression = (MethodInvokationExpression)method.Instance;
             foreach (ParameterDeclaration parameter in methodInvokationExpression.Parameters)
                 ResolveMethodParametersTypes(parameter);
@@ -303,7 +327,8 @@ namespace alm.Core.FrontEnd.SemanticAnalysis.type_checker_new
             if (!ErrorInArithReported)
             {
                 ReportError(error);
-                ErrorInArithReported = true;
+                if (ReportErrors)
+                    ErrorInArithReported = true;
             }
         }
         public static void ReportErrorInBooleanExpression(SemanticError error)
@@ -311,12 +336,14 @@ namespace alm.Core.FrontEnd.SemanticAnalysis.type_checker_new
             if (!ErrorInBooleanReported)
             {
                 ReportError(error);
-                ErrorInBooleanReported = true;
+                if (ReportErrors)
+                    ErrorInBooleanReported = true;
             }
         }
         public static void ReportError(SemanticError error)
         {
-            Diagnostics.SemanticErrors.Add(error);
+            if (ReportErrors)
+                Diagnostics.SemanticErrors.Add(error);
         }
     }
 
@@ -342,12 +369,14 @@ namespace alm.Core.FrontEnd.SemanticAnalysis.type_checker_new
             Int64ToFloat64,
             Float32ToFloat64,
             Int32ToInt64,
+            NoNeedToCast,
             Undefined,
         }
 
         public static bool CanCast(InnerType fType, InnerType sType, bool bothCases = true)
         {
-            if (fType == sType) return false;
+            if (fType == sType) 
+                return true;
             if (fType is NumericType && sType is NumericType)
             {
                 NumericType toC = (NumericType)sType;
@@ -365,7 +394,6 @@ namespace alm.Core.FrontEnd.SemanticAnalysis.type_checker_new
             }
             else return false;
         }
-
         public static InnerType HigherPriorityType(InnerType ftype, InnerType stype)
         {
             if (ftype is NumericType && stype is NumericType)
@@ -378,9 +406,10 @@ namespace alm.Core.FrontEnd.SemanticAnalysis.type_checker_new
             }
             else return null;
         }
-
         public static CastCase DefineCastCase(InnerType ftype, InnerType stype)
         {
+            if (ftype == stype)
+                return CastCase.NoNeedToCast;
             if (CanCast(ftype, stype))
             {
                 string castCaseStr;
@@ -396,77 +425,162 @@ namespace alm.Core.FrontEnd.SemanticAnalysis.type_checker_new
             return CastCase.Undefined;
         }
 
+        public static void TryToCastAssignmentStatement(AssignmentStatement assignment)
+        {
+            TypeChecker.ReportErrors = false;
+            InnerType adressorType = TypeChecker.ResolveExpressionType(assignment.AdressorExpressions[0]);
+            TryToCastExpression(assignment.AdressableExpression, adressorType);
+        }
+        public static void TryToCastMethodInvokationStatement(MethodInvokationStatement method)
+        {
+            TypeChecker.ReportErrors = false;
+            TryToCastMethodParameters((MethodInvokationExpression)method.Instance);
+        }
+        public static void TryToCastConditionExpression(Expression condition)
+        {
+            TypeChecker.ReportErrors = false;
+            switch (condition.NodeKind)
+            {
+                case NodeType.UnaryBooleanExpression:
+                    TryToCastUnaryBooleanExpression((UnaryBooleanExpression)condition);
+                    break;
+                case NodeType.BinaryBooleanExpression:
+                    TryToCastBinaryBooleanExpression((BinaryBooleanExpression)condition);
+                    break;
+            }
+        }
+        public static void TryToCastReturnStatement(ReturnStatement returnStatement)
+        {
+            TypeChecker.ReportErrors = false;
+            MethodDeclaration method = (MethodDeclaration)returnStatement.GetParentByType(typeof(MethodDeclaration));
+            if (!returnStatement.IsVoidReturn)
+                TryToCastExpression(returnStatement.ReturnBody,method.ReturnType);
+        }
+
         public static void TryToCastExpression(Expression expression, InnerType toType)
         {
             switch (expression.NodeKind)
             {
-                /*case NodeType.BinaryArithExpression:
-                    //CastBinaryArithExpression(expression.Parent, (BinaryArithExpression)expression, toType, castCase);
-                    break;*/
+                case NodeType.BinaryArithExpression:
+                    TryToCastBinaryArithExpression((BinaryArithExpression)expression, toType);
+                    break;
+                case NodeType.UnaryArithexpression:
+                    TryToCastUnaryArithExpression((UnaryArithExpression)expression, toType);
+                    break;
+                case NodeType.UnaryBooleanExpression:
+                    TryToCastUnaryBooleanExpression((UnaryBooleanExpression)expression);
+                    break;
+                case NodeType.BinaryBooleanExpression:
+                    TryToCastBinaryBooleanExpression((BinaryBooleanExpression)expression);
+                    break;
 
                 case NodeType.RealConstant:
                 case NodeType.CharConstant:
                 case NodeType.IntegerConstant:
-                case NodeType.StringConstant:
-                    TryToCastConstantExpression((ConstantExpression)expression,toType);
+                    TryToCastConstantExpression((ConstantExpression)expression, toType);
                     break;
 
                 case NodeType.Identifier:
-                    TryToCastIdentifierExpression((IdentifierExpression)expression,toType);
+                    TryToCastIdentifierExpression((IdentifierExpression)expression, toType);
                     break;
 
                 case NodeType.MethodInvokation:
                     TryToCastMethodInvokation((MethodInvokationExpression)expression, toType);
                     break;
 
-                case NodeType.Parameter:
-
-                    break;
-
                 case NodeType.ArrayElement:
-                    TryToCastArrayElementExpression((ArrayElementExpression)expression,toType);
+                    TryToCastArrayElementExpression((ArrayElementExpression)expression, toType);
                     break;
                 case NodeType.ArrayInstance:
                     break;
-                    
-                default:
-                    throw new System.Exception();
+
+                    //default:
+                    //   throw new System.Exception();
             }
         }
-        public static void TryToCastAssignmentStatement(AssignmentStatement assignment)
+
+        public static void TryToCastUnaryBooleanExpression(UnaryBooleanExpression unaryBoolean)
         {
-            InnerType adressorType = TypeChecker2.ResolveExpressionType(assignment.AdressorExpressions[0]);
-            TryToCastExpression(assignment.AdressableExpression, adressorType);
+            TryToCastExpression(unaryBoolean.Operand,new Undefined());
         }
-
-        public static void TryToCastMethodParameter(ParameterDeclaration parameter, InnerType toType)
+        public static void TryToCastBinaryBooleanExpression(BinaryBooleanExpression binaryBoolean)
         {
-            // method -> param -> inst
-            MethodInvokationExpression parent = (MethodInvokationExpression)parameter.Parent;
-            InnerType instanceType = TypeChecker2.ResolveExpressionType(parameter.ParameterInstance);
-
-            if (CanCast(instanceType, toType, false))
+            switch (binaryBoolean.OperatorKind)
             {
-                CastCase castCase = DefineCastCase(instanceType, toType);
-                MethodInvokationExpression castMethod = CreateCastMethod(parent, toType, new ParameterDeclaration[] { parameter }, castCase);
-                for (int i = 0; i < parent.Childs.Count; i++)
-                {
-                    if (parent.Childs[i] == parameter)
-                        parent.Childs[i] = new ParameterDeclaration(castMethod);
-                    if (parent.Parameters[i] == parameter)
-                    {
-                        parent.Parameters[i] = new ParameterDeclaration(castMethod);
-                        parent.Parameters[i].Parent = parent;
-                    }
-                }
+                case BinaryExpression.BinaryOperator.LessThan:
+                case BinaryExpression.BinaryOperator.GreaterThan:
+                case BinaryExpression.BinaryOperator.LessEqualThan:
+                case BinaryExpression.BinaryOperator.GreaterEqualThan:
+                    InnerType LOperandType = TypeChecker.ResolveExpressionType(binaryBoolean.LeftOperand);
+                    InnerType ROperandType = TypeChecker.ResolveExpressionType(binaryBoolean.RightOperand);
+                    InnerType toType = HigherPriorityType(LOperandType, ROperandType);
+                    TryToCastExpression(binaryBoolean.LeftOperand, toType);
+                    TryToCastExpression(binaryBoolean.RightOperand, toType);
+                    break;
+
+                default:
+                    TryToCastExpression(binaryBoolean.LeftOperand,new Undefined());
+                    TryToCastExpression(binaryBoolean.RightOperand, new Undefined());
+                    break;
+
             }
         }
+        public static void TryToCastUnaryArithExpression(UnaryArithExpression unaryArith, InnerType toType)
+        {
+            SyntaxTreeNode parent = unaryArith;
+            InnerType operandType = TypeChecker.ResolveExpressionType(unaryArith.Operand);
+            if (CanCast(operandType, toType, false))
+            {
+                CastCase castCase = DefineCastCase(operandType, toType);
+                Expression castMethod = CreateCastMethod(parent, toType, new ParameterDeclaration[] { new ParameterDeclaration(unaryArith.Operand) }, castCase);
+                Replace(parent, unaryArith.Operand, castMethod);
+            }
+        }
+        public static void TryToCastBinaryArithExpression(BinaryArithExpression binaryArith, InnerType toType, bool inCastedBinary = false)
+        {
+            SyntaxTreeNode parent = binaryArith.Parent;
+            InnerType LOperandType = TypeChecker.ResolveExpressionType(binaryArith.LeftOperand);
+            InnerType ROperandType = TypeChecker.ResolveExpressionType(binaryArith.RightOperand);
+            switch (binaryArith.OperatorKind)
+            {
+                case BinaryExpression.BinaryOperator.LShift:
+                case BinaryExpression.BinaryOperator.RShift:
+                case BinaryExpression.BinaryOperator.BitwiseOr:
+                case BinaryExpression.BinaryOperator.BitwiseAnd:
+                case BinaryExpression.BinaryOperator.BitwiseXor:
+                    if (DefineCastCase(LOperandType, toType) != CastCase.Undefined)
+                    {
+                        if (binaryArith.LeftOperand.NodeKind == NodeType.BinaryArithExpression)
+                            TryToCastBinaryArithExpression((BinaryArithExpression)binaryArith.LeftOperand, new Int32(), true);
+                        else
+                            TryToCastExpression(binaryArith.LeftOperand,new Int32());
+                    }
+                    if (DefineCastCase(ROperandType, toType) != CastCase.Undefined)
+                    {
+                        if (binaryArith.RightOperand.NodeKind == NodeType.BinaryArithExpression)
+                            TryToCastBinaryArithExpression((BinaryArithExpression)binaryArith.RightOperand, new Int32(), true);
+                        else
+                            TryToCastExpression(binaryArith.RightOperand, new Int32());
+                    }
+                    if (!inCastedBinary)
+                    {
+                        CastCase castCase = DefineCastCase(TypeChecker.ResolveBinaryArithExpressionType(binaryArith), toType);
+                        Expression castMethod = CreateCastMethod(parent, toType, new ParameterDeclaration[] { new ParameterDeclaration(binaryArith) }, castCase);
+                        Replace(parent, binaryArith, castMethod);
+                    }
+                    break;
 
+                default:
+                    TryToCastExpression(binaryArith.LeftOperand, toType);
+                    TryToCastExpression(binaryArith.RightOperand, toType);
+                    break;
+            }
+        }
         public static void TryToCastMethodParameters(MethodInvokationExpression method)
         {
             TableMethod tableMethod = GlobalTable.Table.FetchMethod(method.Name,method.ArgCount);
             for (int i = 0; i < tableMethod.ArgCount; i++)
-                TryToCastMethodParameter((ParameterDeclaration)method.Parameters[i],tableMethod.Arguments[i].Type);    
+                TryToCastExpression(((ParameterDeclaration)method.Parameters[i]).ParameterInstance,tableMethod.Arguments[i].Type);    
         }
         public static void TryToCastMethodInvokation(MethodInvokationExpression method, InnerType toType)
         {
@@ -475,7 +589,7 @@ namespace alm.Core.FrontEnd.SemanticAnalysis.type_checker_new
             if (CanCast(method.ReturnType, toType, false))
             {
                 CastCase castCase = DefineCastCase(method.ReturnType, toType);
-                MethodInvokationExpression castMethod = CreateCastMethod(parent, toType, new ParameterDeclaration[] { new ParameterDeclaration(method) }, castCase);
+                Expression castMethod = CreateCastMethod(parent, toType, new ParameterDeclaration[] { new ParameterDeclaration(method) }, castCase);
                 Replace(parent, method, castMethod);
             }
         }
@@ -485,7 +599,7 @@ namespace alm.Core.FrontEnd.SemanticAnalysis.type_checker_new
             if (CanCast(identifier.Type, toType, false))
             {
                 CastCase castCase = DefineCastCase(identifier.Type, toType);
-                MethodInvokationExpression castMethod = CreateCastMethod(parent, toType, new ParameterDeclaration[] { new ParameterDeclaration(identifier) }, castCase);
+                Expression castMethod = CreateCastMethod(parent, toType, new ParameterDeclaration[] { new ParameterDeclaration(identifier) }, castCase);
                 Replace(parent, identifier, castMethod);
             }
         }
@@ -495,7 +609,7 @@ namespace alm.Core.FrontEnd.SemanticAnalysis.type_checker_new
             if (CanCast(arrayElement.Type, toType, false))
             {
                 CastCase castCase = DefineCastCase(arrayElement.Type, toType);
-                MethodInvokationExpression castMethod = CreateCastMethod(parent, toType, new ParameterDeclaration[] { new ParameterDeclaration(arrayElement) }, castCase);
+                Expression castMethod = CreateCastMethod(parent, toType, new ParameterDeclaration[] { new ParameterDeclaration(arrayElement) }, castCase);
                 Replace(parent, arrayElement, castMethod);
             }
         }
@@ -505,82 +619,22 @@ namespace alm.Core.FrontEnd.SemanticAnalysis.type_checker_new
             if (CanCast(constant.Type,toType,false))
             {
                 CastCase castCase = DefineCastCase(constant.Type,toType);
-                MethodInvokationExpression castMethod = CreateCastMethod(parent,toType,new ParameterDeclaration[] { new ParameterDeclaration(constant)},castCase);
+                Expression castMethod = CreateCastMethod(parent,toType,new ParameterDeclaration[] { new ParameterDeclaration(constant)},castCase);
                 Replace(parent,constant,castMethod);
             }
         }
-        private static MethodInvokationExpression CreateCastMethod(SyntaxTreeNode parent,InnerType returnType,ParameterDeclaration[] parameters, CastCase castCase)
+        private static Expression CreateCastMethod(SyntaxTreeNode parent,InnerType returnType,ParameterDeclaration[] parameters, CastCase castCase)
         {
-            MethodInvokationExpression castMethod = new MethodInvokationExpression(GetCastFunctionName(castCase),parameters,parameters[0].SourceContext);
-            castMethod.ReturnType = returnType;
+            Expression castMethod;
+            if (castCase != CastCase.NoNeedToCast)
+            {
+                castMethod = new MethodInvokationExpression(GetCastMethodName(castCase), parameters, parameters[0].SourceContext);
+                ((MethodInvokationExpression)castMethod).ReturnType = returnType;
+            }
+            else
+                castMethod = parameters[0].ParameterInstance;
             castMethod.Parent = parent;
             return castMethod;
-        }
-
-        public static void CastAssignmentExpression(AssignmentStatement assignmentStatement, InnerType expressionType, InnerType expectedType)
-        {
-            if (CanCast(expressionType, expectedType, false))
-            {
-                CastCase castCase = DefineCastCase(expressionType, expectedType);
-                CastExpression(assignmentStatement.AdressableExpression, expectedType, castCase);
-            }
-        }
-        public static void CastExpression(Expression expression, InnerType toType, CastCase castCase)
-        {
-            if (castCase == CastCase.Undefined)
-                return;
-            switch(expression.NodeKind)
-            {
-                case NodeType.BinaryArithExpression:
-                    CastBinaryArithExpression(expression.Parent,(BinaryArithExpression)expression, toType, castCase);
-                    break;
-
-                case NodeType.RealConstant:
-                case NodeType.CharConstant:
-                case NodeType.IntegerConstant:
-                    CastConstantExpression(expression.Parent,(ConstantExpression)expression, toType, castCase);
-                    break;
-
-                case NodeType.Identifier:
-                    CastIdentifierExpression(expression.Parent, (IdentifierExpression)expression, toType, castCase);
-                    break;
-
-                default:
-                    throw new System.Exception();
-            }
-        }
-        public static void CastIdentifierExpression(SyntaxTreeNode parent, IdentifierExpression identifier, InnerType toType,CastCase castCase)
-        {
-            MethodInvokationExpression castMethod = new MethodInvokationExpression(GetCastFunctionName(castCase), new ParameterDeclaration[] { new ParameterDeclaration(identifier) }, identifier.SourceContext);
-            castMethod.ReturnType = toType;
-            castMethod.Parent = parent;
-            Replace(parent, identifier, castMethod);
-        }
-        public static void CastBinaryArithExpression(SyntaxTreeNode parent, BinaryArithExpression binaryArith, InnerType toType, CastCase castCase)
-        {
-            switch (binaryArith.OperatorKind)
-            {
-                case BinaryExpression.BinaryOperator.LShift:
-                case BinaryExpression.BinaryOperator.RShift:
-                case BinaryExpression.BinaryOperator.BitwiseOr:
-                case BinaryExpression.BinaryOperator.BitwiseAnd:
-                case BinaryExpression.BinaryOperator.BitwiseXor:
-                    CastExpression(binaryArith.LeftOperand, new Int32(), DefineCastCase(TypeChecker2.ResolveExpressionType(binaryArith.LeftOperand),new Int32()));
-                    CastExpression(binaryArith.RightOperand, new Int32(), DefineCastCase(TypeChecker2.ResolveExpressionType(binaryArith.RightOperand), new Int32()));
-                    break;
-
-                default:
-                    CastExpression(binaryArith.LeftOperand, toType, castCase);
-                    CastExpression(binaryArith.RightOperand, toType, castCase);
-                    break;
-            }
-        }
-        public static void CastConstantExpression(SyntaxTreeNode parent, ConstantExpression constant, InnerType toType, CastCase castCase)
-        {
-            MethodInvokationExpression castMethod = new MethodInvokationExpression(GetCastFunctionName(castCase), new ParameterDeclaration[] { new ParameterDeclaration(constant) }, constant.SourceContext);
-            castMethod.ReturnType = toType;
-            castMethod.Parent = parent;
-            Replace(parent, constant, castMethod);
         }
 
         public static void Replace(SyntaxTreeNode parent,SyntaxTreeNode replaceThis, SyntaxTreeNode addThis)
@@ -592,17 +646,30 @@ namespace alm.Core.FrontEnd.SemanticAnalysis.type_checker_new
             switch (parent.NodeKind)
             {
                 case NodeType.MethodInvokation:
-                    for (int i = 0; i < ((MethodInvokationExpression)parent).Parameters.Length; i++)
+                    for (int i = 0; i < parent.Childs.Count; i++)
+                    {
                         if (((MethodInvokationExpression)parent).Parameters[i] == replaceThis)
                         {
                             ((MethodInvokationExpression)parent).Parameters[i] = new ParameterDeclaration((Expression)addThis);
                             ((MethodInvokationExpression)parent).Parameters[i].Parent = parent;
                         }
+                    }
+                    break;
+
+                case NodeType.MethodInvokationAsStatement:
+                    for (int i = 0; i < parent.Childs.Count; i++)
+                    {
+                        if (((MethodInvokationExpression)((MethodInvokationStatement)parent).Instance).Parameters[i] == replaceThis)
+                        {
+                            ((MethodInvokationExpression)((MethodInvokationStatement)parent).Instance).Parameters[i] = new ParameterDeclaration((Expression)addThis);
+                            ((MethodInvokationExpression)((MethodInvokationStatement)parent).Instance).Parameters[i].Parent = parent;
+                        }
+                    }
                     break;
             }
         }
 
-        public static string GetCastFunctionName(CastCase castCase)
+        public static string GetCastMethodName(CastCase castCase)
         {
             switch (castCase)
             {
@@ -619,6 +686,5 @@ namespace alm.Core.FrontEnd.SemanticAnalysis.type_checker_new
                     throw new System.Exception("??");
             }
         }
-
     }
 }

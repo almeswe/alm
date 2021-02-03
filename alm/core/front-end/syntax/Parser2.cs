@@ -22,7 +22,7 @@ namespace alm.Core.FrontEnd.SyntaxAnalysis.new_parser_concept.syntax_tree
         public static string CompilationEntryModule;
         //Current parsing file
         public static string CurrentParsingModule;
-        //All imports mentioned in this compilation
+        //All imports mentioned in this compilation [FILENAME : IMPORTS]
         public static Dictionary<string, List<string>> CompilationImports = new Dictionary<string, List<string>>();
     }
 
@@ -1406,7 +1406,7 @@ namespace alm.Core.FrontEnd.SyntaxAnalysis.new_parser_concept.syntax_tree
     }
     public sealed class ReturnStatement : JumpStatement
     {
-        public Expression ReturnBody { get; private set; }
+        public Expression ReturnBody => (Expression)this.Childs.Last();
         public bool IsVoidReturn { get; private set; }
 
         public override NodeType NodeKind => NodeType.Return;
@@ -1414,7 +1414,6 @@ namespace alm.Core.FrontEnd.SyntaxAnalysis.new_parser_concept.syntax_tree
         public ReturnStatement(Expression returnBody, SourceContext context)
         {
             this.SourceContext = context;
-            this.ReturnBody = returnBody;
 
             if (returnBody == null)
                 this.IsVoidReturn = true;
@@ -1741,7 +1740,7 @@ namespace alm.Core.FrontEnd.SyntaxAnalysis.new_parser_concept.syntax_tree
     public sealed class ParameterDeclaration : Expression
     {
         public InnerType Type { get; set; }
-        public Expression ParameterInstance { get; private set; }
+        public Expression ParameterInstance => (Expression)this.Childs.Last();
 
         public override NodeType NodeKind => NodeType.Parameter;
         public override ConsoleColor ConsoleColor => ConsoleColor.DarkCyan;
@@ -1749,8 +1748,6 @@ namespace alm.Core.FrontEnd.SyntaxAnalysis.new_parser_concept.syntax_tree
         public ParameterDeclaration(Expression parameter)
         {
             this.SetSourceContext(parameter);
-
-            this.ParameterInstance = parameter;
             this.AddNodes(parameter);
         }
     }
@@ -1996,8 +1993,6 @@ namespace alm.Core.FrontEnd.SyntaxAnalysis.new_parser_concept.syntax_tree
         }
 
         public BinaryOperator OperatorKind { get; set; }
-        public InnerType LeftOperandType  { get; set; }
-        public InnerType RightOperandType { get; set; }
 
         public Expression LeftOperand => (Expression)this.Childs[0];
         public Expression RightOperand => (Expression)this.Childs[1];
@@ -2060,8 +2055,6 @@ namespace alm.Core.FrontEnd.SyntaxAnalysis.new_parser_concept.syntax_tree
             PostfixIncrement,
             PostfixDecrement,
         }
-
-        public InnerType OperandType { get; set; }
 
         public UnaryOperator OperatorKind { get; set; }
         public Expression Operand => (Expression)this.Childs[0];
@@ -2188,7 +2181,7 @@ namespace alm.Core.FrontEnd.SyntaxAnalysis.new_parser_concept.syntax_tree
             {
                 LabelChecker2.ResolveModule(this.Root);
                 if (!Diagnostics.SemanticAnalysisFailed)
-                    TypeChecker2.ResolveModuleTypes(this.Root);
+                    TypeChecker.ResolveModuleTypes(this.Root);
             }
         }
 

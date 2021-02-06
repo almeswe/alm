@@ -30,7 +30,7 @@
         EqualMore,
         Equal,
         NotEqual,
-        AssignmentExpression,
+        AssignmentStatement,
         Declaration,
         Division,
         Multiplication,
@@ -47,13 +47,16 @@
         Arguments,
         Return,
         UnaryBooleanExpression,
-        UnaryArithexpression,
+        UnaryArithExpression,
         BinaryArithExpression,
         BinaryBooleanExpression,
 
         Continue,
         Break,
         For,
-        Error,
+        ErrorInStatement,
+        ErrorInExpression,
+
+        Parameter,
     };
 }

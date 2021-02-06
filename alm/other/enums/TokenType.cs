@@ -8,6 +8,7 @@
         tkIDivAssign,
         tkFDivAssign,
         tkMultAssign,
+        tkPowerAssign,
         tkRemndrAssign,
         tkLShiftAssign,
         tkRShiftAssign,
@@ -15,16 +16,16 @@
         tkBitwiseAndAssign,
         tkBitwiseXorAssign,
 
-
         tkType,
         tkIntConst,
         tkCharConst,
-        tkFloatConst,
+        tkRealConst,
         tkArrayConst,
         tkStringConst,
         tkBooleanConst,
 
         tkPlus,
+        tkPower,
         tkMinus,
         tkMult,
         tkIDiv,
@@ -36,8 +37,8 @@
         tkBitwiseAnd,
         tkBitwiseXor,
 
-
         tkOr,
+        tkXor,
         tkNot,
         tkAnd,
         tkLess,
@@ -49,10 +50,13 @@
 
         tkDo,
         tkIf,
+        tkFor,
         tkRet,
         tkElse,
         tkWhile,
+        tkBreak,
         tkImport,
+        tkContinue,
 
         tkAt, //@
         tkLbra,
@@ -67,13 +71,12 @@
         tkSQuote,
         tkSemicolon,
 
-        tkId,
+        tkIdentifier,
         tkOf,
         tkFunc,
         tkGlobal,
         tkExternalProp,
 
-        tkUnknown,
         tkNull,
         tkEOF
     }

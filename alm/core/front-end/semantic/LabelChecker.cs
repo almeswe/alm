@@ -1,7 +1,9 @@
 ﻿using alm.Core.Errors;
+using alm.Core.Table;
 using alm.Core.InnerTypes;
-using alm.Core.VariableTable;
-using alm.Core.FrontEnd.SyntaxAnalysis;
+using alm.Core.SyntaxTree;
+
+using alm.Other.Enums;
 
 using static alm.Core.Compiler.Compiler;
 
@@ -9,241 +11,256 @@ namespace alm.Core.FrontEnd.SemanticAnalysis
 {
     public sealed class LabelChecker
     {
-        private static bool IsMainDeclared = false;
+        private static bool IsMainDeclared;
 
-        public static void ResolveProgram(AbstractSyntaxTree ast)
+        public static void ResolveModule(SyntaxTreeNode module)
         {
             IsMainDeclared = false;
+            GlobalTable.Table = Table.Table.CreateTable(null,1);
+            foreach (MethodDeclaration method in module.GetChildsByType(typeof(MethodDeclaration),true))
+                ResolveMethodDeclaration(method);
 
-            foreach (FunctionDeclaration function in ast.Root.GetChildsByType("FunctionDeclaration", true))
-            {
-
-            }
-
-            foreach (FunctionDeclaration function in ast.Root.GetChildsByType("FunctionDeclaration", true))
-            {
-                ResolveMainFunction(function);
-                ResolveFunctionDeclaration(function, GlobalTable.Table);
-            }
-
-            if (!IsMainDeclared) 
-                Diagnostics.SemanticErrors.Add(new InExexutableFileMainExprected());
+            if (!IsMainDeclared)
+                Diagnostics.SemanticErrors.Add(new MainMethodExpected());
         }
-        public static void SetFunctions(FunctionDeclaration functionDeclaration)
+
+        public static void ResolveMainDeclaration(MethodDeclaration method)
         {
-            Table ThisTable = Table.CreateTable(GlobalTable.Table);
-            if (GlobalTable.Table.PushFunction(functionDeclaration))
+            if (method.Name == "main")
+                if (method.ArgCount == 0 && method.ReturnType is Int32)
+                    IsMainDeclared = true;
+        }
+
+        public static void ResolveMethodDeclaration(MethodDeclaration method)
+        {
+            Table.Table MethodTable = Table.Table.CreateTable(GlobalTable.Table);
+            if (GlobalTable.Table.PushMethod(method))
             {
-                ResolveArguments(functionDeclaration.Arguments, ThisTable);
-                if (!functionDeclaration.External)
+                ResolveMainDeclaration(method);
+                ResolveMethodArguments(method.Arguments, MethodTable);
+                if (!method.IsExternal)
                 {
-                    ResolveBody(functionDeclaration.Body, ThisTable);
-                    if (functionDeclaration.Type.GetEquivalence() != typeof(void))
-                        if (!ResolveBlockForReturn(functionDeclaration.Body))
-                            Diagnostics.SemanticErrors.Add(new NotAllCodePathsReturnValue(functionDeclaration.SourceContext));
+                    if (!(method.ReturnType is Void))
+                        ResolveReturnInBody(method.Body);
+                    ResolveEmbeddedStatement(method.Body, MethodTable);
                 }
             }
             else
-                Diagnostics.SemanticErrors.Add(new ThisFunctionAlreadyDeclared(functionDeclaration.Name, functionDeclaration.SourceContext));
+                Diagnostics.SemanticErrors.Add(new MethodIsAlreadyDeclared(method.Name,method.SourceContext));
+        }
+        public static void ResolveEmbeddedStatement(EmbeddedStatement body, Table.Table table)
+        {
+            Table.Table bodyTable = Table.Table.CreateTable(table);
+            foreach (SyntaxTreeNode statement in body.Childs)
+                ResolveStatement((Statement)statement, bodyTable);
         }
 
-        public static void ResolveMainFunction(FunctionDeclaration functionDeclaration)
+        public static void ResolveStatement(Statement statement, Table.Table table)
         {
-            if (functionDeclaration.Name == "main")
-                if (functionDeclaration.SourceContext.FilePath == CompilingSourceFile)
-                    if (!IsMainDeclared) IsMainDeclared = true;
-        }
-        public static void ResolveFunctionDeclaration(FunctionDeclaration functionDeclaration, Table Table)
-        {
-            Table ThisTable = Table.CreateTable(Table);
-            if (Table.PushFunction(functionDeclaration))
+            switch(statement.NodeKind)
             {
-                ResolveArguments(functionDeclaration.Arguments, ThisTable);
-                if (!functionDeclaration.External)
-                {
-                    ResolveBody(functionDeclaration.Body, ThisTable);
-                    if (functionDeclaration.Type.GetEquivalence() != typeof(void))
-                        if (!ResolveBlockForReturn(functionDeclaration.Body)) 
-                            Diagnostics.SemanticErrors.Add(new NotAllCodePathsReturnValue(functionDeclaration.SourceContext));
-                }
+                case NodeType.AssignmentStatement:
+                    ResolveAssignmentStatement((AssignmentStatement)statement,table);
+                    break;
+                case NodeType.Declaration:
+                    ResolveDeclarationStatement((IdentifierDeclaration)statement,table);
+                    break;
+                case NodeType.MethodInvokationAsStatement:
+                    ResolveMethodInvokationStatement((MethodInvokationStatement)statement,table);
+                    break;
+                case NodeType.If:
+                    ResolveIfStatement((IfStatement)statement,table);
+                    break;
+                case NodeType.Do:
+                case NodeType.While:
+                    ResolveIterationStatement((IterationStatement)statement,table);
+                    break;
+                case NodeType.Break:
+                case NodeType.Return:
+                case NodeType.Continue:
+                    ResolveJumpStatement((JumpStatement)statement,table);
+                    break;
+
+                default:
+                    throw new System.Exception();
+            }
+        }
+        public static void ResolveJumpStatement(JumpStatement jumpStatement, Table.Table table)
+        {
+            if (jumpStatement.IsContinue() | jumpStatement.IsBreak())
+            {
+                if (!jumpStatement.IsSituatedInLoop())
+                    Diagnostics.SemanticErrors.Add(new OperatorMustBeSituatedInLoop(jumpStatement.IsContinue() ? "сontinue" : "break",jumpStatement.SourceContext));
             }
             else
-                Diagnostics.SemanticErrors.Add(new ThisFunctionAlreadyDeclared(functionDeclaration.Name, functionDeclaration.SourceContext));
+                ResolveExpression(((ReturnStatement)jumpStatement).ReturnBody, table);
         }
-        public static void ResolveBody(Body body,Table table)
+        public static void ResolveIterationStatement(IterationStatement iterationStatement, Table.Table table)
         {
-            for (int i = 0; i < body.Nodes.Count; i++)
-                if (body.Nodes[i] is Statement)
-                    ResolveStatement((Statement)body.Nodes[i], table);
-                else if (body.Nodes[i] is Expression)
-                    ResolveExpression((Expression)body.Nodes[i], table);
+            ResolveExpression(iterationStatement.Condition, table);
+            ResolveEmbeddedStatement((EmbeddedStatement)iterationStatement.Body, table);
         }
-        public static void ResolveCondition(Condition condition, Table table)
+        public static void ResolveIfStatement(IfStatement ifStatement, Table.Table table)
         {
-            Body Block = (Body)condition.GetParentByType("Body");
-            ResolveMainElements(condition.Nodes[0], Block, table);
+            ResolveExpression(ifStatement.Condition,table);
+            ResolveEmbeddedStatement((EmbeddedStatement)ifStatement.Body,table);
+            if (ifStatement.ElseBody != null)
+                ResolveEmbeddedStatement((EmbeddedStatement)ifStatement.ElseBody, table);
         }
-        public static void ResolveBinaryExpression(BinaryExpression binaryExpression, Table table)
-        {
-            Body Block = (Body)binaryExpression.GetParentByType("Body");
-            ResolveMainElements(binaryExpression,Block,table);
-        }
-        public static void ResolveArguments(Arguments arguments, Table table)
-        {
-            foreach (IdentifierExpression identifier in arguments.GetChildsByType("IdentifierDeclaration", true))
-                //arg's representation is: <arg_decl> ::= <type_expr> <id_expr>
-                ResolveIdentifierExpression(identifier, table, true);
-        }
-        public static void ResolveIdentifierExpression(IdentifierExpression identifierExpression, Table table, bool init = false, bool checkInit = false, Body inBlock = null)
-        {
-            if (identifierExpression is IdentifierDeclaration)
-                if (table.PushIdentifier(identifierExpression))
-                {
-                    if (init)
-                        table.SetGlobalInitialization(identifierExpression);
-                }
-                else
-                    Diagnostics.SemanticErrors.Add(new ThisIdentifierAlreadyDeclared(identifierExpression.Name, identifierExpression.SourceContext));
 
-            else if (identifierExpression is IdentifierCall)
-                if (!table.CheckIdentifier(identifierExpression.Name))
-                    Diagnostics.SemanticErrors.Add(new ThisIdentifierNotDeclared(identifierExpression.Name, identifierExpression.SourceContext));
-                else
-                {
-                    identifierExpression.Type = table.FetchIdentifier(identifierExpression).Type;
-                    if (checkInit)
-                    {
-                        if (inBlock != null)
-                        {
-                            bool initialized = false;
-                            for (SyntaxTreeNode thisBlock = inBlock;thisBlock != null;thisBlock = thisBlock.GetParentByType("Body"))
-                                if (table.IsInitializedInBlock(identifierExpression, (Body)thisBlock)) 
-                                    initialized = true;
-
-                            if (!initialized)
-                                Diagnostics.SemanticErrors.Add(new ThisIdentifierNotInitialized(identifierExpression.Name, identifierExpression.SourceContext));
-                        }
-                        else
-                            if (!table.IsGloballyInitialized(identifierExpression))
-                                Diagnostics.SemanticErrors.Add(new ThisIdentifierNotInitialized(identifierExpression.Name, identifierExpression.SourceContext));
-                    }
-                }
-        }
-        public static void ResolveFunctionCall(FunctionCall functionCall, Table table)
+        public static void ResolveAssignmentStatement(AssignmentStatement assignment, Table.Table table)
         {
-            if (table.CheckFunction(functionCall.Name,functionCall.ArgumentCount))
+            EmbeddedStatement body = (EmbeddedStatement)assignment.GetParentByType(typeof(EmbeddedStatement));
+
+            ResolveExpression(assignment.AdressableExpression, table);
+
+            if (assignment.AdressorExpressions.Length > 1)
+                foreach (IdentifierExpression identifier in assignment.AdressorExpressions)
+                    ResolveIdentifierExpression(identifier, table, body);
+            else
+                ResolveAdressor(assignment.AdressorExpressions[0],body, table);
+        }
+        public static void ResolveDeclarationStatement(IdentifierDeclaration declaration, Table.Table table)
+        {
+            if (declaration.AssingningExpression != null)
+                ResolveAssignmentStatement(declaration.AssingningExpression, table);
+            else
+                foreach (IdentifierExpression identifier in declaration.DeclaringIdentifiers)
+                    ResolveIdentifierExpression(identifier, table, null);
+        }
+        public static void ResolveMethodInvokationStatement(MethodInvokationStatement method, Table.Table table)
+        {
+            ResolveMethodInvokation((MethodInvokationExpression)method.Instance, table);
+            ResolveMethodParameters(((MethodInvokationExpression)method.Instance).Parameters, table);
+        }
+
+        public static void ResolveIdentifierExpression(IdentifierExpression identifier, Table.Table table, EmbeddedStatement initializedInBlock, bool checkInit = true)
+        {
+            if (identifier.IdentifierState == IdentifierExpression.State.Decl)
             {
-                TableFunction func = table.FetchFunction(functionCall.Name, functionCall.ArgumentCount);
-                if (func.ArgumentCount != functionCall.ArgumentCount)
-                    Diagnostics.SemanticErrors.Add(new FunctionNotContainsThisNumberOfArguments(functionCall.Name, func.ArgumentCount, functionCall.ArgumentCount, functionCall.SourceContext));
-                else
-                {
-                    functionCall.Type = func.Type;
-                    foreach (var arg in functionCall.ArgumentsValues.Nodes)
-                        ResolveExpression((Expression)arg, table);
-                }
+                if (!table.PushIdentifier(identifier))
+                    Diagnostics.SemanticErrors.Add(new IdentifierIsAlreadyDeclared(identifier.Name,identifier.SourceContext));
+                if (initializedInBlock != null)
+                    table.InitializeInBlock(identifier, initializedInBlock);
             }
             else
-                Diagnostics.SemanticErrors.Add(new ThisFunctionNotDeclared(functionCall.Name,functionCall.SourceContext));
-        }
-        public static void ResolveStatement(Statement statement, Table table)
-        {
-            ResolveCondition(statement.Condition,table);
-            ResolveBody(statement.Body, Table.CreateTable(table));
-            if (statement.ElseBody != null) 
-                ResolveBody(statement.ElseBody, Table.CreateTable(table));
-        }
-        public static void ResolveReturnExpression(ReturnExpression returnExpression, Table table)
-        {
-            Body Block = (Body)returnExpression.GetParentByType("Body");
-            ResolveMainElements(returnExpression.Right, Block, table);
-        }
-        public static void ResolveExpression(Expression expression, Table table)
-        {
-            if      (expression is AssignmentExpression)  ResolveAssignmentExpression((AssignmentExpression)expression, table);
-            else if (expression is DeclarationExpression) ResolveDeclarationExpression((DeclarationExpression)expression, table);
-            else if (expression is IdentifierExpression)  ResolveIdentifierExpression((IdentifierExpression)expression,table,false,true, (Body)expression.GetParentByType("Body"));
-            else if (expression is ReturnExpression)      ResolveReturnExpression((ReturnExpression)expression, table);
-            else if (expression is BinaryExpression)      ResolveBinaryExpression((BinaryExpression)expression,table);
-            else if (expression is FunctionCall)          ResolveFunctionCall((FunctionCall)expression,table);
-            else if (expression is ArrayElement)          ResolveArrayElement((ArrayElement)expression, table);
-        }
-        public static void ResolveArrayElement(ArrayElement arrayElement, Table table)
-        {
-            if (table.CheckIdentifier(arrayElement.ArrayName))
             {
-                TableIdentifier identifier = table.FetchIdentifier(arrayElement.ArrayName);
-                if (identifier.Type is ArrayType)
-                {
-                    arrayElement.ArrayDimension = ((ArrayType)identifier.Type).Dimension;
-
-                    //возможно убрать GetDimensionElementType
-                    arrayElement.Type = ((ArrayType)identifier.Type).GetDimensionElementType(arrayElement.Dimension);
-
-                    if (arrayElement.Type is null)
-                        Diagnostics.SemanticErrors.Add(new ElementNotFromThisDimension(arrayElement.SourceContext));
-
-                    if (arrayElement.ArrayDimension != arrayElement.Dimension)
-                        Diagnostics.SemanticErrors.Add(new IncorrectDimension(arrayElement.ArrayDimension,arrayElement.SourceContext));
-                }
+                if (!table.CheckIdentifier(identifier.Name))
+                    Diagnostics.SemanticErrors.Add(new IdentifierIsNotDeclared(identifier.Name, identifier.SourceContext));
                 else
-                    Diagnostics.SemanticErrors.Add(new ArrayDoesNotExist(arrayElement.ArrayName, arrayElement.SourceContext));
+                {
+                    TableIdentifier tableIdentifier = table.FetchIdentifier(identifier.Name);
+                    identifier.Type = tableIdentifier.Type;
+
+                    //check for initialization in this block
+                    if (!table.IsInitializedInBlock(identifier, initializedInBlock) && checkInit)
+                        Diagnostics.SemanticErrors.Add(new IdentifierIsNotInitialized(identifier.Name, identifier.SourceContext));
+                }
+            }
+        }
+        public static void ResolveIdentifierExpressions(SyntaxTreeNode inNode, Table.Table table)
+        {
+            EmbeddedStatement body = (EmbeddedStatement)inNode.GetParentByType(typeof(EmbeddedStatement));
+            foreach (IdentifierExpression identifier in inNode.GetChildsByType(typeof(IdentifierExpression), true))
+                ResolveIdentifierExpression(identifier,table,body);
+        }
+
+        public static void ResolveAdressor(Expression adressor,EmbeddedStatement body, Table.Table table)
+        {
+            if (adressor is IdentifierExpression)
+            {
+                ResolveIdentifierExpression((IdentifierExpression)adressor, table, body, false);
+                table.InitializeInBlock((IdentifierExpression)adressor,body);
             }
             else
-                Diagnostics.SemanticErrors.Add(new ArrayDoesNotExist(arrayElement.ArrayName, arrayElement.SourceContext));
+                ResolveArrayElement((ArrayElementExpression)adressor, table);
         }
-        public static void ResolveAssignmentExpression(AssignmentExpression assignmentExpression, Table table)
-        {
-            Body Block = (Body)assignmentExpression.GetParentByType("Body");
 
-            if (assignmentExpression.Left is IdentifierExpression)
-                ResolveIdentifierExpression((IdentifierExpression)assignmentExpression.Left, table);
-            else if (assignmentExpression.Left is ArrayElement)
-                ResolveArrayElement((ArrayElement)assignmentExpression.Left, table);
+        public static void ResolveMethodInvokation(MethodInvokationExpression method, Table.Table table)
+        {
+            ResolveMethodParameters(method.Parameters, table);
 
-            ResolveMainElements(assignmentExpression.Right, Block, table);
-            if (assignmentExpression.Left is IdentifierExpression)
-                table.SetLocalBlockInitialization((IdentifierExpression)assignmentExpression.Left,Block);
+            if (table.CheckMethod(method.Name, method.GetArgumentsTypes(),true))
+            {
+                TableMethod tableMethod = table.FetchMethod(method.Name, method.GetArgumentsTypes());
+                for (int i = 0; i < method.ArgCount; i++)
+                    method.Parameters[i].Type = tableMethod.Arguments[i].Type;
+                method.ReturnType = tableMethod.ReturnType;
+            }
+            else
+                Diagnostics.SemanticErrors.Add(new MethodIsNotDeclared(method.Name,method.SourceContext));
         }
-        public static void ResolveDeclarationExpression(DeclarationExpression declarationExpression, Table table)
+        public static void ResolveMethodInvokations(SyntaxTreeNode inNode, Table.Table table)
         {
-            ResolveExpression((Expression)declarationExpression.Right, table);
+            foreach (MethodInvokationExpression method in inNode.GetChildsByType(typeof(MethodInvokationExpression),true))
+                ResolveMethodInvokation(method, table);
         }
-        public static void ResolveMainElements(SyntaxTreeNode node, Body blockForIdentifier, Table table)
+
+        public static void ResolveMethodParameters(ParameterDeclaration[] parameters, Table.Table table)
         {
-            foreach (IdentifierExpression identifierExpression in node.GetChildsByType("IdentifierCall", true))
-                ResolveIdentifierExpression(identifierExpression, table, false, true, blockForIdentifier);
-            foreach (ArrayElement arrayElement in node.GetChildsByType("ArrayElement", true))
+            foreach (ParameterDeclaration expression in parameters)
+                ResolveExpression(expression.ParameterInstance, table);
+        }
+        public static void ResolveMethodArguments(ArgumentDeclaration[] arguments, Table.Table table)
+        {
+            if (arguments.Length == 0)
+                return;
+            MethodDeclaration method = (MethodDeclaration)arguments[0].GetParentByType(typeof(MethodDeclaration));
+            foreach (ArgumentDeclaration argument in arguments)
+                ResolveIdentifierExpression(argument.Identifier, table, method.Body);
+        }
+
+        public static void ResolveExpression(Expression expression, Table.Table table)
+        {
+            ResolveIdentifierExpressions(expression, table);
+            ResolveMethodInvokations(expression, table);
+            ResolveArrayElements(expression, table);
+        }
+        public static void ResolveArrayElement(ArrayElementExpression arrayElement, Table.Table table)
+        {
+            if (table.CheckIdentifier(arrayElement.ArrayName) && table.FetchIdentifier(arrayElement.ArrayName).Type is ArrayType)
+            {
+                TableIdentifier tableIdentifier = table.FetchIdentifier(arrayElement.ArrayName);
+                arrayElement.ArrayDimension = (ushort)((ArrayType)tableIdentifier.Type).Dimension;
+                arrayElement.Type = ((ArrayType)tableIdentifier.Type).GetDimensionElementType(arrayElement.Dimension);
+
+                if (arrayElement.Type is null || arrayElement.ArrayDimension != arrayElement.Dimension)
+                    Diagnostics.SemanticErrors.Add(new WrongArrayElementDimension(arrayElement.SourceContext));
+            }
+            else
+                Diagnostics.SemanticErrors.Add(new ArrayIsNotDeclared(arrayElement.ArrayName,arrayElement.SourceContext));
+        }
+        public static void ResolveArrayElements(SyntaxTreeNode inNode, Table.Table table)
+        {
+            foreach (ArrayElementExpression arrayElement in inNode.GetChildsByType(typeof(ArrayElementExpression), true))
                 ResolveArrayElement(arrayElement, table);
-            foreach (FunctionCall functionCall in node.GetChildsByType("FunctionCall", true))
-                ResolveFunctionCall(functionCall, table);
         }
-        public static bool ResolveBlockForReturn(Body block)
+
+        public static bool ResolveReturnInBody(EmbeddedStatement body)
         {
-            bool resolvedGlobally = false;
+            if (body.GetChildsByType(typeof(ReturnStatement)).Length != 0)
+                return true;
 
-            foreach (var node in block.Nodes)
+            MethodDeclaration method = (MethodDeclaration)body.GetParentByType(typeof(MethodDeclaration));
+            SyntaxTreeNode[] ifConstructions = body.GetChildsByType(typeof(IfStatement),false,false);
+
+            if (body.Childs.Count == 0 || ifConstructions.Length == 0)
             {
-                if (node is Statement)
-                {
-                    bool ifElseResolved = false;
-
-                    if (!ResolveBlockForReturn(((Statement)node).Body))
-                        resolvedGlobally = false;
-                    else 
-                        ifElseResolved = true;
-
-                    if (((Statement)node).ElseBody != null)
-                        if (!ResolveBlockForReturn(((Statement)node).ElseBody))
-                            resolvedGlobally = false;
-                        else
-                            if (ifElseResolved) 
-                            resolvedGlobally = true;
-                }
-                if (node is ReturnExpression) 
-                    resolvedGlobally = true;
+                Diagnostics.SemanticErrors.Add(new NotAllCodePathsReturnValue(method.SourceContext));
+                return false;
             }
-            return resolvedGlobally;
+
+            foreach (IfStatement ifConstruction in ifConstructions)
+            {
+                if (ifConstruction.ElseBody == null &&
+                    !(ResolveReturnInBody((EmbeddedStatement)ifConstruction.Body)
+                      && ResolveReturnInBody((EmbeddedStatement)ifConstruction.ElseBody)))
+                {
+                    return false;
+                }
+            }
+
+            return true;
         }
     }
 }

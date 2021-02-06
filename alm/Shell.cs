@@ -7,7 +7,7 @@ namespace alm.Core.Shell
 {
     public sealed class Shell
     {
-        //public static void Main(string[] args) => new Shell().Start();
+        public static void Main(string[] args) => new Shell().Start();
 
         public void Start()
         {
@@ -107,7 +107,7 @@ namespace alm.Core.Shell
     {
         #if DEBUG
         //public static string SourcePath = @"C:\Users\Almes\source\repos\Compiler\compiler v.5\Alm\alm\Alm.Tests\TestScripts\AlmDebug.alm";
-        public static string SourcePath = @"C:\Users\Almes\source\repos\Compiler\compiler v.5\src\libs\main.alm";
+        public static string SourcePath = @"C:\Users\Almes\source\repos\Compiler\compiler v.5\src\tests\main.alm";
         public static string DestinationPath = "alm.exe";
 
         #endif

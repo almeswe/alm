@@ -1,0 +1,119 @@
+﻿@external "System.Convert"
+func ToString(integer value) : string;
+
+@external "System.Convert"
+func ToString(float value) : string;
+
+@external "System.Convert"
+func ToString(boolean value) : string;
+
+@external "System.Convert"
+func ToString(char value) : string;
+
+func tostrf(boolean value) : string
+{
+	return ToString(value);
+}
+
+func tostrf(float value) : string
+{
+	return ToString(value);
+}
+
+func tostrf(integer value) : string
+{
+	return ToString(value);
+}
+
+func tostrf(char value) : string
+{
+	return ToString(value);
+}
+
+@external "System.Convert"
+func ToInt32(string value) : integer;
+
+@external "System.Convert"
+func ToInt32(char value) : integer;
+
+@external "System.Convert"
+func ToInt32(float value) : integer;
+
+@external "System.Convert"
+func ToInt32(boolean value) : integer;
+
+func toint32(string value) : integer
+{
+	return ToInt32(value);
+}
+
+func toint32(char value) : integer
+{
+	return ToInt32(value);
+}
+
+func toint32(float value) : integer
+{
+	return ToInt32(value);
+}
+
+func toint32(boolean value) : integer
+{
+	return ToInt32(value);
+}
+
+@external "System.Convert"
+func ToSingle(string value) : float;
+
+@external "System.Convert"
+func ToSingle(char value) : float;
+
+@external "System.Convert"
+func ToSingle(integer value) : float;
+
+@external "System.Convert"
+func ToSingle(boolean value) : float;
+
+func tofloat(string value) : float
+{
+	return ToSingle(value);
+}
+
+func tofloat(char value) : float
+{
+	return ToSingle(value);
+}
+
+func tofloat(integer value) : float
+{
+	return ToSingle(value);
+}
+
+func tofloat(boolean value) : float
+{
+	return ToSingle(value);
+}
+
+@external "System.Convert"
+func ToChar(string value) : char;
+
+@external "System.Convert"
+func ToChar(float value) : char;
+
+@external "System.Convert"
+func ToChar(integer value) : char;
+
+func tochar(string value) : char
+{
+	return ToChar(value);
+}
+
+func tochar(float value) : char
+{
+	return ToChar(value);
+}
+
+func tochar(integer value) : char
+{
+	return ToChar(value);
+}

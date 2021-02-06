@@ -15,7 +15,7 @@ using alm.Core.FrontEnd.SemanticAnalysis;
 
 namespace alm.Core.BackEnd
 {
-    public sealed class Emitter
+    public sealed class Emitter2
     {
         private static string exeName;
         private static bool IsLoaded;
@@ -27,7 +27,7 @@ namespace alm.Core.BackEnd
         private static Dictionary<string, LocalVariableInfo> MethodLocals = new Dictionary<string, LocalVariableInfo>();
         private static Dictionary<MethodDeclaration, Type[]> ExternalMethods = new Dictionary<MethodDeclaration, Type[]>();
 
-        private static Label BreakLabel = default;
+        private static Label BreakLabel    = default;
         private static Label ContinueLabel = default;
 
         private static void EmitMethodDeclaration(MethodDeclaration method)
@@ -49,11 +49,11 @@ namespace alm.Core.BackEnd
             MethodLocals.Clear();
             MethodArguments.Clear();
         }
-        private static void EmitExternalMethodInvokation(MethodInvokationExpression method, ILGenerator methodIL)
+        private static void EmitExternalMethodInvokation(MethodInvokationExpression method,ILGenerator methodIL)
         {
             Type[] arguments = CreateTypes(method.GetArgumentsTypes());
             Type type = Type.GetType(GetCreatedExternalMethod(method.Name, arguments).NETPackage);
-            EmitMethodParameters(method.Parameters, methodIL);
+            EmitMethodParameters(method.Parameters,methodIL);
             methodIL.EmitCall(OpCodes.Call, type.GetMethod(method.Name, arguments), null);
         }
 
@@ -62,10 +62,10 @@ namespace alm.Core.BackEnd
             for (int i = 0; i < arguments.Length; i++)
                 MethodArguments.Add(arguments[i].Identifier.Name, i);
         }
-        private static void EmitMethodParameters(Expression[] parameters, ILGenerator methodIL)
+        private static void EmitMethodParameters(Expression[] parameters,ILGenerator methodIL)
         {
             foreach (ParameterDeclaration parameter in parameters)
-                EmitExpression(parameter.ParameterInstance, methodIL);
+                EmitExpression(parameter.ParameterInstance,methodIL);
         }
         private static void EmitEmbeddedStatement(EmbeddedStatement body, ILGenerator methodIL)
         {
@@ -78,18 +78,18 @@ namespace alm.Core.BackEnd
 
         private static void EmitStatement(Statement statement, ILGenerator methodIL)
         {
-            switch (statement.NodeKind)
+            switch(statement.NodeKind)
             {
                 case NodeType.AssignmentStatement:
                     EmitAssignmentStatement((AssignmentStatement)statement, methodIL);
                     break;
 
                 case NodeType.Declaration:
-                    EmitDeclarationStatement((IdentifierDeclaration)statement, methodIL);
+                    EmitDeclarationStatement((IdentifierDeclaration)statement,methodIL);
                     break;
 
                 case NodeType.MethodInvokationAsStatement:
-                    EmitMethodInvokationStatement((MethodInvokationStatement)statement, methodIL);
+                    EmitMethodInvokationStatement((MethodInvokationStatement)statement,methodIL);
                     break;
 
                 case NodeType.If:
@@ -109,10 +109,10 @@ namespace alm.Core.BackEnd
                     break;
 
                 case NodeType.Break:
-                    methodIL.Emit(OpCodes.Br, BreakLabel);
+                    methodIL.Emit(OpCodes.Br,BreakLabel);
                     break;
                 case NodeType.Continue:
-                    methodIL.Emit(OpCodes.Br, ContinueLabel);
+                    methodIL.Emit(OpCodes.Br,ContinueLabel);
                     break;
 
                 default:
@@ -120,16 +120,16 @@ namespace alm.Core.BackEnd
             }
         }
 
-        private static void EmitCondition(Expression condition, ILGenerator methodIL)
+        private static void EmitCondition(Expression condition,ILGenerator methodIL)
         {
-            EmitExpression(condition, methodIL);
+            EmitExpression(condition,methodIL);
         }
         private static void EmitUnaryBooleanExpression(UnaryBooleanExpression unaryBoolean, ILGenerator methodIL)
         {
             switch (unaryBoolean.OperatorKind)
             {
                 case UnaryExpression.UnaryOperator.UnaryInversion:
-                    EmitExpression(unaryBoolean.Operand, methodIL);
+                    EmitExpression(unaryBoolean.Operand,methodIL);
                     EmitInversion(methodIL);
                     break;
 
@@ -137,12 +137,12 @@ namespace alm.Core.BackEnd
                     throw new Exception();
             }
         }
-        private static void EmitBinaryBooleanExpression(BinaryBooleanExpression binaryBoolean, ILGenerator methodIL)
-        {
-            switch (binaryBoolean.OperatorKind)
+        private static void EmitBinaryBooleanExpression(BinaryBooleanExpression binaryBoolean,ILGenerator methodIL)
+        {            
+            switch(binaryBoolean.OperatorKind)
             {
                 case BinaryExpression.BinaryOperator.Conjuction:
-                    EmitPrimitiveBinaryOperation(binaryBoolean.LeftOperand, binaryBoolean.RightOperand, OpCodes.And, methodIL);
+                    EmitPrimitiveBinaryOperation(binaryBoolean.LeftOperand,binaryBoolean.RightOperand,OpCodes.And,methodIL);
                     break;
                 case BinaryExpression.BinaryOperator.Disjunction:
                     EmitPrimitiveBinaryOperation(binaryBoolean.LeftOperand, binaryBoolean.RightOperand, OpCodes.Or, methodIL);
@@ -166,7 +166,7 @@ namespace alm.Core.BackEnd
 
                 case BinaryExpression.BinaryOperator.Equal:
                     if (OperandsHaveSameTypes(binaryBoolean, new InnerTypes.String()))
-                        EmitStringEquality(binaryBoolean.LeftOperand, binaryBoolean.RightOperand, methodIL);
+                        EmitStringEquality(binaryBoolean.LeftOperand, binaryBoolean.RightOperand,methodIL);
                     else
                         EmitBooleanRelationOperation(binaryBoolean.LeftOperand, binaryBoolean.RightOperand, OpCodes.Beq, methodIL);
                     break;
@@ -189,8 +189,8 @@ namespace alm.Core.BackEnd
         private static void EmitInversion(ILGenerator methodIL)
         {
             Label invToFalse = methodIL.DefineLabel();
-            Label invToTrue = methodIL.DefineLabel();
-            Label toEndCase = methodIL.DefineLabel();
+            Label invToTrue  = methodIL.DefineLabel();
+            Label toEndCase  = methodIL.DefineLabel();
 
             methodIL.Emit(OpCodes.Brfalse, invToTrue);
             methodIL.MarkLabel(invToFalse);
@@ -202,13 +202,13 @@ namespace alm.Core.BackEnd
         }
         private static void EmitBooleanRelationOperation(Expression LOperand, Expression ROperand, OpCode opCode, ILGenerator methodIL)
         {
-            Label toTrueCase = methodIL.DefineLabel();
+            Label toTrueCase  = methodIL.DefineLabel();
             Label toFalseCase = methodIL.DefineLabel();
-            Label toEndCase = methodIL.DefineLabel();
+            Label toEndCase   = methodIL.DefineLabel();
 
             EmitExpression(LOperand, methodIL);
             EmitExpression(ROperand, methodIL);
-            methodIL.Emit(opCode, toTrueCase);
+            methodIL.Emit(opCode,toTrueCase);
             methodIL.MarkLabel(toFalseCase);
             methodIL.Emit(OpCodes.Ldc_I4_0);
             methodIL.Emit(OpCodes.Br, toEndCase);
@@ -217,17 +217,17 @@ namespace alm.Core.BackEnd
             methodIL.MarkLabel(toEndCase);
         }
 
-        private static void EmitIfStatement(IfStatement ifStatement, ILGenerator methodIL)
+        private static void EmitIfStatement(IfStatement ifStatement,ILGenerator methodIL)
         {
             Label toEnd = methodIL.DefineLabel();
             Label toTrueCase = methodIL.DefineLabel();
 
-            EmitCondition(ifStatement.Condition, methodIL);
+            EmitCondition(ifStatement.Condition,methodIL);
 
             methodIL.Emit(OpCodes.Brtrue, toTrueCase);
 
             if (ifStatement.ElseBody != null)
-                EmitEmbeddedStatement((EmbeddedStatement)ifStatement.ElseBody, methodIL);
+                EmitEmbeddedStatement((EmbeddedStatement)ifStatement.ElseBody,methodIL);
             methodIL.Emit(OpCodes.Br, toEnd);
             methodIL.MarkLabel(toTrueCase);
             EmitEmbeddedStatement((EmbeddedStatement)ifStatement.Body, methodIL);
@@ -250,7 +250,7 @@ namespace alm.Core.BackEnd
             methodIL.Emit(OpCodes.Br, toEnd);
 
             methodIL.MarkLabel(toLoopBody);
-            EmitEmbeddedStatement((EmbeddedStatement)whileLoop.Body, methodIL);
+            EmitEmbeddedStatement((EmbeddedStatement)whileLoop.Body,methodIL);
             methodIL.Emit(OpCodes.Br, toLoopCond);
 
             methodIL.MarkLabel(toEnd);
@@ -285,11 +285,11 @@ namespace alm.Core.BackEnd
         }
         private static void EmitAssignmentStatement(AssignmentStatement assignment, ILGenerator methodIL)
         {
-            foreach (Expression expression in assignment.AdressorExpressions)
+            foreach(Expression expression in assignment.AdressorExpressions)
             {
                 //array element | identifier
                 if (expression is ArrayElementExpression)
-                    EmitArrayElementAsAdressor((ArrayElementExpression)expression, assignment.AdressableExpression, methodIL);
+                    EmitArrayElementAsAdressor((ArrayElementExpression)expression,assignment.AdressableExpression,methodIL);
                 if (expression is IdentifierExpression)
                     EmitIdentifierExpressionAsAdressor((IdentifierExpression)expression, assignment.AdressableExpression, methodIL);
             }
@@ -315,7 +315,7 @@ namespace alm.Core.BackEnd
             else
                 methodIL.Emit(OpCodes.Stloc, (LocalBuilder)GetCreatedLocal(identifier.Name));
         }
-        private static void EmitArrayElementAsAdressor(ArrayElementExpression arrayElement, Expression adressableExpression, ILGenerator methodIL)
+        private static void EmitArrayElementAsAdressor(ArrayElementExpression arrayElement,Expression adressableExpression, ILGenerator methodIL)
         {
             if (IsArgument(arrayElement.ArrayName))
                 methodIL.Emit(OpCodes.Ldarg, GetArgumentsIndex(arrayElement.ArrayName));
@@ -323,8 +323,8 @@ namespace alm.Core.BackEnd
                 methodIL.Emit(OpCodes.Ldloc, (LocalBuilder)GetCreatedLocal(arrayElement.ArrayName));
 
             for (int i = 0; i < arrayElement.Indexes.Length; i++)
-                EmitExpression(arrayElement.Indexes[i], methodIL);
-            EmitExpression(adressableExpression, methodIL);
+                EmitExpression(arrayElement.Indexes[i],methodIL);
+            EmitExpression(adressableExpression,methodIL);
 
             if (arrayElement.IsArrayPrimitive())
                 if (arrayElement.Type is InnerTypes.String)
@@ -333,7 +333,7 @@ namespace alm.Core.BackEnd
                     methodIL.Emit(OpCodes.Stelem, arrayElement.Type.GetEquivalence());
             else
             {
-                Type[] args = Int32FilledArray(arrayElement.ArrayDimension + 1);
+                Type[] args = Int32FilledArray(arrayElement.ArrayDimension+1);
                 args[arrayElement.ArrayDimension] = arrayElement.Type.GetEquivalence();
                 methodIL.EmitCall(OpCodes.Call, arrayElement.Type.CreateArrayInstance(arrayElement.ArrayDimension).GetEquivalence().GetMethod("Set", args), null);
             }
@@ -347,7 +347,7 @@ namespace alm.Core.BackEnd
             else
                 methodIL.Emit(OpCodes.Ldloc, (LocalBuilder)GetCreatedLocal(arrayElement.ArrayName));
 
-            EmitArrayElementIndexes(arrayElement, methodIL);
+            EmitArrayElementIndexes(arrayElement,methodIL);
 
             if (arrayElement.IsArrayPrimitive())
                 if ((arrayType.ToString().Contains("System.String") || arrayType.ToString().Contains("System.Char")) && arrayElement.Type.GetEquivalence() == typeof(char))
@@ -367,38 +367,38 @@ namespace alm.Core.BackEnd
                         methodIL.Emit(OpCodes.Ldelem_Ref);
             }
         }
-        private static void EmitArrayInstance(ArrayInstance arrayInstance, ILGenerator methodIL)
+        private static void EmitArrayInstance(ArrayInstance arrayInstance,ILGenerator methodIL)
         {
             for (int i = 0; i < arrayInstance.DimensionSizes.Length; i++)
-                EmitExpression(arrayInstance.DimensionSizes[i], methodIL);
+                EmitExpression(arrayInstance.DimensionSizes[i],methodIL);
 
             if (arrayInstance.IsPrimitive())
-                methodIL.Emit(OpCodes.Newarr, ((ArrayType)arrayInstance.Type).GetAtomElementType().GetEquivalence());
+                methodIL.Emit(OpCodes.Newarr,((ArrayType)arrayInstance.Type).GetAtomElementType().GetEquivalence());
             else
-                methodIL.Emit(OpCodes.Newobj, arrayInstance.Type.GetEquivalence().GetConstructor(Int32FilledArray(arrayInstance.Dimension - 1)));
+                methodIL.Emit(OpCodes.Newobj, arrayInstance.Type.GetEquivalence().GetConstructor(Int32FilledArray(arrayInstance.Dimension-1)));
         }
 
         private static void EmitMethodInvokation(MethodInvokationExpression method, ILGenerator methodIL)
         {
-            if (EmitBaseMethod(method, methodIL))
+            if (EmitBaseMethod(method, methodIL)) 
                 return;
-            if (GetCreatedExternalMethod(method.Name, CreateTypes(method.GetArgumentsTypes())) != null)
+            if (GetCreatedExternalMethod(method.Name,CreateTypes(method.GetArgumentsTypes())) != null)
                 EmitExternalMethodInvokation(method, methodIL);
             else
             {
                 MethodInfo createdMethod = GetCreatedMethod(method.Name, CreateTypes(method.GetArgumentsTypes()));
-                EmitMethodParameters(method.Parameters, methodIL);
-                methodIL.EmitCall(OpCodes.Call, createdMethod, null);
+                EmitMethodParameters(method.Parameters,methodIL);
+                methodIL.EmitCall(OpCodes.Call,createdMethod,null);
             }
         }
         private static bool EmitBaseMethod(MethodInvokationExpression method, ILGenerator methodIL)
         {
-            switch (method.Name)
+            switch(method.Name)
             {
                 case "len":
                     EmitExpression(method.Parameters[0].ParameterInstance, methodIL);
                     methodIL.Emit(OpCodes.Ldlen);
-                    return true;
+                    return true;       
             }
             return false;
         }
@@ -418,11 +418,11 @@ namespace alm.Core.BackEnd
                     EmitBinaryArithExpression((BinaryArithExpression)expression, methodIL);
                     break;
                 case NodeType.UnaryArithExpression:
-                    EmitUnaryArithExpression((UnaryArithExpression)expression, methodIL);
+                    EmitUnaryArithExpression((UnaryArithExpression)expression,methodIL);
                     break;
 
                 case NodeType.Identifier:
-                    EmitIdentifierExpression((IdentifierExpression)expression, methodIL);
+                    EmitIdentifierExpression((IdentifierExpression)expression,methodIL);
                     break;
 
                 case NodeType.RealConstant:
@@ -434,10 +434,10 @@ namespace alm.Core.BackEnd
                     break;
 
                 case NodeType.ArrayInstance:
-                    EmitArrayInstance((ArrayInstance)expression, methodIL);
+                    EmitArrayInstance((ArrayInstance)expression,methodIL);
                     break;
                 case NodeType.ArrayElement:
-                    EmitArrayElement((ArrayElementExpression)expression, methodIL);
+                    EmitArrayElement((ArrayElementExpression)expression,methodIL);
                     break;
 
                 case NodeType.MethodInvokation:
@@ -456,14 +456,14 @@ namespace alm.Core.BackEnd
                 if (IsArgument(identifier.Name))
                     methodIL.Emit(OpCodes.Ldarg, GetArgumentsIndex(identifier.Name));
                 else
-                    methodIL.Emit(OpCodes.Ldloc, (LocalBuilder)GetCreatedLocal(identifier.Name));
+                    methodIL.Emit(OpCodes.Ldloc,(LocalBuilder)GetCreatedLocal(identifier.Name));
             }
             else
-                MethodLocals.Add(identifier.Name, methodIL.DeclareLocal(identifier.Type.GetEquivalence()));
+                MethodLocals.Add(identifier.Name,methodIL.DeclareLocal(identifier.Type.GetEquivalence()));
         }
-        private static void EmitBinaryArithExpression(BinaryArithExpression binaryArith, ILGenerator methodIL)
+        private static void EmitBinaryArithExpression(BinaryArithExpression binaryArith,ILGenerator methodIL)
         {
-            switch (binaryArith.OperatorKind)
+            switch(binaryArith.OperatorKind)
             {
                 case BinaryExpression.BinaryOperator.FDiv:
                     EmitPrimitiveBinaryOperation(binaryArith.LeftOperand, binaryArith.RightOperand, OpCodes.Div, methodIL);
@@ -523,13 +523,13 @@ namespace alm.Core.BackEnd
                     throw new Exception();
             }
         }
-        private static void EmitPowerOperation(Expression LOperand, Expression ROperand, ILGenerator methodIL)
+        private static void EmitPowerOperation(Expression LOperand, Expression ROperand,ILGenerator methodIL)
         {
             EmitExpression(LOperand, methodIL);
             EmitExpression(ROperand, methodIL);
             methodIL.EmitCall(OpCodes.Call, typeof(Math).GetMethod("Pow", new Type[] { typeof(double), typeof(double) }), null);
         }
-        private static void EmitPrimitiveBinaryOperation(Expression LOperand, Expression ROperand, OpCode opCode, ILGenerator methodIL)
+        private static void EmitPrimitiveBinaryOperation(Expression LOperand, Expression ROperand,OpCode opCode, ILGenerator methodIL)
         {
             EmitExpression(LOperand, methodIL);
             EmitExpression(ROperand, methodIL);
@@ -542,11 +542,11 @@ namespace alm.Core.BackEnd
             EmitExpression(ROperand, methodIL);
             methodIL.EmitCall(OpCodes.Call, typeof(string).GetMethod("Equals", new Type[] { typeof(string), typeof(string) }), null);
         }
-        private static void EmitStringConcatenation(Expression LOperand, Expression ROperand, ILGenerator methodIL)
+        private static void EmitStringConcatenation(Expression LOperand,Expression ROperand, ILGenerator methodIL)
         {
             EmitExpression(LOperand, methodIL);
             EmitExpression(ROperand, methodIL);
-            methodIL.EmitCall(OpCodes.Call, typeof(string).GetMethod("Concat", new Type[] { typeof(string), typeof(string) }), null);
+            methodIL.EmitCall(OpCodes.Call, typeof(string).GetMethod("Concat", new Type[] { typeof(string),typeof(string) }), null);
         }
         private static void EmitGetCharsMethod(ILGenerator methodIL)
         {
@@ -575,7 +575,7 @@ namespace alm.Core.BackEnd
         }
         public static void EmitModule(SyntaxTreeNode moduleRoot, string moduleName = "alm", string assemblyName = "alm")
         {
-            LoadBootstrapper(moduleName, assemblyName);
+            LoadBootstrapper(moduleName,assemblyName);
             EmitMethodDeclarations(moduleRoot);
             try
             {
@@ -594,8 +594,8 @@ namespace alm.Core.BackEnd
 
         private static LocalVariableInfo GetCreatedLocal(string localName)
         {
-            foreach (KeyValuePair<string, LocalVariableInfo> local in MethodLocals)
-                if (localName == local.Key)
+            foreach (KeyValuePair<string,LocalVariableInfo> local in MethodLocals)
+                if (localName == local.Key) 
                     return local.Value;
             return null;
         }
@@ -609,13 +609,13 @@ namespace alm.Core.BackEnd
         }
         private static int GetArgumentsIndex(string argumentName)
         {
-            foreach (KeyValuePair<string, int> arg in MethodArguments)
+            foreach (KeyValuePair<string,int> arg in MethodArguments)
                 if (argumentName == arg.Key)
                     return arg.Value;
             return -1;
         }
 
-        private static bool OperandsHaveSameTypes(BinaryExpression binary, InnerType type)
+        private static bool OperandsHaveSameTypes(BinaryExpression binary,InnerType type)
         {
             if (TypeChecker.ResolveExpressionType(binary.LeftOperand) == TypeChecker.ResolveExpressionType(binary.RightOperand))
                 if (TypeChecker.ResolveExpressionType(binary.LeftOperand) == type)
@@ -631,7 +631,7 @@ namespace alm.Core.BackEnd
         }
         private static MethodDeclaration GetCreatedExternalMethod(string methodName, Type[] arguments)
         {
-            foreach (KeyValuePair<MethodDeclaration, Type[]> method in ExternalMethods)
+            foreach (KeyValuePair<MethodDeclaration,Type[]> method in ExternalMethods)
                 if (method.Key.Name == methodName && TypesAreEqual(arguments, method.Value))
                     return method.Key;
             return null;

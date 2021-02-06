@@ -1,9 +1,9 @@
 ﻿using System.Collections.Generic;
 
 using alm.Core.InnerTypes;
-using alm.Core.FrontEnd.SyntaxAnalysis;
+using alm.Core.SyntaxTree;
 
-namespace alm.Core.VariableTable
+namespace alm.Core.Table
 {
     public static class GlobalTable
     {
@@ -16,21 +16,12 @@ namespace alm.Core.VariableTable
         public Table PuttedIn { get; private set; }
 
         public List<Table> ThisContains { get; private set; } = new List<Table>();
-        public List<TableFunction> Functions { get; private set; } = new List<TableFunction>();
+        public List<TableMethod> Methods { get; private set; } = new List<TableMethod>();
         public List<TableIdentifier> Identifiers { get; private set; } = new List<TableIdentifier>();
 
-        private static IReadOnlyList<TableFunction> BaseFunctions = new List<TableFunction>()
+        private static List<TableMethod> BaseFunctions = new List<TableMethod>()
         {
-            new TableFunction("tostr",  new String(), new TableFunctionArgument[] { new TableFunctionArgument(new Int32(),1) }, 1),
-            new TableFunction("tostrf", new String(), new TableFunctionArgument[] { new TableFunctionArgument(new Single(), 1) }, 1),
-            new TableFunction("tofloat",new Single(), new TableFunctionArgument[]{ new TableFunctionArgument(new String(), 1) }, 1),
-            new TableFunction("point",  new Single(), new TableFunctionArgument[]{ new TableFunctionArgument(new Int32(), 1) }, 1),
-            new TableFunction("round",  new Int32(), new TableFunctionArgument[]{ new TableFunctionArgument(new Single(), 1) }, 1),
-            new TableFunction("toint",  new Int32(), new TableFunctionArgument[]{ new TableFunctionArgument(new String(),1) }, 1),
-            new TableFunction("toint32",  new Int32(), new TableFunctionArgument[]{ new TableFunctionArgument(new Int32(),1) }, 1),
-            new TableFunction("chartoint32",new Int32(),new TableFunctionArgument[]{ new TableFunctionArgument(new Char(),1) }, 1),
-
-            new TableFunction("len",new Int32(),new TableFunctionArgument[]{ new TableFunctionArgument(new AnyArray(),1) }, 1),
+            new TableMethod("len",new Int32(),new TableMethodArgument[]{ new TableMethodArgument(new AnyArray(),1) }, 1),
         };
 
         public Table(Table puttedIn, int level)
@@ -39,6 +30,36 @@ namespace alm.Core.VariableTable
             this.Level = level;
         }
 
+        public static Table CreateTable(Table puttedIn)
+        {
+            Table table = new Table(puttedIn, puttedIn.Level + 1);
+            puttedIn.AddTable(table);
+            return table;
+        }
+        public static Table CreateTable(Table puttedIn, int level)
+        {
+            // level = 1 принимается как глобалтная таблица
+            Table table = new Table(puttedIn, level);
+            if (level == 1)
+                table.Methods.AddRange(BaseFunctions);
+            return table;
+        }
+
+        public void AddTable(Table table) => this.ThisContains.Add(table);
+
+        public bool PushMethod(MethodDeclaration methodDeclaration)
+        {
+            if (!CheckMethod(methodDeclaration.Name, methodDeclaration.GetArgumentsTypes()))
+            {
+                List<TableMethodArgument> tableArgs = new List<TableMethodArgument>();
+                for (int i = 0; i < methodDeclaration.ArgCount; i++)
+                    tableArgs.Add(new TableMethodArgument(methodDeclaration.Arguments[i].Type, i));
+
+                Methods.Add(new TableMethod(methodDeclaration.Name, methodDeclaration.ReturnType, tableArgs.ToArray(), this.Level));
+                return true;
+            }
+            return false;
+        }
         public bool PushIdentifier(IdentifierExpression identifierExpression)
         {
             if (!CheckIdentifier(identifierExpression.Name))
@@ -49,47 +70,37 @@ namespace alm.Core.VariableTable
             return false;
         }
 
-        public bool PushFunction(FunctionDeclaration functionDeclaration)
-        {
-            if (!CheckFunction(functionDeclaration.Name, functionDeclaration.ArgumentCount))
-            {
-                List<TableFunctionArgument> Args = new List<TableFunctionArgument>();
-                for (int i = 0; i < functionDeclaration.Arguments.Nodes.Count; i++)
-                    Args.Add(new TableFunctionArgument(((ArgumentDeclaration)functionDeclaration.Arguments.Nodes[i]).Type, i + 1));
-
-                Functions.Add(new TableFunction(functionDeclaration.Name, functionDeclaration.Type, Args.ToArray(), this.Level));
-                return true;
-            }
-            return false;
-        }
-
-        public TableFunction FetchFunction(string name,int args)
-        {
-            for (Table table = this; table != null; table = table.PuttedIn)
-                foreach (TableFunction function in table.Functions)
-                    if (function.Name == name)
-                        if (function.ArgumentCount == args)
-                            return function;
-            return null;
-        }
-
-        public TableFunction[] FetchAllFunctions(string name)
-        {
-            List<TableFunction> functions = new List<TableFunction>();
-            for (Table table = this; table != null; table = table.PuttedIn)
-                foreach (TableFunction function in table.Functions)
-                    if (function.Name == name)
-                        functions.Add(function);
-            return functions.Count == 0 ? null: functions.ToArray();
-        }
-
-        public TableIdentifier FetchIdentifier(IdentifierExpression identifierExpression)
+        public bool CheckIdentifier(string name)
         {
             for (Table table = this; table != null; table = table.PuttedIn)
                 foreach (TableIdentifier var in table.Identifiers)
-                    if (var.Name == identifierExpression.Name) 
-                        return var;
-            return null;
+                    if (var.Name == name)
+                        return true;
+            return false;
+        }
+        public bool CheckMethod(string name, InnerType[] arguments, bool withConvertableTypes = false)
+        {
+            bool foundWithConvertableTypes = false;
+            foreach (TableMethod method in BaseFunctions)
+                if (method.Name == name)
+                    if (TypesAreSame(arguments, method.Arguments))
+                        return true;
+                    else
+                        if (withConvertableTypes)
+                            if (TypesAreConvertable(arguments, method.Arguments))
+                                foundWithConvertableTypes = true;
+
+            for (Table table = this; table != null; table = table.PuttedIn)
+                foreach (TableMethod method in table.Methods)
+                    if (method.Name == name)
+                        if (TypesAreSame(arguments, method.Arguments))
+                            return true;
+                        else
+                            if (withConvertableTypes)
+                                if (TypesAreConvertable(arguments, method.Arguments))
+                                    foundWithConvertableTypes = true;
+
+            return foundWithConvertableTypes;
         }
 
         public TableIdentifier FetchIdentifier(string name)
@@ -100,86 +111,98 @@ namespace alm.Core.VariableTable
                         return var;
             return null;
         }
-
-        public void SetGlobalInitialization(IdentifierExpression identifierExpression)
+        public TableMethod FetchMethod(string name, InnerType[] arguments)
         {
-            TableIdentifier identifier = FetchIdentifier(identifierExpression);
-            if (identifier != null) identifier.IsGloballyInitialized = true;
+            TableMethod methodWithConvertableTypes = null;
+
+            foreach (TableMethod method in BaseFunctions)
+                if (method.Name == name && TypesAreSame(arguments, method.Arguments))
+                    return method;
+                else
+                    if (TypesAreConvertable(arguments, method.Arguments))
+                        methodWithConvertableTypes = method;
+
+            for (Table table = this; table != null; table = table.PuttedIn)
+                foreach (TableMethod method in table.Methods)
+                    if (method.Name == name)
+                        if (TypesAreSame(arguments, method.Arguments))
+                            return method;
+                        else
+                            if (TypesAreConvertable(arguments, method.Arguments))
+                                methodWithConvertableTypes = method;
+
+            return methodWithConvertableTypes;
         }
 
-        public void SetLocalBlockInitialization(IdentifierExpression identifierExpression, Body block)
+        private bool TypesAreSame(InnerType[] types, TableMethodArgument[] arguments)
         {
-            TableIdentifier identifier = FetchIdentifier(identifierExpression);
+            if (types.Length != arguments.Length)
+                return false;
+            for (int i = 0; i < types.Length; i++)
+                if (types[i] != arguments[i].Type)
+                        return false;
+            return true;
+        }
+        private bool TypesAreConvertable(InnerType[] types, TableMethodArgument[] arguments)
+        {
+            if (types.Length != arguments.Length)
+                return false;
+            for (int i = 0; i < types.Length; i++)
+                if (types[i] != arguments[i].Type)
+                {
+                    if (types[i] is NumericType && arguments[i].Type is NumericType)
+                    { 
+                        if (!((NumericType)types[i]).CanCast((NumericType)arguments[i].Type))
+                            return false;
+                    }
+                    else
+                        return false;
+                }
+            return true;
+        }
+
+        public void InitializeInBlock(IdentifierExpression identifierExpression, EmbeddedStatement block)
+        {
+            TableIdentifier identifier = FetchIdentifier(identifierExpression.Name);
             if (identifier != null)
-            {
-                if (block == null)
-                    identifier.IsGloballyInitialized = true;
-                else identifier.InitializedBlocks.Add(block);
-            }
+                identifier.InitializedBlocks.Add(block);
         }
-
-        public bool IsGloballyInitialized(IdentifierExpression identifierExpression)
+        public bool IsInitializedInBlock(IdentifierExpression identifierExpression, EmbeddedStatement block)
         {
-            return this.FetchIdentifier(identifierExpression).IsGloballyInitialized ? true : false;
-        }
-
-        public bool IsInitializedInBlock(IdentifierExpression identifierExpression, Body block)
-        {
-            TableIdentifier identifier = this.FetchIdentifier(identifierExpression);
-            if (identifier.IsGloballyInitialized) return true;
-            return identifier.InitializedBlocks.Contains(block) ? true : false;
-        }
-
-        public void AddTable(Table table) => this.ThisContains.Add(table);
-
-        public bool CheckFunction(string name, int args)
-        {
-            foreach (TableFunction function in BaseFunctions)
-                if (function.Name == name) 
-                    if (function.ArgumentCount == args)
-                        return true;
-            for (Table table = this; table != null; table = table.PuttedIn)
-                foreach (TableFunction function in table.Functions)
-                    if (function.Name == name)
-                        if (function.ArgumentCount == args)
-                            return true;
+            for (SyntaxTreeNode thisBlock = block; thisBlock != null; thisBlock = thisBlock.GetParentByType(typeof(EmbeddedStatement)))
+                if (this.FetchIdentifier(identifierExpression.Name).InitializedBlocks.Contains((EmbeddedStatement)thisBlock))
+                    return true;
             return false;
         }
 
-        public bool CheckIdentifier(string name)
-        {
-            for (Table table = this; table != null; table = table.PuttedIn)
-                foreach (TableIdentifier var in table.Identifiers)
-                    if (var.Name == name) 
-                        return true;
-            return false;
-        }
-
-        public static Table CreateTable(Table puttedIn, int level)
-        {
-            // level = 1 принимается как глобалтная таблица
-            Table table = new Table(puttedIn, level);
-            if (level == 1) 
-                table.Functions.AddRange(BaseFunctions);
-            return table;
-        }
-
-        public static Table CreateTable(Table puttedIn)
-        {
-            Table table = new Table(puttedIn, puttedIn.Level + 1);
-            puttedIn.AddTable(table);
-            return table;
-        }
     }
 
+    public sealed class TableMethod
+    {
+        public string Name { get; private set; }
+
+        public int Level { get; private set; }
+        public int ArgCount { get; private set; }
+
+        public InnerType ReturnType { get; private set; }
+        public TableMethodArgument[] Arguments { get; private set; }
+
+        public TableMethod(string name, InnerType type, TableMethodArgument[] arguments, int level)
+        {
+            this.Name = name;
+            this.ReturnType = type;
+            this.Level = level;
+            this.Arguments = arguments;
+            this.ArgCount = arguments.Length;
+        }
+    }
     public sealed class TableIdentifier
     {
         public int Level { get; private set; }
         public string Name { get; private set; }
 
         public InnerType Type { get; private set; }
-        public bool IsGloballyInitialized { get; set; } = false;
-        public List<Body> InitializedBlocks { get; set; } = new List<Body>();
+        public List<EmbeddedStatement> InitializedBlocks { get; set; } = new List<EmbeddedStatement>();
 
         public TableIdentifier(string name, InnerType type, int level)
         {
@@ -188,33 +211,12 @@ namespace alm.Core.VariableTable
             this.Level = level;
         }
     }
-
-    public sealed class TableFunction
-    {
-        public string Name { get; private set; }
-
-        public int Level { get; private set; }
-        public int ArgumentCount { get; private set; }
-
-        public InnerType Type { get; private set; }
-        public TableFunctionArgument[] Arguments { get; private set; }
-
-        public TableFunction(string name, InnerType type, TableFunctionArgument[] arguments, int level)
-        {
-            this.Name = name;
-            this.Type = type;
-            this.Level = level;
-            this.Arguments = arguments;
-            this.ArgumentCount = arguments.Length;
-        }
-    }
-
-    public sealed class TableFunctionArgument
+    public sealed class TableMethodArgument
     {
         public InnerType Type { get; set; }
         public int Position { get; private set; }
 
-        public TableFunctionArgument(InnerType type, int position)
+        public TableMethodArgument(InnerType type, int position)
         {
             this.Type = type;
             this.Position = position;

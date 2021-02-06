@@ -1,6 +1,7 @@
-﻿using alm.Core.FrontEnd.SyntaxAnalysis;
-using System.Collections.Generic;
-using static alm.Core.Compiler.Compiler;
+﻿using System.Collections.Generic;
+
+using alm.Core.SyntaxTree;
+using static alm.Core.Compiler.Compiler.CompilationVariables;
 
 namespace alm.Other.Structs
 {
@@ -15,7 +16,7 @@ namespace alm.Other.Structs
         {
             this.StartsAt = StartsAt;
             this.EndsAt   = EndsAt;
-            this.FilePath = CurrentParsingFile;
+            this.FilePath = CurrentParsingModule;
         }
 
         public static SourceContext GetSourceContext(Token Token) => new SourceContext(new Position(Token.Context.StartsAt.CharIndex, Token.Context.StartsAt.LineIndex), new Position(Token.Context.EndsAt.CharIndex, Token.Context.EndsAt.LineIndex));

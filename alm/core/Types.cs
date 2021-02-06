@@ -5,6 +5,59 @@ using static alm.Other.String.StringMethods;
 
 namespace alm.Core.InnerTypes
 {
+    /*
+                                                                +-----------+
+                                                                |           |                        
+                                                                | InnerType |
+                                +                               |           |          
+                                |                               +-----------+  
+                                |                                 |       |
+                                +                                 |       |
+                                |                           +-----+       +-----+                                                                      
+                                |                           |                   |
+                                +                           V                   V
+                                |                  +---------------+     +---------------+
+                                |                  |               |     |               |    
+                                +------------------| PrimitiveType |     |   ArrayType   |
+                                                   |               |     |               |   
+                                                   +---------------+     +---------------+
+
+
+
+
+
+
+
+                                                       |       |
+                                                       |       |
+                                                 +-----+       +-----+                                                                      
+                                                 |                   |
+                                                 V                   V
+                                        +---------------+     +---------------+
+                                        |               |     |               |    
+                                        | IntegralType  |     |   RealType    |
+                                        |               |     |               |   
+                                        +---------------+     +---------------+
+        
+        
+        
+        
+        |   |          |  |   +--------------+
+    +---------+  +-->|          |  |
+    |         |      |          |--+
+    |   AFS   |----->| FS-Cache |
+    |         |      |          |--+
+    +---------+  +-->|          |  |
+                 |   |          |  |   +--------------+
+    +---------+  |   +----------+  |   |              |
+    |         |  |                 +-->|  CacheFiles  |
+    |  ISOFS  |--+                     |  /var/cache  |
+    |         |                        +--------------+
+    +---------+
+
+
+
+    */
     public abstract class InnerType
     {
         private static readonly InnerType[] ALMTypes = new InnerType[]
@@ -130,6 +183,16 @@ namespace alm.Core.InnerTypes
         }
     }
 
+    public abstract class RealType : NumericType
+    {
+
+    }
+
+    public abstract class IntegralType : NumericType
+    {
+
+    }
+
     public sealed class Void : PrimitiveType
     {
         public override string ALMRepresentation => "void";
@@ -139,7 +202,7 @@ namespace alm.Core.InnerTypes
         public override bool PossibleAsArrayType => false;
     }
 
-    public sealed class Int32 : NumericType
+    public sealed class Int32 : IntegralType
     {
         public override int CastPriority => 3;
         public override string ALMRepresentation => "integer";
@@ -147,19 +210,19 @@ namespace alm.Core.InnerTypes
 
         public override ArrayType CreateArrayInstance(int dimension = 1) => new Int32Array(dimension);
     }
-    public sealed class Int16 : NumericType
+    public sealed class Int16 : IntegralType
     {
         public override int CastPriority => 2;
         public override string ALMRepresentation => "short";
         public override string NETRepresentation => "System.Int16";
     }
-    public sealed class Int8 : NumericType
+    public sealed class Int8 : IntegralType
     {
         public override int CastPriority => 1;
         public override string ALMRepresentation => "byte";
         public override string NETRepresentation => "System.SByte";
     }
-    public sealed class Single : NumericType
+    public sealed class Single : RealType
     {
         public override int CastPriority => 4;
         public override string ALMRepresentation => "float";
@@ -167,7 +230,7 @@ namespace alm.Core.InnerTypes
 
         public override ArrayType CreateArrayInstance(int dimension = 1) => new SingleArray(dimension);
     }
-    public sealed class Char : NumericType
+    public sealed class Char : IntegralType
     {
         public override int CastPriority => 1;
 
@@ -301,7 +364,7 @@ namespace alm.Core.InnerTypes
         }
     }
 
-    public sealed class Underfined : InnerType
+    public sealed class Undefined : InnerType
     {
         public override string ALMRepresentation => "underfined";
         public override bool PossibleAsVariableType => false;

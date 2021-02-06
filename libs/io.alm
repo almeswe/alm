@@ -1,26 +1,82 @@
 ﻿@external "System.Console"
-func Write(string message) : void;
+func Write(string value) : void;
 
 @external "System.Console"
-func WriteLine(string message) : void;
+func Write(char value) : void;
+
+@external "System.Console"
+func Write(boolean value) : void;
+
+@external "System.Console"
+func Write(integer value) : void;
+
+@external "System.Console"
+func Write(float value) : void;
+
+@external "System.Console"
+func WriteLine(string value) : void;
+
+@external "System.Console"
+func WriteLine(char value) : void;
+
+@external "System.Console"
+func WriteLine(boolean value) : void;
+
+@external "System.Console"
+func WriteLine(integer value) : void;
+
+@external "System.Console"
+func WriteLine(float value) : void;
 
 @external "System.Console"
 func ReadLine() : string;
 
 func print(string message) : void
+{
 	Write(message);
+}
+func print(char message) : void
+{
+	Write(message);
+}
+func print(boolean message) : void
+{
+	Write(message);
+}
+func print(integer message) : void
+{
+	Write(message);
+}
+func print(float message) : void
+{
+	Write(message);
+}
 
 func println(string message) : void
+{
 	WriteLine(message);
-
-func printn(float num) : void
-	print(tostrf(num));	
-
-func printlnn(float num) : void
-	println(tostrf(num));	
+}
+func println(char message) : void
+{
+	WriteLine(message);
+}
+func println(boolean message) : void
+{
+	WriteLine(message);
+}
+func println(integer message) : void
+{
+	WriteLine(message);
+}
+func println(float message) : void
+{
+	WriteLine(message);
+}
 
 func read() : string
+{
 	return ReadLine();
+}
 
 func read(string message) : string
 {
@@ -35,4 +91,6 @@ func readln(string message) : string
 }
 
 func readln() : string
+{
 	return readln("");
+}

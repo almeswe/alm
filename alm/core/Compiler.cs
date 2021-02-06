@@ -1,10 +1,11 @@
 ﻿using System;
 using System.IO;
+using System.Collections.Generic;
 
-using alm.Core.Shell;
+using alm.Core.Errors;
+using alm.Other.ConsoleStuff;
+
 using alm.Core.BackEnd;
-using alm.Core.VariableTable;
-using alm.Core.FrontEnd.SyntaxAnalysis;
 using alm.Core.FrontEnd.SemanticAnalysis;
 
 using static alm.Other.ConsoleStuff.ConsoleCustomizer;
@@ -13,58 +14,86 @@ namespace alm.Core.Compiler
 {
     public sealed class Compiler
     {
-        public static readonly string version = "v.1.3.1";
+        public class Diagnostics
+        {
+            public static bool SyntaxAnalysisFailed { get { return SyntaxErrors.Count > 0 ? true : false; } private set { } }
+            public static bool SemanticAnalysisFailed { get { return SemanticErrors.Count > 0 ? true : false; } private set { } }
 
-        public bool ErrorsOccured = false;
+            public static List<SyntaxError> SyntaxErrors     { get; set; } = new List<SyntaxError>();
+            public static List<SemanticError> SemanticErrors { get; set; } = new List<SemanticError>();
 
-        public static string CurrentParsingFile;
-        public static string CompilingSourceFile;
-        public static string CompilingDestinationPath;
+            public static void ShowErrorsInConsole()
+            {
+                ConsoleErrorDrawer drawer = new ConsoleErrorDrawer();
+                for (int i = 0; i < SyntaxErrors.Count; i++)
+                {
+                    ColorizedPrintln(SyntaxErrors[i].GetMessage(), System.ConsoleColor.DarkRed);
+                    drawer.DrawError(SyntaxErrors[i]);
+                }
+                for (int i = 0; i < SemanticErrors.Count; i++)
+                {
+                    ColorizedPrintln(SemanticErrors[i].GetMessage(), System.ConsoleColor.DarkRed);
+                    drawer.DrawError(SemanticErrors[i]);
+                }
+            }
+
+            public static void Reset()
+            {
+                SyntaxAnalysisFailed = SemanticAnalysisFailed = false;
+                SyntaxErrors = new List<SyntaxError>();
+                SemanticErrors = new List<SemanticError>();
+            }
+        }
+        public class CompilationVariables
+        {
+            public static string CurrentParsingModule;
+            public static string CompilationEntryModule;
+            public static string CompilationBinaryPath;
+
+            public static Dictionary<string, List<string>> CompilationImports = new Dictionary<string, List<string>>();
+
+            public static void Reset()
+            {
+                CurrentParsingModule = CompilationEntryModule = CompilationBinaryPath = "";
+                CompilationImports.Clear();
+            }
+        }
+
+        public static readonly string version = "v.2.0.0";
 
         public void Compile(string sourcePath, string binaryPath, bool run = true)
         {
-            CompilingSourceFile = CurrentParsingFile = sourcePath;
-            CompilingDestinationPath = binaryPath;
+            CompilationVariables.CompilationEntryModule = CompilationVariables.CurrentParsingModule = sourcePath;
+            CompilationVariables.CompilationBinaryPath = binaryPath;
 
             if (IsFileExists(sourcePath) && IsCorrectExtension(sourcePath))
             {
-                Errors.Diagnostics.Reset();
+                Diagnostics.Reset();
 
-                GlobalTable.Table = Table.CreateTable(null, 1);
+                SyntaxTree.AbstractSyntaxTree tree = new SyntaxTree.AbstractSyntaxTree(sourcePath);
 
-                AbstractSyntaxTree ast = new AbstractSyntaxTree();
-                ast.BuildTree(sourcePath);
-                CheckForErrors();
-
-                if (!ErrorsOccured)
+                if (!Diagnostics.SyntaxAnalysisFailed)
                 {
-                    LabelChecker.ResolveProgram(ast);
-                    CheckForErrors();
-                    if (!ErrorsOccured)
-                    { 
-                        TypeChecker.ResolveTypes(ast);
-                        #if DEBUG
-                        if (!Errors.Diagnostics.SemanticAnalysisFailed)
-                            if (ShellInfo.ShowTree) ast.ShowTree();
-                        #endif
-                    }
+                    LabelChecker.ResolveModule(tree.Root);
+                    if (!Diagnostics.SemanticAnalysisFailed)
+                        TypeChecker.ResolveModuleTypes(tree.Root);
                 }
-                CheckForErrors();
-                if (!ErrorsOccured)
-                {
-                    Emitter.LoadBootstrapper(Path.GetFileNameWithoutExtension(sourcePath), Path.GetFileNameWithoutExtension(sourcePath));
-                    Emitter.EmitAST(ast);
-                    if (run)
-                        try
-                        {
-                            System.Diagnostics.Process.Start(binaryPath);
-                        }
-                        catch (Exception e) { ColorizedPrintln($"Ошибка при попытке открытия бинарного файла.[{e.Message}]", ConsoleColor.DarkRed); }
-                    Emitter.Reset();
-                }
+                if (!Diagnostics.SemanticAnalysisFailed && !Diagnostics.SyntaxAnalysisFailed)
+                    Emitter.EmitModule(tree.Root);
 
-                Errors.Diagnostics.ShowErrorsInConsole();
+                tree.ShowTree();
+
+                Diagnostics.ShowErrorsInConsole();
             }
+
+            CompilationVariables.Reset();
+        }
+
+        private bool IsFileExists(string fileName)
+        {
+            if (System.IO.File.Exists(fileName)) return true;
+            ColorizedPrintln("Указанный файл не существует.", ConsoleColor.DarkRed);
+            return false;
         }
         private bool IsCorrectExtension(string fileName)
         {
@@ -72,16 +101,6 @@ namespace alm.Core.Compiler
             ColorizedPrintln("Расширение файла должно быть \".alm\".", ConsoleColor.DarkRed);
             return false;
         }
-        private bool IsFileExists(string fileName)
-        {
-            if (System.IO.File.Exists(fileName)) return true;
-            ColorizedPrintln("Указанный файл не существует.", ConsoleColor.DarkRed);
-            return false;
-        }
-        private void CheckForErrors()
-        {
-            if (Errors.Diagnostics.SyntaxAnalysisFailed || Errors.Diagnostics.SemanticAnalysisFailed)
-                ErrorsOccured = true;
-        }
+
     }
 }

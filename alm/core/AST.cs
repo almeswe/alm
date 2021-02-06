@@ -166,7 +166,7 @@ namespace alm.Core.SyntaxTree
     }
     public sealed class ImportStatement : Statement
     {
-        private string LibPath = @"C:\Users\Almes\source\repos\Compiler\compiler v.5\src\libs";
+        private string LibPath = "libs";
 
         public string[] ImportPaths { get; private set; }
         public SyntaxTreeNode[] ImportRoots { get; private set; }

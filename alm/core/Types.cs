@@ -5,59 +5,6 @@ using static alm.Other.String.StringMethods;
 
 namespace alm.Core.InnerTypes
 {
-    /*
-                                                                +-----------+
-                                                                |           |                        
-                                                                | InnerType |
-                                +                               |           |          
-                                |                               +-----------+  
-                                |                                 |       |
-                                +                                 |       |
-                                |                           +-----+       +-----+                                                                      
-                                |                           |                   |
-                                +                           V                   V
-                                |                  +---------------+     +---------------+
-                                |                  |               |     |               |    
-                                +------------------| PrimitiveType |     |   ArrayType   |
-                                                   |               |     |               |   
-                                                   +---------------+     +---------------+
-
-
-
-
-
-
-
-                                                       |       |
-                                                       |       |
-                                                 +-----+       +-----+                                                                      
-                                                 |                   |
-                                                 V                   V
-                                        +---------------+     +---------------+
-                                        |               |     |               |    
-                                        | IntegralType  |     |   RealType    |
-                                        |               |     |               |   
-                                        +---------------+     +---------------+
-        
-        
-        
-        
-        |   |          |  |   +--------------+
-    +---------+  +-->|          |  |
-    |         |      |          |--+
-    |   AFS   |----->| FS-Cache |
-    |         |      |          |--+
-    +---------+  +-->|          |  |
-                 |   |          |  |   +--------------+
-    +---------+  |   +----------+  |   |              |
-    |         |  |                 +-->|  CacheFiles  |
-    |  ISOFS  |--+                     |  /var/cache  |
-    |         |                        +--------------+
-    +---------+
-
-
-
-    */
     public abstract class InnerType
     {
         private static readonly InnerType[] ALMTypes = new InnerType[]

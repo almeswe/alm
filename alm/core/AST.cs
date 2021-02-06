@@ -404,7 +404,8 @@ namespace alm.Core.SyntaxTree
         public bool IsSituatedInLoop()
         {
             if (this.GetParentByType(typeof(WhileLoopStatement)) == null &&
-               this.GetParentByType(typeof(DoLoopStatement)) == null)
+                this.GetParentByType(typeof(DoLoopStatement)) == null &&
+                this.GetParentByType(typeof(ForLoopStatement)) == null)
                 return false;
             return true;
         }
@@ -488,35 +489,39 @@ namespace alm.Core.SyntaxTree
     }
     public sealed class ForLoopStatement : IterationStatement
     {
-        public IdentifierExpression[] IterationIdentifiers { get; private set; }
+        public IdentifierExpression[] IterableIdentifiers { get; private set; }
 
-        public Statement InitExpression { get; private set; }
-        public Statement StepExpression { get; private set; }
+        public Statement InitStatement { get; private set; }
+        public Statement StepStatement { get; private set; }
 
         public override NodeType NodeKind => NodeType.For;
 
         public ForLoopStatement(Statement initBlock, Expression conditionalBlock, Statement stepBlock, Statement body, SourceContext context)
         {
             this.SourceContext = context;
-            this.InitExpression = initBlock;
+            this.InitStatement = initBlock;
             this.Condition = conditionalBlock;
-            this.StepExpression = stepBlock;
+            this.StepStatement = stepBlock;
             this.Body = body;
 
-            //if (initBlock != null)
-            //   this.IterationIdentifiers = GetIdentifiers(initBlock);
+            if (initBlock != null)
+               this.IterableIdentifiers = GetIterableIdentifiers(initBlock);
 
             this.AddNodes(initBlock, conditionalBlock, stepBlock, body);
         }
 
-        //bad
-        private IdentifierExpression[] GetIdentifiers(Expression initExpression) =>
-            initExpression.GetChildsByType(typeof(IdentifierExpression)) == null ? new IdentifierExpression[] { } : (IdentifierExpression[])initExpression.GetChildsByType(typeof(IdentifierExpression));
+        private IdentifierExpression[] GetIterableIdentifiers(Statement initStatement)
+        {
+            IdentifierDeclaration assignment = (IdentifierDeclaration)initStatement;
+            IdentifierExpression[] identifiers = new IdentifierExpression[assignment.DeclaringIdentifiers.Length];
+            for (int i = 0; i < identifiers.Length;i++)
+                identifiers[i] = assignment.DeclaringIdentifiers[i];
+            return identifiers;
+        }
     }
 
     public abstract class SelectionStatement : Statement
     {
-        // if , else , switch , case
         public Expression Condition { get; protected set; }
         public Statement Body { get; protected set; }
         public Statement ElseBody { get; protected set; }

@@ -128,7 +128,7 @@ namespace alm.Core.FrontEnd.SemanticAnalysis
                     if (LOperandType is Char && ROperandType is Char)
                         return new Int32();
                     if (LOperandType is NumericType && ROperandType is NumericType)
-                        return TypeCaster2.HigherPriorityType(LOperandType, ROperandType);
+                        return TypeCaster.HigherPriorityType(LOperandType, ROperandType);
                     ReportErrorInArithExpression(new OperatorWithWrongOperandTypes($"Оператор [{binaryArithExpression.GetOperatorRepresentation()}] должен использоваться с операндами числового типа", binaryArithExpression.SourceContext));
                     if (!(LOperandType is NumericType))
                         return LOperandType;
@@ -142,7 +142,7 @@ namespace alm.Core.FrontEnd.SemanticAnalysis
                         if (LOperandType is String)
                             return new String();
                         else
-                            return TypeCaster2.HigherPriorityType(LOperandType, ROperandType);
+                            return TypeCaster.HigherPriorityType(LOperandType, ROperandType);
                     ReportErrorInArithExpression(new OperatorWithWrongOperandTypes($"Оператор [+] должен использоваться с операндами числового типа, или для конкатенации строк", binaryArithExpression.SourceContext));
                     if (!(LOperandType is NumericType) && !(LOperandType is String))
                         return LOperandType;
@@ -156,7 +156,7 @@ namespace alm.Core.FrontEnd.SemanticAnalysis
                 case BinaryExpression.BinaryOperator.BitwiseAnd:
                 case BinaryExpression.BinaryOperator.BitwiseXor:
                     if (LOperandType is IntegralType && ROperandType is IntegralType)
-                        return TypeCaster2.HigherPriorityType(LOperandType, ROperandType);
+                        return TypeCaster.HigherPriorityType(LOperandType, ROperandType);
                     ReportErrorInArithExpression(new OperatorWithWrongOperandTypes($"Оператор [{binaryArithExpression.GetOperatorRepresentation()}] должен использоваться с операндами целочисленного типа", binaryArithExpression.SourceContext));
                     if (!(LOperandType is IntegralType))
                         return LOperandType;
@@ -263,7 +263,7 @@ namespace alm.Core.FrontEnd.SemanticAnalysis
         }
         public static void ResolveConditionExpressionType(Expression condition)
         {
-            TypeCaster2.TryToCastConditionExpression(condition);
+            TypeCaster.TryToCastConditionExpression(condition);
             ReportErrors = true;
             InnerType ConditionType = ResolveExpressionType(condition);
             if (!(ConditionType is Boolean))
@@ -276,7 +276,7 @@ namespace alm.Core.FrontEnd.SemanticAnalysis
         }
         public static void ResolveAssignmentStatementType(AssignmentStatement assignment)
         {
-            TypeCaster2.TryToCastAssignmentStatement(assignment);
+            TypeCaster.TryToCastAssignmentStatement(assignment);
             ReportErrors = true;
             InnerType AdressorType = ResolveAdressorExpressionType(assignment.AdressorExpressions[0]);
             InnerType AdressableType = ResolveExpressionType(assignment.AdressableExpression);
@@ -303,7 +303,7 @@ namespace alm.Core.FrontEnd.SemanticAnalysis
         }
         public static void ResolveReturnStatementType(ReturnStatement returnStatement)
         {
-            TypeCaster2.TryToCastReturnStatement(returnStatement);
+            TypeCaster.TryToCastReturnStatement(returnStatement);
             ReportErrors = true;
             MethodDeclaration method = (MethodDeclaration)returnStatement.GetParentByType(typeof(MethodDeclaration));
             if (returnStatement.IsVoidReturn && method.ReturnType is Void)
@@ -321,7 +321,7 @@ namespace alm.Core.FrontEnd.SemanticAnalysis
         }
         public static void ResolveMethodInvokationStatementTypes(MethodInvokationStatement method)
         {
-            TypeCaster2.TryToCastMethodInvokationStatement(method);
+            TypeCaster.TryToCastMethodInvokationStatement(method);
             ReportErrors = true;
             MethodInvokationExpression methodInvokationExpression = (MethodInvokationExpression)method.Instance;
             foreach (ParameterDeclaration parameter in methodInvokationExpression.Parameters)
@@ -354,7 +354,7 @@ namespace alm.Core.FrontEnd.SemanticAnalysis
     }
 
 
-    public sealed class TypeCaster2
+    public sealed class TypeCaster
     {
         public enum CastCase
         {
@@ -370,11 +370,6 @@ namespace alm.Core.FrontEnd.SemanticAnalysis
             CharToFloat,
             CharToInteger,
 
-            Int32ToFloat64,
-            Int64ToFloat32,
-            Int64ToFloat64,
-            Float32ToFloat64,
-            Int32ToInt64,
             NoNeedToCast,
             Undefined,
         }
@@ -499,9 +494,6 @@ namespace alm.Core.FrontEnd.SemanticAnalysis
                     break;
                 case NodeType.ArrayInstance:
                     break;
-
-                    //default:
-                    //   throw new System.Exception();
             }
         }
 

@@ -341,9 +341,6 @@ namespace alm.Core.FrontEnd.SyntaxAnalysis
             {
                 ident += CurrentChar.ToString();
                 GetNextChar();
-                //!!!!!!!!!!!!!!!!!!!!!!!
-                //здесь появляется \n ,обнуляет позицию и добавляет строку
-                //потом в функции GetReservedWord создается контексит по имеющимся данным
             }
             if (IsWordReserved(ident)) 
                 return GetReservedWord(ident);
@@ -373,8 +370,6 @@ namespace alm.Core.FrontEnd.SyntaxAnalysis
         }
         private Token RecognizeArray(string type)
         {
-            //расширить до возможности определять многомерные массивы
-
             bool failure = false;
 
             int dimensions = 1;
@@ -397,12 +392,12 @@ namespace alm.Core.FrontEnd.SyntaxAnalysis
             }
 
             if (!failure)
-                //если не встречено ошибок, то просто пропускаем ']'
+                //if error doesn't occurred, skip ']'
                 GetNextChar();
             else
                 return new Token(tkType, new Position(CurrentCharIndex - typeString.Length, CurrentLineIndex),typeString);
 
-            //создаем тип массива на основе размерности
+            //creates type of array base on it dimension
             typeString += '[';
             for (int i = 0; i < dimensions-1; i++)
                 typeString += ',';

@@ -24,7 +24,7 @@ namespace alm.Other.Structs
         public static SourceContext GetSourceContext(SyntaxTreeNode node)         => new SourceContext(node.SourceContext.StartsAt, node.SourceContext.EndsAt);
         public static SourceContext GetSourceContext(SyntaxTreeNode lnode, SyntaxTreeNode rnode) => new SourceContext(lnode.SourceContext.StartsAt, rnode.SourceContext.EndsAt);
 
-        public override string ToString() => $"От {StartsAt} До {EndsAt}";
+        public override string ToString() => $"from: {StartsAt} to: {EndsAt}";
 
         public override bool Equals(object obj)
         {

@@ -23,7 +23,7 @@ namespace alm.Core.Errors
             }
             if (this.FilePath == null)
                 return $"{Message} {this.StartsAt}";
-            return $"{Message} \nВ файле ({FilePath[0]}:\\...\\{System.IO.Path.GetFileName(FilePath)}) {this.StartsAt}";
+            return $"{Message} \nIn file <{FilePath[0]}:\\...\\{System.IO.Path.GetFileName(FilePath)}> at {this.StartsAt}";
         }
     }
 
@@ -58,162 +58,161 @@ namespace alm.Core.Errors
 
     public sealed class MissingLbra : SyntaxError
     {
-        public MissingLbra(Token token) : base("Ожидался символ [{].", token.Context) { }
+        public MissingLbra(Token token) : base("Symbol [{] expected.", token.Context) { }
     }
     public sealed class MissingRbra : SyntaxError
     {
-        public MissingRbra(Token token) : base("Ожидался символ [}].", token.Context) { }
+        public MissingRbra(Token token) : base("Symbol [}] expected.", token.Context) { }
     }
     public sealed class MissingLpar : SyntaxError
     {
-        public MissingLpar(Token token) : base("Ожидался символ [(].", token.Context) { }
+        public MissingLpar(Token token) : base("Symbol [(] expected.", token.Context) { }
     }
     public sealed class MissingRpar : SyntaxError
     {
-        public MissingRpar(Token token) : base("Ожидался символ [)].", token.Context) { }
+        public MissingRpar(Token token) : base("Symbol [)] expected.", token.Context) { }
     }
     public sealed class MissingSemi : SyntaxError
     {
-        public MissingSemi(Token token) : base("Ожидался символ [;].", new SourceContext(new Position(token.Context.StartsAt.CharIndex, token.Context.StartsAt.LineIndex),token.Context.EndsAt)) { }
+        public MissingSemi(Token token) : base("Symbol [;] expected.", new SourceContext(new Position(token.Context.StartsAt.CharIndex, token.Context.StartsAt.LineIndex),token.Context.EndsAt)) { }
     }
     public sealed class MissingAssign : SyntaxError
     {
-        public MissingAssign(Token token) : base("Ожидался символ [=].", token.Context) { }
-    }
-    public sealed class MissingNameOrValue : SyntaxError
-    {
-        public MissingNameOrValue(Token token) : base("Ожидалось название переменной или ее значение.", token.Context) { }
+        public MissingAssign(Token token) : base("Symbol [=] expected.", token.Context) { }
     }
     public sealed class MissingColon : SyntaxError
     {
-        public MissingColon(Token token) : base("Ожидался символ [:].", token.Context) { }
+        public MissingColon(Token token) : base("Symbol [:] expected.", token.Context) { }
     }
     public sealed class MissingComma : SyntaxError
     {
-        public MissingComma(Token token) : base("Ожидался символ [,].", token.Context) { }
+        public MissingComma(Token token) : base("Symbol [,] expected.", token.Context) { }
     }
     public sealed class MissingDQuote : SyntaxError
     {
-        public MissingDQuote(Token token) : base("Ожидался символ [\"].", token.Context) { }
+        public MissingDQuote(Token token) : base("Symbol [\"] expected.", token.Context) { }
     }
     public sealed class MissingSQuote : SyntaxError
     {
-        public MissingSQuote(Token token) : base("Ожидался символ [\'].", token.Context) { }
+        public MissingSQuote(Token token) : base("Symbol [\'] expected.", token.Context) { }
+    }
+    public sealed class MissingNameOrValue : SyntaxError
+    {
+        public MissingNameOrValue(Token token) : base("The identifier's name or value expected.", token.Context) { }
     }
 
 
     public sealed class TypeExpected : SyntaxError
     {
-        public TypeExpected(Token token) : base("Ожидался тип переменной.", token.Context) { }
+        public TypeExpected(Token token) : base("Type expression expected.", token.Context) { }
     }
     public sealed class IdentifierExpected : SyntaxError
     {
-        public IdentifierExpected(Token token) : base("Ожидался идентификатор.", token.Context) { }
+        public IdentifierExpected(Token token) : base("Identifier expression expected.", token.Context) { }
     }
     public sealed class ReservedWordExpected : SyntaxError
     {
-        public ReservedWordExpected(string word, Token token) : base($"Ожидалось ключевое слово [{word}].", token.Context) { }
+        public ReservedWordExpected(string word, Token token) : base($"Reserved-word [{word}] expected.", token.Context) { }
     }
     public sealed class ReservedSymbolExpected : SyntaxError
     {
-        public ReservedSymbolExpected(string symbol, Token token) : base($"Ожидался символ [{symbol}].", token.Context) { }
+        public ReservedSymbolExpected(string symbol, Token token) : base($"Reserved-symbol [{symbol}] expected.", token.Context) { }
     }
     public sealed class MainMethodExpected : SemanticError
     {
-        public MainMethodExpected() : base($"В запускаемом файле должен быть метод main.", new SourceContext()) { }
+        public MainMethodExpected() : base($"Main method expected in executable file.", new SourceContext()) { }
     }
     public sealed class CorrectImportExpected : SyntaxError
     {
-        public CorrectImportExpected(SourceContext context) : base($"Ожидалось выражение для импортирования модуля.", context) { }
+        public CorrectImportExpected(SourceContext context) : base($"Import (short or direct path) expression expected.", context) { }
     }
 
     public sealed class WrongImport : SyntaxError
     {
-        public WrongImport(SourceContext context) : base($"Попытка импортирования несуществующего файла.", context) { }
-        public WrongImport() : base($"Ошибка импорта [debug parser2].", new SourceContext()) { }
+        public WrongImport(SourceContext context) : base($"Error occurred when trying to import file by non-existent path.", context) { }
     }
     public sealed class WrongImportExtension : SyntaxError
     {
-        public WrongImportExtension(SourceContext context) : base($"Расширение файла должно быть \"alm\".", context) { }
+        public WrongImportExtension(SourceContext context) : base($"File of \"alm\" extension expected.", context) { }
     }
     public sealed class WrongArrayElementDimension : SemanticError
     {
-        public WrongArrayElementDimension(SourceContext context) : base($"Разная размерность массива и элемента массива.", context) { }
+        public WrongArrayElementDimension(SourceContext context) : base($"The dimension of the array and array element must be the same.", context) { }
     }
 
     public sealed class ConnotImportThisModule : SyntaxError
     {
-        public ConnotImportThisModule(string path, SourceContext context) : base($"Файл \"{path}\" нельзя импортировать.", context) { }
+        public ConnotImportThisModule(string path, SourceContext context) : base($"Cannot import file by path: \"{path}\".", context) { }
     }
 
     public sealed class ModuleIsAlreadyImported : SyntaxError
     {
-        public ModuleIsAlreadyImported(string path, SourceContext context) : base($"Файл \"{path}\" уже импортирован.", context) { }
+        public ModuleIsAlreadyImported(string path, SourceContext context) : base($"This file \"{path}\" is already imported.", context) { }
     }
 
     public sealed class IncompatibleReturnType : SemanticError
     {
-        public IncompatibleReturnType(string name,InnerType returnType, InnerType expectedReturnType, SourceContext context) : base($"Несовместимый тип возвращаемого значения метода [{name}], ожидался тип [{returnType}], а встречен тип [{expectedReturnType}].", context) { }
+        public IncompatibleReturnType(string name,InnerType returnType, InnerType expectedReturnType, SourceContext context) : base($"Incompatible return type for method [{name}], expected [{returnType}] type, but met the [{expectedReturnType}] type.", context) { }
     }
     public sealed class IncompatibleConditionType : SemanticError
     {
-        public IncompatibleConditionType(SourceContext context) : base($"Несовместимые типы. Любой тип условия должен быть типа boolean.", context) { }
+        public IncompatibleConditionType(SourceContext context) : base($"Incompatible condition type. Every condition has boolean type.", context) { }
     }
     public sealed class IncompatibleAssignmentType : SemanticError
     {
-        public IncompatibleAssignmentType(InnerType adressorType, InnerType adressableType, SourceContext context) : base($"Несовместимые типы в присваивании переменной, ожидался тип {adressableType.ALMRepresentation}, а встеречен тип {adressorType.ALMRepresentation}.", context) { }
+        public IncompatibleAssignmentType(InnerType adressorType, InnerType adressableType, SourceContext context) : base($"Incompatible types in identifier assigning, expected {adressableType.ALMRepresentation} type, but met the {adressorType.ALMRepresentation} type.", context) { }
     }
     public sealed class IncompatibleMethodParameterType : SemanticError
     {
-        public IncompatibleMethodParameterType(string name,InnerType tableParamType, InnerType paramType, SourceContext context) : base($"Несовместимый тип параметра метода [{name}], ожидался тип [{tableParamType}], а встречен тип [{paramType}].", context) { }
+        public IncompatibleMethodParameterType(string name,InnerType tableParamType, InnerType paramType, SourceContext context) : base($"Incompatible type of method's parameter [{name}], expected [{tableParamType}] type, but met the [{paramType}] type.", context) { }
     }
     public sealed class OperatorMustBeSituatedInLoop : SemanticError
     {
-        public OperatorMustBeSituatedInLoop(string op, SourceContext context) : base($"Оператор [{op}] должен находиться в теле цикла.", context) { }
+        public OperatorMustBeSituatedInLoop(string op, SourceContext context) : base($"Operator [{op}] must be located in the body of loop statement.", context) { }
     }
     public sealed class OperatorWithWrongOperandTypes : SemanticError
     {
         public OperatorWithWrongOperandTypes(string message, SourceContext context) : base($"{message}.", context) { }
     }
 
-    public sealed class NotAllCodePathsReturnValue : SemanticError
+    public sealed class NotAllCodePathsReturnsValues : SemanticError
     {
-        public NotAllCodePathsReturnValue(SourceContext context) : base("Не все пути к коду возвращают значение.", context) { }
+        public NotAllCodePathsReturnsValues(SourceContext context) : base("Not all code paths returns values.", context) { }
     }
 
     public sealed class IdentifierIsAlreadyDeclared : SemanticError
     {
-        public IdentifierIsAlreadyDeclared(string name,SourceContext context) : base($"Переменная [{name}] уже объявлена.", context) { }
+        public IdentifierIsAlreadyDeclared(string name,SourceContext context) : base($"Identifier with name [{name}] is already declared in this local area.", context) { }
     }
     public sealed class IdentifierIsNotDeclared : SemanticError
     {
-        public IdentifierIsNotDeclared(string name, SourceContext context) : base($"Переменная [{name}] не объявлена.", context) { }
+        public IdentifierIsNotDeclared(string name, SourceContext context) : base($"Identifier with name [{name}] is not declared yet.", context) { }
     }
     public sealed class IdentifierIsNotInitialized : SemanticError
     {
-        public IdentifierIsNotInitialized(string name, SourceContext context) : base($"Переменной [{name}] не присвоено значение в данной локальной области.", context) { }
+        public IdentifierIsNotInitialized(string name, SourceContext context) : base($"Identifier with name [{name}] is not initialized in this local area.", context) { }
     }
 
     public sealed class MethodIsNotDeclared : SemanticError
     {
-        public MethodIsNotDeclared(string name, SourceContext context) : base($"Метод [{name}] с такими типами параметров не объявлен.", context) { }
+        public MethodIsNotDeclared(string name, SourceContext context) : base($"Method [{name}] with those types of arguments is not declared.", context) { }
     }
     public sealed class MethodIsAlreadyDeclared : SemanticError
     {
-        public MethodIsAlreadyDeclared(string name, SourceContext context) : base($"Метод [{name}] с такими типами параметров уже объявлен.", context) { }
+        public MethodIsAlreadyDeclared(string name, SourceContext context) : base($"Method [{name}] with those type of arguments is already declared here.", context) { }
     }
 
     public sealed class IncorrectDimension : SemanticError
     {
-        public IncorrectDimension(int dimension,SourceContext context) : base($"Неправильная размерность, ожидалась [{dimension}]", context) { }
+        public IncorrectDimension(int dimension,SourceContext context) : base($"Expected [{dimension}] dimension", context) { }
     }
     public sealed class ArrayIsNotDeclared : SemanticError
     {
-        public ArrayIsNotDeclared(string name,SourceContext context) : base($"Массив [{name}] не объявлен.", context) { }
+        public ArrayIsNotDeclared(string name,SourceContext context) : base($"Array [{name}] is not declared in this local area.", context) { }
     }
     public sealed class CannotChangeTheString : SemanticError
     {
-        public CannotChangeTheString(SourceContext context) : base($"Нельзя изменять содержимое строки.", context) { }
+        public CannotChangeTheString(SourceContext context) : base($"Cannot change the content of \"string\" variable, it has read-only access.", context) { }
     }
 
     public sealed class ErrorForDebug : SemanticError

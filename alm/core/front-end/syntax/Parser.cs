@@ -116,8 +116,6 @@ namespace alm.Core.FrontEnd.SyntaxAnalysis
                 return new Expression[] { new ErroredExpression(new MissingRpar(Lexer.CurrentToken)) };
             Lexer.GetNextToken();
 
-            //args.SourceContext.EndsAt = new Position(Lexer.CurrentToken);
-
             return argumens.ToArray();
         }
         public Expression ParseMethodInvokationExpression()
@@ -132,7 +130,7 @@ namespace alm.Core.FrontEnd.SyntaxAnalysis
             methodContext.EndsAt = Lexer.PreviousToken.Context.EndsAt;
 
             if (IsErrored(methodParameters))
-                return new ErroredExpression(new SyntaxErrorMessage("Ожидался параметр метода", methodContext));
+                return new ErroredExpression(new SyntaxErrorMessage("Method's parameter expected", methodContext));
 
             return new MethodInvokationExpression(methodName.Name, methodParameters, methodContext);
         }
@@ -166,7 +164,7 @@ namespace alm.Core.FrontEnd.SyntaxAnalysis
                 else
                 {
                     if (type is InnerTypes.Void)
-                        return new ErroredExpression(new SyntaxErrorMessage("Тип void недопустим для переменной", Lexer.PreviousToken));
+                        return new ErroredExpression(new SyntaxErrorMessage("Type [void] cannot be used as variable type", Lexer.PreviousToken));
                     identifierExpression = new IdentifierExpression(Lexer.CurrentToken, type, state);
                 }
                 Lexer.GetNextToken();
@@ -209,7 +207,7 @@ namespace alm.Core.FrontEnd.SyntaxAnalysis
             constructionType.SourceContext = arrayContext;
 
             if (sizes.Count < 1)
-                return new ErroredExpression(new SyntaxErrorMessage("Ожидался размер массива", Lexer.CurrentToken));
+                return new ErroredExpression(new SyntaxErrorMessage("Array's dimension expected", Lexer.CurrentToken));
 
             return new ArrayInstance(constructionType, sizes.ToArray(),arrayContext);
         }
@@ -296,7 +294,7 @@ namespace alm.Core.FrontEnd.SyntaxAnalysis
 
             Expression[] args = ParseArgumentDeclarations();
             if (IsErrored(args))
-                return new ErroredStatement(new SyntaxErrorMessage("Ошибка при объявлении аргумента", Lexer.CurrentToken));
+                return new ErroredStatement(new SyntaxErrorMessage("Error occurred when declaring argument", Lexer.CurrentToken));
 
             if (!Match(tkColon))
                 return new ErroredStatement(new MissingColon(Lexer.CurrentToken));
@@ -309,7 +307,7 @@ namespace alm.Core.FrontEnd.SyntaxAnalysis
 
             Statement funcBody = ParseEmbeddedStatement();
             if (IsErrored(funcBody))
-                return new ErroredStatement(new SyntaxErrorMessage("Ожидалось выражение",Lexer.CurrentToken));
+                return new ErroredStatement(new SyntaxErrorMessage("Statement expected",Lexer.CurrentToken));
             return new MethodDeclaration(funcName, args, funcType, funcBody, funcContext);
         }
         public Statement ParseExternalMethodDeclaration()
@@ -321,7 +319,7 @@ namespace alm.Core.FrontEnd.SyntaxAnalysis
 
             Expression packageName = ParseStringConstant();
             if (IsErrored(packageName))
-                return new ErroredStatement(new SyntaxErrorMessage("Ожидалось имя библиотеки .NET",Lexer.CurrentToken));
+                return new ErroredStatement(new SyntaxErrorMessage("The name of .NET static library expected", Lexer.CurrentToken));
 
             if (!Match(tkFunc))
                 return new ErroredStatement(new ReservedWordExpected("func", Lexer.CurrentToken));
@@ -393,7 +391,7 @@ namespace alm.Core.FrontEnd.SyntaxAnalysis
                 return new IdentifierDeclaration(type, identifiers.ToArray());
             }
             else 
-                return new ErroredStatement(new ReservedSymbolExpected("= или ;", Lexer.CurrentToken));
+                return new ErroredStatement(new SyntaxErrorMessage("Assign[=] or semicolon[;] symbol expected", Lexer.CurrentToken));
         }
         public Statement ParseAssignmentStatement()
         {
@@ -402,7 +400,7 @@ namespace alm.Core.FrontEnd.SyntaxAnalysis
             TokenType[] expectSymbols = new TokenType[] { tkAssign,tkAddAssign,tkSubAssign,tkIDivAssign,tkFDivAssign,tkMultAssign,tkPowerAssign,tkRemndrAssign,tkLShiftAssign,tkRShiftAssign,tkBitwiseOrAssign,tkBitwiseAndAssign,tkBitwiseXorAssign };
 
             if (!Match(expectSymbols))
-                return new ErroredStatement(new SyntaxErrorMessage("Ожидался символ присваивания", Lexer.CurrentToken));
+                return new ErroredStatement(new SyntaxErrorMessage("Symbol of assignment expected", Lexer.CurrentToken));
             Lexer.GetNextToken();
 
             AssignmentStatement assign = new AssignmentStatement(identifier, AssignmentStatement.ConvertTokenType(Lexer.PreviousToken.TokenType), ParseExpression());
@@ -469,7 +467,7 @@ namespace alm.Core.FrontEnd.SyntaxAnalysis
                 case tkFor:
                     return ParseForLoopStatement();
                 default:
-                    return new ErroredStatement(new SyntaxErrorMessage("Ожидалось выражение", Lexer.CurrentToken));
+                    return new ErroredStatement(new SyntaxErrorMessage("Statement expected", Lexer.CurrentToken));
             }
         }
         public Statement ParseIdentifierAmbiguityStatement()
@@ -853,7 +851,7 @@ namespace alm.Core.FrontEnd.SyntaxAnalysis
                     return ParseArithParentisizedExpression();
 
                 default:
-                    return new ErroredExpression(new SyntaxErrorMessage("Ожидалось присваиваемое выражение", Lexer.CurrentToken));
+                    return new ErroredExpression(new SyntaxErrorMessage("Adressable expression expected", Lexer.CurrentToken));
             }
         }
         public Expression ParseArithParentisizedExpression()
@@ -874,7 +872,7 @@ namespace alm.Core.FrontEnd.SyntaxAnalysis
         public Expression ParseUnaryMinusExpression()
         {
             if (Match(tkMinus, -1))
-                return new ErroredExpression(new SyntaxErrorMessage("Возможно добавление только одного унарного минуса", Lexer.CurrentToken));
+                return new ErroredExpression(new SyntaxErrorMessage("Only one unary minus can be added in a row", Lexer.CurrentToken));
             Lexer.GetNextToken();
 
             return new UnaryArithExpression(UnaryExpression.UnaryOperator.UnaryMinus, ParseMultiplicative());
@@ -907,23 +905,21 @@ namespace alm.Core.FrontEnd.SyntaxAnalysis
                 case tkType:
                     return ParseArrayInstance();
                 default:
-                    return new ErroredExpression(new SyntaxErrorMessage("Ожидалось константное выражение",Lexer.CurrentToken));
+                    return new ErroredExpression(new SyntaxErrorMessage("Constant expression expected",Lexer.CurrentToken));
             }
         }
         public Expression ParseIntegralConstant()
         {
             if (!Match(tkIntConst))
-                return new ErroredExpression(new SyntaxErrorMessage("Ожидалась целочисленная константа", Lexer.CurrentToken));
+                return new ErroredExpression(new SyntaxErrorMessage("Integral constant expected", Lexer.CurrentToken));
             Lexer.GetNextToken();
-            //for the short time
             return new Int32Constant(Lexer.PreviousToken);
         }
         public Expression ParseRealConstant()
         {
             if (!Match(tkRealConst))
-                return new ErroredExpression(new SyntaxErrorMessage("Ожидалась вещественная константа", Lexer.CurrentToken));
+                return new ErroredExpression(new SyntaxErrorMessage("Real constant expected", Lexer.CurrentToken));
             Lexer.GetNextToken();
-            //for the short time
             return new SingleConstant(Lexer.PreviousToken);
         }
         public Expression ParseStringConstant()
@@ -933,7 +929,7 @@ namespace alm.Core.FrontEnd.SyntaxAnalysis
             Lexer.GetNextToken();
 
             if (!Match(tkStringConst))
-                return new ErroredExpression(new SyntaxErrorMessage("Ожидалась строка", Lexer.CurrentToken));
+                return new ErroredExpression(new SyntaxErrorMessage("String expected", Lexer.CurrentToken));
 
             StringConstant stringConst = new StringConstant(Lexer.CurrentToken);
             Lexer.GetNextToken();
@@ -951,7 +947,7 @@ namespace alm.Core.FrontEnd.SyntaxAnalysis
             Lexer.GetNextToken();
 
             if (!Match(tkCharConst))
-                return new ErroredExpression(new SyntaxErrorMessage("Ожидался символ", Lexer.CurrentToken));
+                return new ErroredExpression(new SyntaxErrorMessage("Char expected", Lexer.CurrentToken));
 
             CharConstant charConst = new CharConstant(Lexer.CurrentToken);
             Lexer.GetNextToken();
@@ -965,9 +961,8 @@ namespace alm.Core.FrontEnd.SyntaxAnalysis
         public Expression ParseBooleanConstant()
         {
             if (!Match(tkBooleanConst))
-                return new ErroredExpression(new SyntaxErrorMessage("Ожидалась логическая константа", Lexer.CurrentToken));
+                return new ErroredExpression(new SyntaxErrorMessage("Boolean constant expected", Lexer.CurrentToken));
             Lexer.GetNextToken();
-            //for the short time
             return new BooleanConstant(Lexer.PreviousToken);
         }
 

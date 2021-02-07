@@ -11,21 +11,14 @@ namespace alm.Core.Shell
 
         public void Start()
         {
-                #if DEBUG
-                ColorizedPrintln($"Оболочка компилятора alm {Compiler.Compiler.version} debug",ConsoleColor.DarkGreen);
-                ColorizedPrintln("Введите команду \"?\" для получения дополнительной информации.");
+            ColorizedPrintln($"Alm Compiler shell {Compiler.Compiler.version}", ConsoleColor.DarkGreen);
+            ColorizedPrintln("Enter command \"?\" for more information.");
+            ColorizedPrintln($"Copyright (c) 2020-2021 by Alexey Almeswe.", ConsoleColor.DarkGreen);
 
-                #endif
-
-                #if !DEBUG
-                ColorizedPrintln($"Оболочка компилятора alm {Compiler.Compiler.version} release",ConsoleColor.DarkGreen);
-                ColorizedPrintln("Введите команду \"?\" для получения дополнительной информации.");
-                ColorizedPrintln("\talmeswe 2020. all rights reserved.",ConsoleColor.DarkYellow);
-                #endif
             Console.WriteLine("");
             while (true)
             {
-                ColorizedPrint(">",ConsoleColor.Green);
+                ColorizedPrint(">", ConsoleColor.Green);
                 ParseInput(Console.ReadLine());
             }
         }
@@ -35,12 +28,12 @@ namespace alm.Core.Shell
             string[] subs = Split(input,' ');
             if (subs.Length == 0)
             {
-                ColorizedPrintln($"Пустое поле.(Введите команду \"?\" для получения информации)", ConsoleColor.DarkRed);
+                ColorizedPrintln($"Empty field. (Enter command \"?\" for more information)", ConsoleColor.DarkRed);
                 return;
             }
             if (!IsCommand(subs[0]))
             {
-                ColorizedPrintln($"\"{subs[0]}\" не является командой.(Введите команду \"?\" для получения информации)",ConsoleColor.DarkRed);
+                ColorizedPrintln($"\"{subs[0]}\" not a shell command. (Enter command \"?\" for more information)",ConsoleColor.DarkRed);
                 return;
             }
             CallCommandByName(subs);
@@ -67,7 +60,7 @@ namespace alm.Core.Shell
                 if (command.Name == subs[0])
                     if (subs.Length - 1 == command.ArgumentCount)
                         command.Execute(subs);
-                    else ColorizedPrintln($"Команда [{subs[0]}] не содержит такое кол-во аргументов [{subs.Length - 1}]", ConsoleColor.DarkRed);
+                    else ColorizedPrintln($"Command [{subs[0]}] doesn't accept this number of arguments [{subs.Length - 1}].", ConsoleColor.DarkRed);
             }
         }
 
@@ -183,7 +176,8 @@ namespace alm.Core.Shell
             {
                 if (argument.Type != argument.DefineType())
                 {
-                    ColorizedPrintln($"Неизвестный тип аргумента, аргумент [{argument.Name}] имееет тип {argument.Type.Name.ToLower()}.", ConsoleColor.DarkRed); return false;
+                    ColorizedPrintln($"Unknown type of argument, argument [{argument.Name}] has {argument.Type.Name.ToLower()} type.", ConsoleColor.DarkRed);
+                    return false;
                 }
             }
             return true;
@@ -203,33 +197,31 @@ namespace alm.Core.Shell
         public override void Execute(string[] arguments)
         {
             if (!ArgumentTypesCorrect()) return;
-            ColorizedPrintln($"Команды оболочки языка alm {Compiler.Compiler.version} .");
+            ColorizedPrintln($"Alm shell commands {Compiler.Compiler.version}.");
 
-            ColorizedPrintln("\tВарианты представления аргументов: ");
+            ColorizedPrintln("\tVariants of argument representation: ");
             ColorizedPrint("\t\t{str}  ",ConsoleColor.DarkCyan); ColorizedPrintln(": \"string sample\"");
             ColorizedPrint("\t\t{bool} ",ConsoleColor.Blue); ColorizedPrintln(": 1,0");
 
-            ColorizedPrintln("\tПример использования команд оболочки: ");
+            ColorizedPrintln("\tExamples of using alm shell commands: ");
             ColorizedPrint("\t\t> ", ConsoleColor.Green); ColorizedPrintln("c 1 \"test.exe\"");
             ColorizedPrint("\t\t> ", ConsoleColor.Green); ColorizedPrintln("file \"C:\\Windows\\this.alm\"");
             ColorizedPrint("\t\t> ", ConsoleColor.Green); ColorizedPrintln("rec");
             ColorizedPrint("\t\t> ", ConsoleColor.Green); ColorizedPrintln("opfl this");
 
-            ColorizedPrint("\t-"); ColorizedPrint("?",ConsoleColor.Red); ColorizedPrint(" [null]",ConsoleColor.Yellow); ColorizedPrintln(" :"); ColorizedPrintln("\t\tПоказывает информацию о названии команд оболочки,их определениях и их аргументах.");
+            ColorizedPrint("\t-"); ColorizedPrint("?",ConsoleColor.Red); ColorizedPrint(" [null]",ConsoleColor.Yellow); ColorizedPrintln(" :"); ColorizedPrintln("\t\tShows information about the name of shell commands, their definitions, and their arguments.");
 
-            ColorizedPrint("\t-"); ColorizedPrint("c", ConsoleColor.Red);    ColorizedPrint(" [run {bool}]",ConsoleColor.Blue); ColorizedPrint(" [binName {str}]", ConsoleColor.DarkCyan); ColorizedPrintln(" :"); ColorizedPrintln("\t\tКомпилирует файл, путь к которому указывается в команде [file], и создает исполняетмый файл c указанным именем в папке с оболочкой.");
-            ColorizedPrint("\t-"); ColorizedPrint("rec", ConsoleColor.Red);  ColorizedPrint(" [null]", ConsoleColor.Yellow);  ColorizedPrintln(" :"); ColorizedPrintln("\t\tПроизводит компиляцию с аргументами указанными в последнем вызове команды [c].");
-            ColorizedPrint("\t-"); ColorizedPrint("file", ConsoleColor.Red); ColorizedPrint(" [path {str}]", ConsoleColor.DarkCyan); ColorizedPrintln(" :"); ColorizedPrintln("\t\tЗадает путь к файлу с которым будут взаимодействовать команды компиляции.");
-            ColorizedPrint("\t-"); ColorizedPrint("opfl", ConsoleColor.Red); ColorizedPrint(" [path {str}]", ConsoleColor.DarkCyan); ColorizedPrintln(" :"); ColorizedPrintln("\t\tОткрывает файл в блокноте по указанному пути,или если использовать в качестве аргумента \"this\", то окроется файл указанный в команде [file].");
-            ColorizedPrint("\t-"); ColorizedPrint("opdir", ConsoleColor.Red); ColorizedPrint(" [dirpath {str}]", ConsoleColor.DarkCyan); ColorizedPrintln(" :"); ColorizedPrintln("\t\tОткрывает папку в проводнике по указанному пути,или если использовать в качестве аргумента \"here\", то окроется папка где находится оболочка.");
-            ColorizedPrint("\t-"); ColorizedPrint("crfl", ConsoleColor.Red); ColorizedPrint(" [path {str}]", ConsoleColor.DarkCyan); ColorizedPrintln(" :"); ColorizedPrintln("\t\tСоздает файл по указанному пути, и задает значение команды [file] как указанный путь.");
-            ColorizedPrint("\t-"); ColorizedPrint("cls", ConsoleColor.Red);  ColorizedPrint(" [null]", ConsoleColor.Yellow); ColorizedPrintln(" :"); ColorizedPrintln("\t\tОчищает консоль.");
-            ColorizedPrint("\t-"); ColorizedPrint("exit", ConsoleColor.Red); ColorizedPrint(" [null]", ConsoleColor.Yellow); ColorizedPrintln(" :"); ColorizedPrintln("\t\tЗакрывает оболочку.");
+            ColorizedPrint("\t-"); ColorizedPrint("c", ConsoleColor.Red);    ColorizedPrint(" [run {bool}]",ConsoleColor.Blue); ColorizedPrint(" [binName {str}]", ConsoleColor.DarkCyan); ColorizedPrintln(" :"); ColorizedPrintln("\t\tCompiles the file specified in the [file] command and creates an executable file with the specified name in the shell folder.");
+            ColorizedPrint("\t-"); ColorizedPrint("rec", ConsoleColor.Red);  ColorizedPrint(" [null]", ConsoleColor.Yellow);  ColorizedPrintln(" :"); ColorizedPrintln("\t\tCompiles with the arguments specified in the last [c] command invokation.");
+            ColorizedPrint("\t-"); ColorizedPrint("file", ConsoleColor.Red); ColorizedPrint(" [path {str}]", ConsoleColor.DarkCyan); ColorizedPrintln(" :"); ColorizedPrintln("\t\tSpecifies the path to the file with which the compilation commands will interact.");
+            ColorizedPrint("\t-"); ColorizedPrint("opfl", ConsoleColor.Red); ColorizedPrint(" [path {str}]", ConsoleColor.DarkCyan); ColorizedPrintln(" :"); ColorizedPrintln("\t\tOpens a file in notepad at the specified path, or if you use \"this\" as an argument, the file specified in the [file] command will open.");
+            ColorizedPrint("\t-"); ColorizedPrint("opdir", ConsoleColor.Red); ColorizedPrint(" [dirpath {str}]", ConsoleColor.DarkCyan); ColorizedPrintln(" :"); ColorizedPrintln("\t\tOpens a folder in Explorer at the specified path, or if you use \"here\" as an argument, the folder where the shell is located will open.");
+            ColorizedPrint("\t-"); ColorizedPrint("crfl", ConsoleColor.Red); ColorizedPrint(" [path {str}]", ConsoleColor.DarkCyan); ColorizedPrintln(" :"); ColorizedPrintln("\t\tCreates a file at the specified path, and sets the value of the [file] command to the specified path.");
+            ColorizedPrint("\t-"); ColorizedPrint("cls", ConsoleColor.Red);  ColorizedPrint(" [null]", ConsoleColor.Yellow); ColorizedPrintln(" :"); ColorizedPrintln("\t\tClears the console.");
+            ColorizedPrint("\t-"); ColorizedPrint("exit", ConsoleColor.Red); ColorizedPrint(" [null]", ConsoleColor.Yellow); ColorizedPrintln(" :"); ColorizedPrintln("\t\tCloses the shell.");
 
             #if DEBUG
-
-            //ColorizedPrintln("\tКоманды доступные только в режиме DEBUG :");
-            ColorizedPrint("\t-"); ColorizedPrint("shtree", ConsoleColor.Red); ColorizedPrint(" [show {bool}]", ConsoleColor.Blue); ColorizedPrintln(" :"); ColorizedPrintln("\t\tВыводит дерево разбора программы в консоль.");
+            ColorizedPrint("\t-"); ColorizedPrint("shtree", ConsoleColor.Red); ColorizedPrint(" [show {bool}]", ConsoleColor.Blue); ColorizedPrintln(" :"); ColorizedPrintln("\t\tPrints the parse tree of the program to the console.");
             #endif
         }
     }
@@ -300,7 +292,7 @@ namespace alm.Core.Shell
 
             if (System.IO.File.Exists(filePath))
                 ShellInfo.SourcePath = filePath;
-            else ColorizedPrintln($"Указанный файл не существует.", ConsoleColor.DarkRed);
+            else ColorizedPrintln($"The specified path to file doesn't exist.", ConsoleColor.DarkRed);
         }
     }
 
@@ -344,9 +336,10 @@ namespace alm.Core.Shell
                     System.IO.File.Create(filePath).Close();
                     ShellInfo.SourcePath = filePath;
                 }
-                else ColorizedPrintln($"Файл существует.", ConsoleColor.DarkRed);
+                else 
+                    ColorizedPrintln($"The file already exists.", ConsoleColor.DarkRed);
             }
-            catch (Exception e){ ColorizedPrintln($"Возникла ошибка при создании файла.[{e.Message}]",ConsoleColor.DarkRed); }
+            catch (Exception e){ ColorizedPrintln($"Error occurred when trying to create the file.[{e.Message}]",ConsoleColor.DarkRed); }
 
         }
     }
@@ -373,9 +366,10 @@ namespace alm.Core.Shell
                 {
                     System.Diagnostics.Process.Start(dirPath);
                 }
-                catch (Exception e) { ColorizedPrintln($"Возникла ошибка при открытии папки.[{e.Message}]", ConsoleColor.DarkRed); }
+                catch (Exception e) { ColorizedPrintln($"Error occurred when trying to open the folder.[{e.Message}]", ConsoleColor.DarkRed); }
             }
-            else ColorizedPrintln($"Папка по указанному пути не существует.", ConsoleColor.DarkRed);
+            else 
+                ColorizedPrintln($"The specified path to folder doesn't exist.", ConsoleColor.DarkRed);
         }
     }
 
@@ -399,7 +393,7 @@ namespace alm.Core.Shell
             {
                 System.Diagnostics.Process.Start(filePath);
             }
-            catch (Exception e) { ColorizedPrintln($"Возникла ошибка при открытии файла.[{e.Message}]", ConsoleColor.DarkRed); }
+            catch (Exception e) { ColorizedPrintln($"Error occurred when trying to open the file.[{e.Message}]", ConsoleColor.DarkRed); }
         }
     }
 
@@ -435,7 +429,7 @@ namespace alm.Core.Shell
             {
                 System.Diagnostics.Process.GetCurrentProcess().Kill();
             }
-            catch (Exception e) { ColorizedPrintln($"Произошла ошибка при закрытии оболочки.[{e.Message}]"); }
+            catch (Exception e) { ColorizedPrintln($"Error occurred when trying to close the shell.[{e.Message}]"); }
         }
     }
 }

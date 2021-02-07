@@ -1,5 +1,7 @@
-﻿using alm.Core.Errors;
+﻿using System.Linq;
+
 using alm.Core.Table;
+using alm.Core.Errors;
 using alm.Core.SyntaxTree;
 using alm.Core.InnerTypes;
 
@@ -108,7 +110,7 @@ namespace alm.Core.FrontEnd.SemanticAnalysis
                 case BinaryExpression.BinaryOperator.IDiv:
                     if (LOperandType is NumericType && ROperandType is NumericType)
                         return TypeCaster.HigherPriorityType(LOperandType, ROperandType);
-                    ReportErrorInArithExpression(new OperatorWithWrongOperandTypes($"Оператор [{binaryArithExpression.GetOperatorRepresentation()}] должен использоваться с операндами числового типа",binaryArithExpression.SourceContext));
+                    ReportErrorInArithExpression(new OperatorWithWrongOperandTypes($"Operator [{binaryArithExpression.GetOperatorRepresentation()}] must be located between two numeric operands",binaryArithExpression.SourceContext));
                     if (!(LOperandType is NumericType))
                         return LOperandType;
                     else
@@ -117,7 +119,7 @@ namespace alm.Core.FrontEnd.SemanticAnalysis
                 case BinaryExpression.BinaryOperator.Power:
                     if (LOperandType is NumericType && ROperandType is NumericType)
                         return new Single();
-                    ReportErrorInArithExpression(new OperatorWithWrongOperandTypes($"Оператор [**] должен использоваться с операндами числового типа", binaryArithExpression.SourceContext));
+                    ReportErrorInArithExpression(new OperatorWithWrongOperandTypes($"Operator [**] must be located between two numeric operands", binaryArithExpression.SourceContext));
                     if (!(LOperandType is NumericType))
                         return LOperandType;
                     else
@@ -129,7 +131,7 @@ namespace alm.Core.FrontEnd.SemanticAnalysis
                         return new Int32();
                     if (LOperandType is NumericType && ROperandType is NumericType)
                         return TypeCaster.HigherPriorityType(LOperandType, ROperandType);
-                    ReportErrorInArithExpression(new OperatorWithWrongOperandTypes($"Оператор [{binaryArithExpression.GetOperatorRepresentation()}] должен использоваться с операндами числового типа", binaryArithExpression.SourceContext));
+                    ReportErrorInArithExpression(new OperatorWithWrongOperandTypes($"Operator [{binaryArithExpression.GetOperatorRepresentation()}] must be located between two numeric operands", binaryArithExpression.SourceContext));
                     if (!(LOperandType is NumericType))
                         return LOperandType;
                     else
@@ -143,7 +145,7 @@ namespace alm.Core.FrontEnd.SemanticAnalysis
                             return new String();
                         else
                             return TypeCaster.HigherPriorityType(LOperandType, ROperandType);
-                    ReportErrorInArithExpression(new OperatorWithWrongOperandTypes($"Оператор [+] должен использоваться с операндами числового типа, или для конкатенации строк", binaryArithExpression.SourceContext));
+                    ReportErrorInArithExpression(new OperatorWithWrongOperandTypes($"Operator [+] must be located between two numeric! operands, or between two strings for concatenation", binaryArithExpression.SourceContext));
                     if (!(LOperandType is NumericType) && !(LOperandType is String))
                         return LOperandType;
                     else
@@ -157,7 +159,7 @@ namespace alm.Core.FrontEnd.SemanticAnalysis
                 case BinaryExpression.BinaryOperator.BitwiseXor:
                     if (LOperandType is IntegralType && ROperandType is IntegralType)
                         return TypeCaster.HigherPriorityType(LOperandType, ROperandType);
-                    ReportErrorInArithExpression(new OperatorWithWrongOperandTypes($"Оператор [{binaryArithExpression.GetOperatorRepresentation()}] должен использоваться с операндами целочисленного типа", binaryArithExpression.SourceContext));
+                    ReportErrorInArithExpression(new OperatorWithWrongOperandTypes($"Operator [{binaryArithExpression.GetOperatorRepresentation()}] must be located between two integral operands", binaryArithExpression.SourceContext));
                     if (!(LOperandType is IntegralType))
                         return LOperandType;
                     else
@@ -177,7 +179,7 @@ namespace alm.Core.FrontEnd.SemanticAnalysis
                 case UnaryArithExpression.UnaryOperator.UnaryMinus:
                     if (OperandType is NumericType)
                         return OperandType;
-                    ReportErrorInArithExpression(new SemanticErrorMessage($"Оператор унарного минуса должен использоваться с операндом числового типа", unaryArithExpression.SourceContext));
+                    ReportErrorInArithExpression(new SemanticErrorMessage($"Operator of unary minus must be located before numeric operand", unaryArithExpression.SourceContext));
                     return OperandType;
 
                 default:
@@ -198,10 +200,10 @@ namespace alm.Core.FrontEnd.SemanticAnalysis
                         return new Boolean();
                     if (LOperandType != ROperandType)
                     {
-                        ReportErrorInBooleanExpression(new OperatorWithWrongOperandTypes($"Оператор [{binaryBooleanExpression.GetOperatorRepresentation()}] должен использоваться с операндами одного типа",binaryBooleanExpression.SourceContext));
+                        ReportErrorInBooleanExpression(new OperatorWithWrongOperandTypes($"Operator [{binaryBooleanExpression.GetOperatorRepresentation()}] must be located between two operands of the same type",binaryBooleanExpression.SourceContext));
                         return LOperandType;
                     }
-                    ReportErrorInBooleanExpression(new OperatorWithWrongOperandTypes($"Оператор [{binaryBooleanExpression.GetOperatorRepresentation()}] должен использоваться с операндами примитивного типа", binaryBooleanExpression.SourceContext));
+                    ReportErrorInBooleanExpression(new OperatorWithWrongOperandTypes($"Operator [{binaryBooleanExpression.GetOperatorRepresentation()}] must be located between two operands of the primitive type", binaryBooleanExpression.SourceContext));
                     if (!(LOperandType is PrimitiveType) | !(LOperandType is String))
                         return LOperandType;
                     else 
@@ -212,7 +214,7 @@ namespace alm.Core.FrontEnd.SemanticAnalysis
                 case BinaryExpression.BinaryOperator.StrictDisjunction:
                     if (LOperandType is Boolean && ROperandType is Boolean)
                         return new Boolean();
-                    ReportErrorInBooleanExpression(new OperatorWithWrongOperandTypes($"Оператор [{binaryBooleanExpression.GetOperatorRepresentation()}] должен использоваться с операндами логического типа", binaryBooleanExpression.SourceContext));
+                    ReportErrorInBooleanExpression(new OperatorWithWrongOperandTypes($"Operator [{binaryBooleanExpression.GetOperatorRepresentation()}] must be located between two operands of the logical type", binaryBooleanExpression.SourceContext));
                     if (!(LOperandType is Boolean))
                         return LOperandType;
                     else
@@ -224,7 +226,7 @@ namespace alm.Core.FrontEnd.SemanticAnalysis
                 case BinaryExpression.BinaryOperator.GreaterEqualThan:
                     if (LOperandType is NumericType && ROperandType is NumericType)
                         return new Boolean();
-                    ReportErrorInBooleanExpression(new OperatorWithWrongOperandTypes($"Оператор [{binaryBooleanExpression.GetOperatorRepresentation()}] должен использоваться с операндами числового типа", binaryBooleanExpression.SourceContext));
+                    ReportErrorInBooleanExpression(new OperatorWithWrongOperandTypes($"Operator [{binaryBooleanExpression.GetOperatorRepresentation()}] must be located between two numeric operands", binaryBooleanExpression.SourceContext));
                     if (!(LOperandType is NumericType))
                         return LOperandType;
                     else
@@ -244,7 +246,7 @@ namespace alm.Core.FrontEnd.SemanticAnalysis
                 case UnaryArithExpression.UnaryOperator.UnaryInversion:
                     if (OperandType is Boolean)
                         return OperandType;
-                    ReportErrorInBooleanExpression(new SemanticErrorMessage($"Оператор инвертирования должен использоваться с операндом логического типа",unaryBooleanExpression.SourceContext));
+                    ReportErrorInBooleanExpression(new SemanticErrorMessage($"Operator of logical inversion must be located before logical operand",unaryBooleanExpression.SourceContext));
                     return OperandType;
 
                 default:

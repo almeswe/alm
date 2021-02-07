@@ -16,6 +16,6 @@
             this.CharIndex  = Token.Context.StartsAt.CharIndex;
             this.LineIndex  = Token.Context.StartsAt.LineIndex;
         }
-        public override string ToString() => $"(Строка: {LineIndex} Позиция: {CharIndex})";
+        public override string ToString() => $"<line: {LineIndex} position: {CharIndex}>";
     }
 }

@@ -612,13 +612,13 @@ namespace alm.Core.BackEnd
             {
                 assembly.SetEntryPoint(GetCreatedMethod("main", new Type[0]));
             }
-            catch (Exception e) { ConsoleCustomizer.ColorizedPrintln($"Ошибка при задании точки входа программы.[{e.Message}]", ConsoleColor.DarkRed); }
+            catch (Exception e) { ConsoleCustomizer.ColorizedPrintln($"Error occurred when trying to set the entry point.[{e.Message}]", ConsoleColor.DarkRed); }
             try
             {
                 assembly.Save(exeName);
                 System.Diagnostics.Process.Start(exeName);
             }
-            catch (Exception e) { ConsoleCustomizer.ColorizedPrintln($"Ошибка при попытке сохранения исполняемого файла.[{e.Message}]", ConsoleColor.DarkRed); }
+            catch (Exception e) { ConsoleCustomizer.ColorizedPrintln($"Error occurred when trying to save the binary file.[{e.Message}]", ConsoleColor.DarkRed); }
 
             Reset();
         }

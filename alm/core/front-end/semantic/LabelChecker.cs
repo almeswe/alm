@@ -265,7 +265,7 @@ namespace alm.Core.FrontEnd.SemanticAnalysis
 
             if (body.Childs.Count == 0 || ifConstructions.Length == 0)
             {
-                Diagnostics.SemanticErrors.Add(new NotAllCodePathsReturnValue(method.SourceContext));
+                Diagnostics.SemanticErrors.Add(new NotAllCodePathsReturnsValues(method.SourceContext));
                 return false;
             }
 

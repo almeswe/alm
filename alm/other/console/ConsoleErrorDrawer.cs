@@ -26,7 +26,7 @@ namespace alm.Other.ConsoleStuff
 
                 if (!File.Exists(error.FilePath))
                 {
-                    ColorizedPrintln("Невозможно отрисовать ошибку в консоль,так как файла в котором произошла ошибка не существует.", ConsoleColor.Red);
+                    ColorizedPrintln("Cannot draw error in the console, because file by this path does not exist.", ConsoleColor.Red);
                     return;
                 }
 
@@ -44,7 +44,7 @@ namespace alm.Other.ConsoleStuff
                     erroredLine = this.lines[error.StartsAt.LineIndex - 1];
                 else
                 {
-                    ColorizedPrintln("Невозможно отрисовать ошибку в консоль,так как из файла не получена строка с номером ошибки (возможна она просто пустая).", ConsoleColor.Red);
+                    ColorizedPrintln("Cannot draw error in the console, because the errored line was not received (may be this line is empty).", ConsoleColor.Red);
                     return;
                 }
 
@@ -73,7 +73,7 @@ namespace alm.Other.ConsoleStuff
             }
             catch
             {
-                ColorizedPrintln("Произошла ошибка при отрисовке ошибки в консоль.", ConsoleColor.Red);
+                ColorizedPrintln("Error occurred when trying to draw error in console.", ConsoleColor.Red);
                 return;
             }
         }

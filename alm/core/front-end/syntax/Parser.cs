@@ -901,7 +901,6 @@ namespace alm.Core.FrontEnd.SyntaxAnalysis
                     return ParseRealConstant();
                 case tkBooleanConst:
                     return ParseBooleanConstant();
-                //array instance
                 case tkType:
                     return ParseArrayInstance();
                 default:
@@ -910,10 +909,20 @@ namespace alm.Core.FrontEnd.SyntaxAnalysis
         }
         public Expression ParseIntegralConstant()
         {
-            if (!Match(tkIntConst))
-                return new ErroredExpression(new SyntaxErrorMessage("Integral constant expected", Lexer.CurrentToken));
             Lexer.GetNextToken();
-            return new Int32Constant(Lexer.PreviousToken);
+            try
+            {
+                long value = System.Math.Abs(System.Convert.ToInt64(Lexer.PreviousToken.Value));
+                if (System.Math.Abs(value) <= System.Int32.MaxValue)
+                    return new Int32Constant(Lexer.PreviousToken.Value);
+                if (System.Math.Abs(value) <= System.Int64.MaxValue)
+                    return new Int64Constant(Lexer.PreviousToken.Value);
+            }
+            catch (System.Exception e)
+            {
+                return new ErroredExpression(new SyntaxErrorMessage($"The size of maximum integral (64-bit) type is exceeded [{e.Message}]", Lexer.PreviousToken));
+            }
+            throw new System.Exception();
         }
         public Expression ParseRealConstant()
         {

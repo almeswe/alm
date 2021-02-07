@@ -460,7 +460,7 @@ namespace alm.Core.BackEnd
                 case NodeType.CharConstant:
                 case NodeType.StringConstant:
                 case NodeType.BooleanConstant:
-                case NodeType.IntegerConstant:
+                case NodeType.IntegralConstant:
                     EmitConstantExpression((ConstantExpression)expression, methodIL);
                     break;
 
@@ -586,16 +586,19 @@ namespace alm.Core.BackEnd
 
         private static void EmitConstantExpression(ConstantExpression constant, ILGenerator methodIL)
         {
-            if (constant.Type.GetEquivalence() == typeof(int))
+            if (constant.Type.GetEquivalence() == typeof(float))
+                methodIL.Emit(OpCodes.Ldc_R4, float.Parse(constant.Value));
+            else if (constant.Type.GetEquivalence() == typeof(int))
                 methodIL.Emit(OpCodes.Ldc_I4, Convert.ToInt32(constant.Value));
+            else if (constant.Type.GetEquivalence() == typeof(long))
+                methodIL.Emit(OpCodes.Ldc_I8, Convert.ToInt64(constant.Value));
+            else if (constant.Type.GetEquivalence() == typeof(char))
+                methodIL.Emit(OpCodes.Ldc_I4, Convert.ToChar(constant.Value));
+
             else if (constant.Type.GetEquivalence() == typeof(string))
                 methodIL.Emit(OpCodes.Ldstr, constant.Value);
             else if (constant.Type.GetEquivalence() == typeof(bool))
                 methodIL.Emit(OpCodes.Ldc_I4, constant.Value == "true" ? 1 : 0);
-            else if (constant.Type.GetEquivalence() == typeof(float))
-                methodIL.Emit(OpCodes.Ldc_R4, float.Parse(constant.Value));
-            else if (constant.Type.GetEquivalence() == typeof(char))
-                methodIL.Emit(OpCodes.Ldc_I4, Convert.ToChar(constant.Value));
         }
 
         private static void EmitMethodDeclarations(SyntaxTreeNode inNode)

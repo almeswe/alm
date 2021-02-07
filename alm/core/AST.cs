@@ -852,7 +852,6 @@ namespace alm.Core.SyntaxTree
             this.IdentifierState = state;
         }
 
-        //????
         public IdentifierExpression(Token token, InnerType type, State state = State.Decl)
         {
             this.SetSourceContext(token);
@@ -945,10 +944,18 @@ namespace alm.Core.SyntaxTree
     public sealed class Int32Constant : ConstantExpression
     {
         public override InnerType Type => new InnerTypes.Int32();
-        public override NodeType NodeKind => NodeType.IntegerConstant;
+        public override NodeType NodeKind => NodeType.IntegralConstant;
 
         public Int32Constant(string value) : base(value) { }
         public Int32Constant(Token token) : base(token) { }
+    }
+    public sealed class Int64Constant : ConstantExpression
+    {
+        public override InnerType Type => new InnerTypes.Int64();
+        public override NodeType NodeKind => NodeType.IntegralConstant;
+
+        public Int64Constant(string value) : base(value) { }
+        public Int64Constant(Token token) : base(token) { }
     }
     public sealed class SingleConstant : ConstantExpression
     {

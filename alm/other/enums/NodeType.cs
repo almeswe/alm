@@ -9,7 +9,7 @@
         Do,
         Identifier,
         RealConstant,
-        IntegerConstant,
+        IntegralConstant,
         BooleanConstant,
         StringConstant,
         CharConstant,

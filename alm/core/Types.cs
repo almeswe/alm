@@ -11,9 +11,8 @@ namespace alm.Core.InnerTypes
         {
             new Char(),
             new Void(),
-            new Int8(),
-            new Int16(),
             new Int32(),
+            new Int64(),
             new Single(),
             new String(),
             new Boolean(),
@@ -109,7 +108,6 @@ namespace alm.Core.InnerTypes
 
     public abstract class NumericType : PrimitiveType
     {
-        public abstract int CastPriority { get; }
         public override string ALMRepresentation => "numeric";
         public override bool PossibleAsArrayType => true;
 
@@ -117,24 +115,16 @@ namespace alm.Core.InnerTypes
 
         public bool CanCast(NumericType toThisType)
         {
-            if (this.CastPriority <= toThisType.CastPriority)
-                return true;
-            return false;
-        }
-        public bool _CanCast(NumericType toThisType)
-        {
             for (int i = 0; i < CanCastTo.Length; i++)
                 if (CanCastTo[i] == toThisType)
                     return true;
             return false;
         }
     }
-
     public abstract class RealType : NumericType
     {
 
     }
-
     public abstract class IntegralType : NumericType
     {
 
@@ -149,29 +139,29 @@ namespace alm.Core.InnerTypes
         public override bool PossibleAsArrayType => false;
     }
 
+    public sealed class Int64 : IntegralType
+    {
+        public override InnerType[] CanCastTo => new InnerType[] { new Single() };
+
+        public override string ALMRepresentation => "long";
+        public override string NETRepresentation => "System.Int64";
+
+        public override ArrayType CreateArrayInstance(int dimension = 1) => new Int64Array(dimension);
+    }
     public sealed class Int32 : IntegralType
     {
-        public override int CastPriority => 3;
+        public override InnerType[] CanCastTo => new InnerType[] { new Int64(), new Single() };
+
         public override string ALMRepresentation => "integer";
         public override string NETRepresentation => "System.Int32";
 
         public override ArrayType CreateArrayInstance(int dimension = 1) => new Int32Array(dimension);
     }
-    public sealed class Int16 : IntegralType
-    {
-        public override int CastPriority => 2;
-        public override string ALMRepresentation => "short";
-        public override string NETRepresentation => "System.Int16";
-    }
-    public sealed class Int8 : IntegralType
-    {
-        public override int CastPriority => 1;
-        public override string ALMRepresentation => "byte";
-        public override string NETRepresentation => "System.SByte";
-    }
+
     public sealed class Single : RealType
     {
-        public override int CastPriority => 4;
+        public override InnerType[] CanCastTo => new InnerType[] { };
+
         public override string ALMRepresentation => "float";
         public override string NETRepresentation => "System.Single";
 
@@ -179,7 +169,7 @@ namespace alm.Core.InnerTypes
     }
     public sealed class Char : IntegralType
     {
-        public override int CastPriority => 1;
+        public override InnerType[] CanCastTo => new InnerType[] { new Int32(), new Int64() };
 
         public override string ALMRepresentation => "char";
         public override string NETRepresentation => "System.Char";
@@ -247,7 +237,6 @@ namespace alm.Core.InnerTypes
     {
         public override string ALMRepresentation => "AnyArray";
     }
-
     public sealed class Int32Array : ArrayType
     {
         public Int32Array(int dimensions) : base(dimensions) { }
@@ -255,7 +244,13 @@ namespace alm.Core.InnerTypes
         public override string ALMRepresentation => this.GetLocalTypeString("integer");
         public override string NETRepresentation => this.GetSystemTypeString("Int32");
     }
+    public sealed class Int64Array : ArrayType
+    {
+        public Int64Array(int dimensions) : base(dimensions) { }
 
+        public override string ALMRepresentation => this.GetLocalTypeString("long");
+        public override string NETRepresentation => this.GetSystemTypeString("Int64");
+    }
     public sealed class BooleanArray : ArrayType
     {
         public BooleanArray(int dimensions) : base(dimensions) { }
@@ -263,7 +258,6 @@ namespace alm.Core.InnerTypes
         public override string ALMRepresentation => this.GetLocalTypeString("boolean");
         public override string NETRepresentation => this.GetSystemTypeString("Boolean");
     }
-
     public sealed class StringArray : ArrayType
     {
         public StringArray(int dimensions) : base(dimensions) { }
@@ -279,7 +273,6 @@ namespace alm.Core.InnerTypes
                 return base.GetDimensionElementType(dimensions);
         }
     }
-
     public sealed class CharArray : ArrayType
     {
         public CharArray(int dimensions) : base(dimensions) { }
@@ -287,7 +280,6 @@ namespace alm.Core.InnerTypes
         public override string ALMRepresentation => this.GetLocalTypeString("char");
         public override string NETRepresentation => this.GetSystemTypeString("Char");
     }
-
     public sealed class SingleArray : ArrayType
     {
         public SingleArray(int dimensions) : base(dimensions) { }

@@ -52,7 +52,7 @@ namespace alm.Core.FrontEnd.SemanticAnalysis
                 case NodeType.Identifier:
                     return ResolveIdentifierExpressionType((IdentifierExpression)expression);
 
-                case NodeType.IntegerConstant:
+                case NodeType.IntegralConstant:
                 case NodeType.RealConstant:
                 case NodeType.CharConstant:
                 case NodeType.BooleanConstant:
@@ -364,16 +364,12 @@ namespace alm.Core.FrontEnd.SemanticAnalysis
     {
         public enum CastCase
         {
-            ByteToFloat,
-            ByteToInteger,
-            ByteToShort,
-
-            ShortToInteger,
-            ShortToFloat,
-
+            IntegerToLong,
+            LongToFloat,
             IntegerToFloat,
 
             CharToInteger,
+            CharToLong,
 
             NoNeedToCast,
             Undefined,
@@ -406,11 +402,13 @@ namespace alm.Core.FrontEnd.SemanticAnalysis
             {
                 NumericType ftypeC = (NumericType)ftype;
                 NumericType stypeC = (NumericType)stype;
-                if (ftypeC.CastPriority > stypeC.CastPriority)
-                    return ftype;
-                else return stype;
+                if (ftypeC.CanCastTo.Contains(stypeC))
+                    return stypeC;
+                else 
+                    return ftypeC;
             }
-            else return null;
+            else
+                return null;
         }
         public static CastCase DefineCastCase(InnerType ftype, InnerType stype)
         {
@@ -482,7 +480,7 @@ namespace alm.Core.FrontEnd.SemanticAnalysis
 
                 case NodeType.RealConstant:
                 case NodeType.CharConstant:
-                case NodeType.IntegerConstant:
+                case NodeType.IntegralConstant:
                     TryToCastConstantExpression((ConstantExpression)expression, toType);
                     break;
 
@@ -569,9 +567,12 @@ namespace alm.Core.FrontEnd.SemanticAnalysis
                     }
                     if (!inCastedBinary)
                     {
-                        CastCase castCase = DefineCastCase(TypeChecker.ResolveBinaryArithExpressionType(binaryArith), toType);
-                        Expression castMethod = CreateCastMethod(parent, toType, new ParameterDeclaration[] { new ParameterDeclaration(binaryArith) }, castCase);
-                        Replace(parent, binaryArith, castMethod);
+                        if (CanCast(TypeChecker.ResolveBinaryArithExpressionType(binaryArith), toType,false))
+                        {
+                            CastCase castCase = DefineCastCase(TypeChecker.ResolveBinaryArithExpressionType(binaryArith), toType);
+                            Expression castMethod = CreateCastMethod(parent, toType, new ParameterDeclaration[] { new ParameterDeclaration(binaryArith) }, castCase);
+                            Replace(parent, binaryArith, castMethod);
+                        }
                     }
                     break;
 
@@ -678,11 +679,14 @@ namespace alm.Core.FrontEnd.SemanticAnalysis
         {
             switch (castCase)
             {
+                case CastCase.LongToFloat:
                 case CastCase.IntegerToFloat:
                     return "tofloat";
 
-                case CastCase.ByteToInteger:
-                case CastCase.ShortToInteger:
+                case CastCase.CharToLong:
+                case CastCase.IntegerToLong:
+                    return "toint64";
+
                 case CastCase.CharToInteger:
                     return "toint32";
 

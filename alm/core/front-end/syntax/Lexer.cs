@@ -27,6 +27,7 @@ namespace alm.Core.FrontEnd.SyntaxAnalysis
             "string",
             "float",
             "boolean",
+            "long",
             "integer",
             "import",
             "global",
@@ -136,6 +137,10 @@ namespace alm.Core.FrontEnd.SyntaxAnalysis
                     if (CharForArray())
                        return RecognizeArray(word);
                     return new Token(tkType, new Position(CurrentCharIndex-7, CurrentLineIndex), word);
+                case "long":
+                    if (CharForArray())
+                        return RecognizeArray(word);
+                    return new Token(tkType, new Position(CurrentCharIndex - 4, CurrentLineIndex), word);
 
                 case "import": 
                     return new Token(tkImport, new Position(CurrentCharIndex-6, CurrentLineIndex), word);

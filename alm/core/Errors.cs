@@ -211,6 +211,10 @@ namespace alm.Core.Errors
     {
         public ArrayIsNotDeclared(string name,SourceContext context) : base($"Массив [{name}] не объявлен.", context) { }
     }
+    public sealed class CannotChangeTheString : SemanticError
+    {
+        public CannotChangeTheString(SourceContext context) : base($"Нельзя изменять содержимое строки.", context) { }
+    }
 
     public sealed class ErrorForDebug : SemanticError
     {

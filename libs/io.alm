@@ -11,6 +11,9 @@ func Write(boolean value) : void;
 func Write(integer value) : void;
 
 @external "System.Console"
+func Write(long value) : void;
+
+@external "System.Console"
 func Write(float value) : void;
 
 @external "System.Console"
@@ -24,6 +27,9 @@ func WriteLine(boolean value) : void;
 
 @external "System.Console"
 func WriteLine(integer value) : void;
+
+@external "System.Console"
+func WriteLine(long value) : void;
 
 @external "System.Console"
 func WriteLine(float value) : void;
@@ -47,6 +53,10 @@ func print(integer message) : void
 {
 	Write(message);
 }
+func print(long message) : void
+{
+	Write(message);
+}
 func print(float message) : void
 {
 	Write(message);
@@ -65,6 +75,10 @@ func println(boolean message) : void
 	WriteLine(message);
 }
 func println(integer message) : void
+{
+	WriteLine(message);
+}
+func println(long message) : void
 {
 	WriteLine(message);
 }

@@ -1,80 +1,267 @@
-import str;
+import io,cast;
 
-func PrintIntArray(integer[] arr,boolean inLine) : void
-{
-	integer i = 0;
-	while(i < len(arr))
-	{
-		if (inLine)
-			if (i == len(arr)-1)
-				print(Concat(tostrf(arr[i]), "."));
-			else
-				print(Concat(tostrf(arr[i]),","));
-		else
-		   println(tostrf(arr[i]));
-		i += 1;
-	}
-}
-
-func PrintIntArray(integer[] arr) : void
-	PrintIntArray(arr,true);
-
-func ConcatIntArrays(integer[] arr1, integer[] arr2) : integer[]
+func concat_arrays(integer[] arr1, integer[] arr2) : integer[]
 {
 	integer[] result = integer(len(arr1) + len(arr2));
 	integer enumerator = 0;
 
-	integer i = 0;
-	while (i < len(arr1))
+	for (integer i = 0; i < len(arr1); i += 1;)
 	{
 		result[enumerator] = arr1[i];
 		enumerator += 1;
-		i += 1;
 	}
-
-	i = 0;
-	while (i < len(arr2))
+	for (i = 0; i < len(arr2); i += 1;)
 	{
 		result[enumerator] = arr2[i];
 		enumerator += 1;
-		i += 1;
+	}
+
+	return result;
+}
+func concat_arrays(long[] arr1, long[] arr2) : long[]
+{
+	long[] result = long(len(arr1) + len(arr2));
+	integer enumerator = 0;
+
+	for (integer i = 0; i < len(arr1); i += 1;)
+	{
+		result[enumerator] = arr1[i];
+		enumerator += 1;
+	}
+	for (i = 0; i < len(arr2); i += 1;)
+	{
+		result[enumerator] = arr2[i];
+		enumerator += 1;
+	}
+
+	return result;
+}
+func concat_arrays(char[] arr1, char[] arr2) : char[]
+{
+	char[] result = char(len(arr1) + len(arr2));
+	integer enumerator = 0;
+
+	for (integer i = 0; i < len(arr1); i += 1;)
+	{
+		result[enumerator] = arr1[i];
+		enumerator += 1;
+	}
+	for (i = 0; i < len(arr2); i += 1;)
+	{
+		result[enumerator] = arr2[i];
+		enumerator += 1;
+	}
+
+	return result;
+}
+func concat_arrays(boolean[] arr1, boolean[] arr2) : boolean[]
+{
+	boolean[] result = boolean(len(arr1) + len(arr2));
+	integer enumerator = 0;
+
+	for (integer i = 0; i < len(arr1); i += 1;)
+	{
+		result[enumerator] = arr1[i];
+		enumerator += 1;
+	}
+	for (i = 0; i < len(arr2); i += 1;)
+	{
+		result[enumerator] = arr2[i];
+		enumerator += 1;
+	}
+
+	return result;
+}
+func concat_arrays(string[] arr1, string[] arr2) : string[]
+{
+	string[] result = string(len(arr1) + len(arr2));
+	integer enumerator = 0;
+
+	for (integer i = 0; i < len(arr1); i += 1;)
+	{
+		result[enumerator] = arr1[i];
+		enumerator += 1;
+	}
+	for (i = 0; i < len(arr2); i += 1;)
+	{
+		result[enumerator] = arr2[i];
+		enumerator += 1;
+	}
+
+	return result;
+}
+func concat_arrays(float[] arr1, float[] arr2) : float[]
+{
+	float[] result = float(len(arr1) + len(arr2));
+	integer enumerator = 0;
+
+	for (integer i = 0; i < len(arr1); i += 1;)
+	{
+		result[enumerator] = arr1[i];
+		enumerator += 1;
+	}
+	for (i = 0; i < len(arr2); i += 1;)
+	{
+		result[enumerator] = arr2[i];
+		enumerator += 1;
 	}
 
 	return result;
 }
 
-func ConcatIntArrays(integer[] arr1, integer[] arr2, integer[] arr3) : integer[]
-	return ConcatIntArrays(ConcatIntArrays(arr1, arr2), arr3);
 
-func SetIntArrayLen(integer[] array, integer toSize) : integer[]
+func set_array_len(integer[] arr,integer to_size) : integer[]
 {
-	integer[] result = integer(toSize);
-	integer i = 0; 
+	integer[] result = integer(to_size);
 
-	while (i < toSize)
+	for (integer i = 0; i < to_size; i += 1;)
 	{
-		if (i < len(array))
-			result[i] = array[i];
-		else
-			result[i] = 0;
-		i += 1;
+		if (i < len(arr))
+			result[i] = arr[i];
 	}
+	return result;
+}
+func set_array_len(long[] arr, integer to_size) : long[]
+{
+	long[] result = long(to_size);
 
+	for (integer i = 0; i < to_size; i += 1;)
+	{
+		if (i < len(arr))
+			result[i] = arr[i];
+	}
+	return result;
+}
+func set_array_len(char[] arr, integer to_size) : char[]
+{
+	char[] result = char(to_size);
+
+	for (integer i = 0; i < to_size; i += 1;)
+	{
+		if (i < len(arr))
+			result[i] = arr[i];
+	}
+	return result;
+}
+func set_array_len(string[] arr, integer to_size) : string[]
+{
+	string[] result = string(to_size);
+
+	for (integer i = 0; i < to_size; i += 1;)
+	{
+		if (i < len(arr))
+			result[i] = arr[i];
+	}
+	return result;
+}
+func set_array_len(boolean[] arr, integer to_size) : boolean[]
+{
+	boolean[] result = boolean(to_size);
+
+	for (integer i = 0; i < to_size; i += 1;)
+	{
+		if (i < len(arr))
+			result[i] = arr[i];
+	}
+	return result;
+}
+func set_array_len(float[] arr, integer to_size) : float[]
+{
+	float[] result = float(to_size);
+
+	for (integer i = 0; i < to_size; i += 1;)
+	{
+		if (i < len(arr))
+			result[i] = arr[i];
+	}
 	return result;
 }
 
-func FillIntArray(integer[] array, boolean high) : integer[]
-{
-	integer i = 0;
 
-	while(i < len(array))
+func print_array(integer[] arr) : void
+{
+	for (integer i = 0; i < len(arr); i += 1;)
+		println(arr[i]);
+}
+func print_array(long[] arr) : void
+{
+	for (integer i = 0; i < len(arr); i += 1;)
+		println(arr[i]);
+}
+func print_array(string[] arr) : void
+{
+	for (integer i = 0; i < len(arr); i += 1;)
+		println(arr[i]);
+}
+func print_array(char[] arr) : void
+{
+	for (integer i = 0; i < len(arr); i += 1;)
+		println(arr[i]);
+}
+func print_array(boolean[] arr) : void
+{
+	for (integer i = 0; i < len(arr); i += 1;)
+		println(arr[i]);
+}
+func print_array(float[] arr) : void
+{
+	for (integer i = 0; i < len(arr); i += 1;)
+		println(arr[i]);
+}
+
+func selection_sort(integer[] data) : integer[]
+{
+	integer i,j = 0;
+	integer buff;
+
+	for (i = 0; i < len(data); i += 1;)
 	{
-		if (high)
-			array[i] = i;
-		else
-			array[i] = len(array)-i;
-		i += 1;
+		for (j = i + 1; j < len(data); j += 1;)
+		{
+			if (data[j] < data[i])
+			{
+				buff = data[i];
+				data[i] = data[j];
+				data[j] = buff;
+			}
+		}
 	}
 
-	return array;
+	return data;
+}
+
+func quick_sort(integer[] data) : integer[]
+{
+	if (len(data) <= 1)
+		return data;
+
+	integer[] greater,same,lower = integer(len(data));
+	integer greater_size,same_size,lower_size = 0;
+
+	integer peak = data[toint32(len(data) / 2)];
+
+	for (integer i = 0; i < len(data); i += 1;)
+	{
+		if (peak < data[i])
+		{
+			greater[greater_size] = data[i];
+			greater_size += 1;
+		}
+		if (peak > data[i])
+		{
+			lower[lower_size] = data[i];
+			lower_size += 1;
+		}
+		if (peak == data[i])
+		{
+			same[same_size] = data[i];
+			same_size += 1;
+		}
+	}
+
+	greater = set_array_len(greater, greater_size);
+	same = set_array_len(same, same_size);
+	lower = set_array_len(lower, lower_size);
+
+	return concat_arrays(concat_arrays(quick_sort(lower),same), quick_sort(greater));
 }

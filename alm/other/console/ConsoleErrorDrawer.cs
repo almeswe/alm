@@ -19,55 +19,63 @@ namespace alm.Other.ConsoleStuff
 
         public void DrawError(CompilerError error)
         {
-            if (!error.HasContext)
-                return;
-
-            if (!File.Exists(error.FilePath))
+            try
             {
-                ColorizedPrintln("Невозможно отрисовать ошибку в консоль,так как файла в котором произошла ошибка не существует.", ConsoleColor.Red);
+                if (!error.HasContext)
+                    return;
+
+                if (!File.Exists(error.FilePath))
+                {
+                    ColorizedPrintln("Невозможно отрисовать ошибку в консоль,так как файла в котором произошла ошибка не существует.", ConsoleColor.Red);
+                    return;
+                }
+
+                this.lines = File.ReadAllLines(error.FilePath);
+
+                string erroredLine;
+                string separateString;
+                string reducedErroredLine;
+
+                int line;
+                int difference;
+                int emphLineLen = error.EndsAt.CharIndex - error.StartsAt.CharIndex;
+
+                if (this.lines.Length > 0 && this.lines.Length >= error.StartsAt.LineIndex - 1)
+                    erroredLine = this.lines[error.StartsAt.LineIndex - 1];
+                else
+                {
+                    ColorizedPrintln("Невозможно отрисовать ошибку в консоль,так как из файла не получена строка с номером ошибки (возможна она просто пустая).", ConsoleColor.Red);
+                    return;
+                }
+
+                line = error.StartsAt.LineIndex;
+
+                reducedErroredLine = DeleteFirstSameChars(erroredLine, ' ', '\t');
+
+                difference = erroredLine.Length - reducedErroredLine.Length + 1;
+
+                for (int i = error.StartsAt.CharIndex - difference; i < error.EndsAt.CharIndex - difference; i++)
+                    if (reducedErroredLine[i] == '\t')
+                        emphLineLen += tabSize;
+
+                separateString = string.Empty;
+                for (int i = 0; i < error.StartsAt.CharIndex - difference; i++)
+                {
+                    separateString += ' ';
+                    if (reducedErroredLine[i] == '\t')
+                        for (int j = 0; j < tabSize - 1; j++)
+                            separateString += ' ';
+                }
+
+
+                ColorizedPrintln($"{line}.\t\t" + reducedErroredLine, ConsoleColor.Gray);
+                ColorizedPrintln("\t\t" + separateString + CharNTimes(emphLineLen, emphChar), emphColor);
+            }
+            catch
+            {
+                ColorizedPrintln("Произошла ошибка при отрисовке ошибки в консоль.", ConsoleColor.Red);
                 return;
             }
-
-            this.lines = File.ReadAllLines(error.FilePath);
-
-            string erroredLine;
-            string separateString;
-            string reducedErroredLine;
-
-            int line;
-            int difference;
-            int emphLineLen = error.EndsAt.CharIndex - error.StartsAt.CharIndex;
-
-            if (this.lines.Length > 0 && this.lines.Length >= error.StartsAt.LineIndex - 1)
-                erroredLine = this.lines[error.StartsAt.LineIndex - 1];
-            else
-            {
-                ColorizedPrintln("Невозможно отрисовать ошибку в консоль,так как из файла не получена строка с номером ошибки (возможна она просто пустая).", ConsoleColor.Red);
-                return;
-            }
-
-            line = error.StartsAt.LineIndex;
-
-            reducedErroredLine = DeleteFirstSameChars(erroredLine, ' ', '\t');
-
-            difference = erroredLine.Length - reducedErroredLine.Length+1;
-
-            for (int i = error.StartsAt.CharIndex - difference; i < error.EndsAt.CharIndex - difference; i++)
-                if (reducedErroredLine[i] == '\t')
-                    emphLineLen += tabSize;
-
-            separateString = string.Empty;
-            for (int i = 0; i < error.StartsAt.CharIndex - difference; i++)
-            {
-                separateString += ' ';
-                if (reducedErroredLine[i] == '\t')
-                    for (int j = 0; j < tabSize - 1; j++)
-                        separateString += ' ';
-            }
-
-
-            ColorizedPrintln($"{line}.\t\t" + reducedErroredLine, ConsoleColor.Gray);
-            ColorizedPrintln("\t\t" + separateString + CharNTimes(emphLineLen, emphChar), emphColor);
         }
     }
 }

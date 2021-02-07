@@ -1,21 +1,17 @@
-﻿using System;
-using System.Linq;
-using System.Collections.Generic;
-
-using alm.Core.Errors;
-using alm.Core.InnerTypes;
-
-using alm.Core.FrontEnd.SyntaxAnalysis;
+﻿using alm.Core.Errors;
 using alm.Core.FrontEnd.SemanticAnalysis;
-
+using alm.Core.FrontEnd.SyntaxAnalysis;
+using alm.Core.InnerTypes;
+using alm.Other.ConsoleStuff;
 using alm.Other.Enums;
 using alm.Other.Structs;
-using alm.Other.ConsoleStuff;
-
-using static alm.Other.Enums.TokenType;
-using static alm.Other.Structs.SourceContext;
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using static alm.Core.Compiler.Compiler;
 using static alm.Core.Compiler.Compiler.CompilationVariables;
+using static alm.Other.Enums.TokenType;
+using static alm.Other.Structs.SourceContext;
 
 namespace alm.Core.SyntaxTree
 {
@@ -512,10 +508,19 @@ namespace alm.Core.SyntaxTree
 
         private IdentifierExpression[] GetIterableIdentifiers(Statement initStatement)
         {
-            IdentifierDeclaration assignment = (IdentifierDeclaration)initStatement;
-            IdentifierExpression[] identifiers = new IdentifierExpression[assignment.DeclaringIdentifiers.Length];
-            for (int i = 0; i < identifiers.Length;i++)
-                identifiers[i] = assignment.DeclaringIdentifiers[i];
+            IdentifierExpression[] identifiers;
+            if (initStatement is IdentifierDeclaration)
+            {
+                identifiers = new IdentifierExpression[((IdentifierDeclaration)initStatement).DeclaringIdentifiers.Length];
+                for (int i = 0; i < identifiers.Length; i++)
+                    identifiers[i] = ((IdentifierDeclaration)initStatement).DeclaringIdentifiers[i];
+            }
+            else
+            {
+                identifiers = new IdentifierExpression[((AssignmentStatement)initStatement).AdressorExpressions.Length];
+                for (int i = 0; i < identifiers.Length; i++)
+                    identifiers[i] = (IdentifierExpression)((AssignmentStatement)initStatement).AdressorExpressions[i];
+            }
             return identifiers;
         }
     }
@@ -798,13 +803,9 @@ namespace alm.Core.SyntaxTree
         public override NodeType NodeKind => NodeType.ArrayElement;
         public override ConsoleColor ConsoleColor => ConsoleColor.Magenta;
 
-        public ArrayElementExpression(IdentifierExpression identifier, Expression[] indexes)
+        public ArrayElementExpression(IdentifierExpression identifier, Expression[] indexes,SourceContext context)
         {
-            //problems with error showing ?
-            if (indexes.Length > 0)
-                this.SetSourceContext(identifier, indexes[indexes.Length - 1]);
-            else
-                this.SetSourceContext(identifier);
+            this.SourceContext = context;
             this.ArrayName = identifier.Name;
             this.Indexes = indexes;
             this.Dimension = (ushort)indexes.Length;

@@ -185,7 +185,7 @@ namespace alm.Core.FrontEnd.SemanticAnalysis
                 table.InitializeInBlock((IdentifierExpression)adressor,body);
             }
             else
-                ResolveArrayElement((ArrayElementExpression)adressor, table);
+                ResolveArrayElement((ArrayElementExpression)adressor, table,true);
         }
 
         public static void ResolveMethodInvokation(MethodInvokationExpression method, Table.Table table)
@@ -228,8 +228,15 @@ namespace alm.Core.FrontEnd.SemanticAnalysis
             ResolveMethodInvokations(expression, table);
             ResolveArrayElements(expression, table);
         }
-        public static void ResolveArrayElement(ArrayElementExpression arrayElement, Table.Table table)
+        public static void ResolveArrayElement(ArrayElementExpression arrayElement, Table.Table table,bool asAdressor = false)
         {
+            if (table.CheckIdentifier(arrayElement.ArrayName) && asAdressor)
+            {
+                TableIdentifier tableIdentifier = table.FetchIdentifier(arrayElement.ArrayName);
+                if (tableIdentifier.Type is String)
+                    Diagnostics.SemanticErrors.Add(new CannotChangeTheString(arrayElement.SourceContext));
+            }
+
             if (table.CheckIdentifier(arrayElement.ArrayName) && table.FetchIdentifier(arrayElement.ArrayName).Type is ArrayType)
             {
                 TableIdentifier tableIdentifier = table.FetchIdentifier(arrayElement.ArrayName);

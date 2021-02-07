@@ -107,7 +107,7 @@ namespace alm.Core.FrontEnd.SemanticAnalysis
                 case BinaryExpression.BinaryOperator.FDiv:
                 case BinaryExpression.BinaryOperator.IDiv:
                     if (LOperandType is NumericType && ROperandType is NumericType)
-                        return binaryArithExpression.OperatorKind == BinaryExpression.BinaryOperator.IDiv ? (NumericType)new Int32() : (NumericType)new Single();
+                        return TypeCaster.HigherPriorityType(LOperandType, ROperandType);
                     ReportErrorInArithExpression(new OperatorWithWrongOperandTypes($"Оператор [{binaryArithExpression.GetOperatorRepresentation()}] должен использоваться с операндами числового типа",binaryArithExpression.SourceContext));
                     if (!(LOperandType is NumericType))
                         return LOperandType;
@@ -289,6 +289,8 @@ namespace alm.Core.FrontEnd.SemanticAnalysis
         public static void ResolveMethodsParametersTypes(MethodInvokationExpression method)
         {
             TableMethod tableMethod = GlobalTable.Table.FetchMethod(method.Name, method.GetArgumentsTypes());
+            if (tableMethod == null)
+                return;
             for (int i = 0; i < tableMethod.ArgCount; i++)
             {
                 TableMethodArgument tableArgument = tableMethod.Arguments[i];
@@ -369,7 +371,6 @@ namespace alm.Core.FrontEnd.SemanticAnalysis
 
             IntegerToFloat,
 
-            CharToFloat,
             CharToInteger,
 
             NoNeedToCast,
@@ -675,7 +676,6 @@ namespace alm.Core.FrontEnd.SemanticAnalysis
         {
             switch (castCase)
             {
-                case CastCase.CharToFloat:
                 case CastCase.IntegerToFloat:
                     return "tofloat";
 

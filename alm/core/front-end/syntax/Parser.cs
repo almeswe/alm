@@ -131,6 +131,9 @@ namespace alm.Core.FrontEnd.SyntaxAnalysis
             Expression[] methodParameters = ParseParametersDeclarations();
             methodContext.EndsAt = Lexer.PreviousToken.Context.EndsAt;
 
+            if (IsErrored(methodParameters))
+                return new ErroredExpression(new SyntaxErrorMessage("Ожидался параметр метода", methodContext));
+
             return new MethodInvokationExpression(methodName.Name, methodParameters, methodContext);
         }
 
@@ -212,6 +215,9 @@ namespace alm.Core.FrontEnd.SyntaxAnalysis
         }
         public Expression ParseArrayElementExpression()
         {
+            SourceContext arrayElementContext = new SourceContext();
+            arrayElementContext.StartsAt = new Position(Lexer.CurrentToken);
+            arrayElementContext.FilePath = CurrentParsingFile;
             List<Expression> indexes = new List<Expression>();
             IdentifierExpression identifier = (IdentifierExpression)ParseIdentifierExpression(IdentifierExpression.State.Decl);
 
@@ -232,7 +238,8 @@ namespace alm.Core.FrontEnd.SyntaxAnalysis
                     Lexer.GetNextToken();
             }
             Lexer.GetNextToken();
-            return new ArrayElementExpression(identifier, indexes.ToArray());
+            arrayElementContext.EndsAt = new Position(Lexer.PreviousToken);
+            return new ArrayElementExpression(identifier, indexes.ToArray(),arrayElementContext);
         }
         public Expression ParseAdressor(IdentifierExpression.State state = IdentifierExpression.State.Call)
         {

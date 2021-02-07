@@ -178,10 +178,8 @@ namespace alm.Core.BackEnd
                     if (OperandsHaveSameTypes(binaryBoolean, new InnerTypes.String()))
                         EmitStringEquality(binaryBoolean.LeftOperand, binaryBoolean.RightOperand, methodIL);
                     else
-                    {
                         EmitBooleanRelationOperation(binaryBoolean.LeftOperand, binaryBoolean.RightOperand, OpCodes.Beq, methodIL);
-                        EmitInversion(methodIL);
-                    }
+                    EmitInversion(methodIL);
                     break;
 
 

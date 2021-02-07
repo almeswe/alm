@@ -554,9 +554,18 @@ namespace alm.Core.FrontEnd.SyntaxAnalysis
             loopContext.FilePath = CurrentParsingFile;
             loopContext.StartsAt = new Position(Lexer.CurrentToken);
 
-            Statement loopInit = ParseDeclarationStatement();
-            Statement loopStep = ParseAssignmentStatement();
+            Statement loopInit;
+            if (Match(tkType))
+                loopInit = ParseDeclarationStatement();
+            else
+                loopInit = ParseAssignmentStatement();
+
             Expression loopCondition = ParseBooleanExpression();
+            if (!Match(tkSemicolon))
+                return new ErroredStatement(new MissingSemi(Lexer.CurrentToken));
+            Lexer.GetNextToken();
+
+            Statement loopStep = ParseAssignmentStatement();
 
             if (!Match(tkRpar))
                 return new ErroredStatement(new MissingRpar(Lexer.CurrentToken));

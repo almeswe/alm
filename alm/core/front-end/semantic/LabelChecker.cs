@@ -71,6 +71,11 @@ namespace alm.Core.FrontEnd.SemanticAnalysis
                 case NodeType.If:
                     ResolveIfStatement((IfStatement)statement,table);
                     break;
+
+                case NodeType.For:
+                    ResolveForLoopStatement((ForLoopStatement)statement, table);
+                    break;
+
                 case NodeType.Do:
                 case NodeType.While:
                     ResolveIterationStatement((IterationStatement)statement,table);
@@ -99,6 +104,13 @@ namespace alm.Core.FrontEnd.SemanticAnalysis
         {
             ResolveExpression(iterationStatement.Condition, table);
             ResolveEmbeddedStatement((EmbeddedStatement)iterationStatement.Body, table);
+        }
+        public static void ResolveForLoopStatement(ForLoopStatement forLoop, Table.Table table)
+        {
+            ResolveStatement(forLoop.InitStatement, table);
+            ResolveExpression(forLoop.Condition, table);
+            ResolveStatement(forLoop.StepStatement,table);
+            ResolveEmbeddedStatement((EmbeddedStatement)forLoop.Body, table);
         }
         public static void ResolveIfStatement(IfStatement ifStatement, Table.Table table)
         {

@@ -104,6 +104,10 @@ namespace alm.Core.BackEnd
                     EmitDoLoopStatement((DoLoopStatement)statement, methodIL);
                     break;
 
+                case NodeType.For:
+                    EmitForLoopStatement((ForLoopStatement)statement, methodIL);
+                    break;
+
                 case NodeType.Return:
                     EmitReturnStatement((ReturnStatement)statement, methodIL);
                     break;
@@ -236,43 +240,72 @@ namespace alm.Core.BackEnd
         }
         private static void EmitWhileLoopStatement(WhileLoopStatement whileLoop, ILGenerator methodIL)
         {
-            Label toEnd = methodIL.DefineLabel();
-            Label toLoopBody = methodIL.DefineLabel();
             Label toLoopCond = methodIL.DefineLabel();
+            Label toLoopBody = methodIL.DefineLabel();
+            Label toBodyEnd = methodIL.DefineLabel();
+            Label toLoopEnd = methodIL.DefineLabel();
 
-            BreakLabel = toEnd;
-            ContinueLabel = toLoopCond;
+            BreakLabel    = toLoopEnd;
+            ContinueLabel = toBodyEnd;
 
             methodIL.MarkLabel(toLoopCond);
             EmitCondition(whileLoop.Condition, methodIL);
 
             methodIL.Emit(OpCodes.Brtrue, toLoopBody);
-            methodIL.Emit(OpCodes.Br, toEnd);
+            methodIL.Emit(OpCodes.Br, toLoopEnd);
 
             methodIL.MarkLabel(toLoopBody);
             EmitEmbeddedStatement((EmbeddedStatement)whileLoop.Body, methodIL);
+            methodIL.MarkLabel(toBodyEnd);
             methodIL.Emit(OpCodes.Br, toLoopCond);
 
-            methodIL.MarkLabel(toEnd);
+            methodIL.MarkLabel(toLoopEnd);
         }
         private static void EmitDoLoopStatement(DoLoopStatement doLoop, ILGenerator methodIL)
         {
-            Label toEnd = methodIL.DefineLabel();
-            Label toLoopBody = methodIL.DefineLabel();
             Label toLoopCond = methodIL.DefineLabel();
+            Label toLoopBody = methodIL.DefineLabel();
+            Label toBodyEnd = methodIL.DefineLabel();
+            Label toLoopEnd = methodIL.DefineLabel();
 
-            BreakLabel = toEnd;
-            ContinueLabel = toLoopCond;
+            BreakLabel    = toLoopEnd;
+            ContinueLabel = toBodyEnd;
 
             methodIL.MarkLabel(toLoopBody);
             EmitEmbeddedStatement((EmbeddedStatement)doLoop.Body, methodIL);
+            methodIL.MarkLabel(toBodyEnd);
 
             methodIL.MarkLabel(toLoopCond);
             EmitCondition(doLoop.Condition, methodIL);
-
             methodIL.Emit(OpCodes.Brtrue, toLoopBody);
 
-            methodIL.MarkLabel(toEnd);
+            methodIL.MarkLabel(toLoopEnd);
+        }
+        private static void EmitForLoopStatement(ForLoopStatement forLoop, ILGenerator methodIL)
+        {
+            Label toLoopCond = methodIL.DefineLabel();
+            Label toLoopBody = methodIL.DefineLabel();
+            Label toBodyEnd = methodIL.DefineLabel();
+            Label toLoopEnd = methodIL.DefineLabel();
+
+            BreakLabel = toLoopEnd;
+            ContinueLabel = toBodyEnd;
+
+            EmitStatement(forLoop.InitStatement,methodIL);
+
+            methodIL.MarkLabel(toLoopCond);
+            EmitCondition(forLoop.Condition, methodIL);
+
+            methodIL.Emit(OpCodes.Brtrue, toLoopBody);
+            methodIL.Emit(OpCodes.Br, toLoopEnd);
+
+            methodIL.MarkLabel(toLoopBody);
+            EmitEmbeddedStatement((EmbeddedStatement)forLoop.Body, methodIL);
+            methodIL.MarkLabel(toBodyEnd);
+            EmitStatement(forLoop.StepStatement,methodIL);
+            methodIL.Emit(OpCodes.Br, toLoopCond);
+
+            methodIL.MarkLabel(toLoopEnd);
         }
 
         private static void EmitDeclarationStatement(IdentifierDeclaration declaration, ILGenerator methodIL)

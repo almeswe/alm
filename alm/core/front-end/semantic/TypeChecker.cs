@@ -260,6 +260,8 @@ namespace alm.Core.FrontEnd.SemanticAnalysis
                 ResolveConditionExpressionType(whileStatement.Condition);
             foreach (DoLoopStatement doStatement in inNode.GetChildsByType(typeof(DoLoopStatement), true))
                 ResolveConditionExpressionType(doStatement.Condition);
+            foreach (ForLoopStatement forStatement in inNode.GetChildsByType(typeof(ForLoopStatement), true))
+                ResolveConditionExpressionType(forStatement.Condition);
         }
         public static void ResolveConditionExpressionType(Expression condition)
         {

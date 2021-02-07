@@ -1,0 +1,26 @@
+﻿import io, cast;
+
+func test_case(float got, float expected, integer test_case_num) : void
+{
+	print(test_case_num);
+	if (expected == got)
+		println(") success!");
+	else
+		println(") failure, got: " + tostrf(got) + ", instead of: " + tostrf(expected));
+}
+func test_case(string got, string expected, integer test_case_num) : void
+{
+	print(test_case_num);
+	if (expected == got)
+		println(") success!");
+	else
+		println(") failure, got: " + got + ", instead of: " + expected);
+}
+func test_case(boolean got, boolean expected, integer test_case_num) : void
+{
+	test_case(toint32(got),toint32(expected),test_case_num);
+}
+func test_case(char got, char expected, integer test_case_num) : void
+{
+	test_case(toint32(got), toint32(expected), test_case_num);
+}

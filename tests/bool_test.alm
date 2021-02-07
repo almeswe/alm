@@ -1,0 +1,217 @@
+﻿import "test.alm";
+
+func test_or(boolean a,boolean b,boolean expected,integer test_case_num) : void
+{
+	if (a or b)
+		test_case(true,expected,test_case_num);
+	else
+		test_case(false, expected, test_case_num);
+}
+func test_or(boolean a, boolean b, boolean c, boolean expected, integer test_case_num) : void
+{
+	if (a or b or c)
+		test_case(true, expected, test_case_num);
+	else
+		test_case(false, expected, test_case_num);
+}
+
+func test_and(boolean a, boolean b, boolean expected, integer test_case_num) : void
+{
+	if (a and b)
+		test_case(true, expected, test_case_num);
+	else
+		test_case(false, expected, test_case_num);
+}
+func test_and(boolean a, boolean b, boolean c, boolean expected, integer test_case_num) : void
+{
+	if (a and b and c)
+		test_case(true, expected, test_case_num);
+	else
+		test_case(false, expected, test_case_num);
+}
+
+func test_xor(boolean a, boolean b, boolean expected, integer test_case_num) : void
+{
+	if (a xor b)
+		test_case(true, expected, test_case_num);
+	else
+		test_case(false, expected, test_case_num);
+}
+func test_xor(boolean a, boolean b, boolean c, boolean expected, integer test_case_num) : void
+{
+	if (a xor b xor c)
+		test_case(true, expected, test_case_num);
+	else
+		test_case(false, expected, test_case_num);
+}
+
+func test_not(boolean a, boolean expected, integer test_case_num) : void
+{
+	if (not a)
+		test_case(true, expected, test_case_num);
+	else
+		test_case(false, expected, test_case_num);
+}
+
+func test_less_than(float a, float b, boolean expected, integer test_case_num) : void
+{
+	if (a < b)
+		test_case(true, expected, test_case_num);
+	else
+		test_case(false, expected, test_case_num);
+}
+func test_greater_than(float a, float b, boolean expected, integer test_case_num) : void
+{
+	if (a > b)
+		test_case(true, expected, test_case_num);
+	else
+		test_case(false, expected, test_case_num);
+}
+
+func test_less_equal_than(float a, float b, boolean expected, integer test_case_num) : void
+{
+	if (a <= b)
+		test_case(true, expected, test_case_num);
+	else
+		test_case(false, expected, test_case_num);
+}
+func test_greater_equal_than(float a, float b, boolean expected, integer test_case_num) : void
+{
+	if (a >= b)
+		test_case(true, expected, test_case_num);
+	else
+		test_case(false, expected, test_case_num);
+}
+
+func test_equal(string a, string b, boolean expected, integer test_case_num) : void
+{
+	if (a == b)
+		test_case(true, expected, test_case_num);
+	else
+		test_case(false, expected, test_case_num);
+}
+func test_equal(float a, float b, boolean expected, integer test_case_num) : void
+{
+	if (a == b)
+		test_case(true, expected, test_case_num);
+	else
+		test_case(false, expected, test_case_num);
+}
+func test_equal(boolean a, boolean b, boolean expected, integer test_case_num) : void
+{
+	if (a == b)
+		test_case(true, expected, test_case_num);
+	else
+		test_case(false, expected, test_case_num);
+}
+func test_equal(char a, char b, boolean expected, integer test_case_num) : void
+{
+	if (a == b)
+		test_case(true, expected, test_case_num);
+	else
+		test_case(false, expected, test_case_num);
+}
+
+func test_not_equal(string a, string b, boolean expected, integer test_case_num) : void
+{
+	if (a != b)
+		test_case(true, expected, test_case_num);
+	else
+		test_case(false, expected, test_case_num);
+}
+func test_not_equal(float a, float b, boolean expected, integer test_case_num) : void
+{
+	if (a != b)
+		test_case(true, expected, test_case_num);
+	else
+		test_case(false, expected, test_case_num);
+}
+func test_not_equal(boolean a, boolean b, boolean expected, integer test_case_num) : void
+{
+	if (a != b)
+		test_case(true, expected, test_case_num);
+	else
+		test_case(false, expected, test_case_num);
+}
+func test_not_equal(char a, char b, boolean expected, integer test_case_num) : void
+{
+	if (a != b)
+		test_case(true, expected, test_case_num);
+	else
+		test_case(false, expected, test_case_num);
+}
+
+func run_boolean_test() : void
+{
+	println("BOOLEAN OPERATORS TEST\n");
+
+	println("Or TEST");
+	test_or(true,false,true,1);
+	test_or(false, false, false, 2);
+	test_or(true,false,false,true,3);
+	test_or(true, true, true, true, 4);
+	println("");
+
+	println("And TEST");
+	test_and(true, false, false, 1);
+	test_and(false, false, false, 2);
+	test_and(true, false, false, false, 3);
+	test_and(true, true, true, true, 4);
+	println("");
+
+	println("Xor TEST");
+	test_xor(true, false, true, 1);
+	test_xor(false, false, false, 2);
+	test_xor(true, false, false, true, 3);
+	test_xor(true, true, true, true, 4);
+	println("");
+
+	println("Not TEST");
+	test_not(true,false, 1);
+	test_not(false, true,2);
+	println("");
+
+	println("< (LT) TEST");
+	test_less_than(2+2*2, (2+2)*2,true, 1);
+	test_less_than(4 << 2, 4 << 1, false, 2);
+	test_less_than(1, 1, false, 3);
+	test_less_than(-1, 1, true, 4);
+	println("");
+
+	println("> (GT) TEST");
+	test_greater_than(2 ** 3, 2 ** 2 , true, 1);
+	test_greater_than(4 >> 2, 4 >> 1, false, 2);
+	test_greater_than(1, 1, false, 3);
+	test_greater_than(-1, 1, false , 4);
+	println("");
+
+	println("<= (LET) TEST");
+	test_less_equal_than(100 ^ 100, 1, true, 1);
+	test_less_equal_than(2 ** -11, 2 ** -12, false, 2);
+	test_less_equal_than(1, 1, true, 3);
+	test_less_equal_than(-777, -776, true, 4);
+	println("");
+
+	println(">= (GET) TEST");
+	test_greater_equal_than(0 | 1, 1, true, 1);
+	test_greater_equal_than(2 ** -11, 2 ** -12, true, 2);
+	test_greater_equal_than(1, 1, true, 3);
+	test_greater_equal_than(toint32('a'), toint32('c'), false, 4);
+	println("");
+
+	println("== (E) TEST");
+	test_equal(777, 7777, false, 1);
+	test_equal('c','c', true, 2);
+	test_equal(true, false , false, 3);
+	test_equal("Hello world!", "Hello world1", false, 4);
+	println("");
+
+	println("!= (NE) TEST");
+	test_not_equal(666.66, 666.6, true, 1);
+	test_not_equal('\r', '\n', true , 2);
+	test_not_equal(false, false, false, 3);
+	test_not_equal("foo bar", "foo bar", false, 4);
+	println("");
+
+	read("Press any key...");
+}

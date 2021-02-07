@@ -1,17 +1,124 @@
-﻿import io;
-import str;
+﻿import "test.alm";
 
-func test_case(float got, float expect, integer test_case_num) : void
+func test_addition(float op1, float op2, float expected, integer test_case_num) : void
 {
-	printn(test_case_num);
-	if (expect == got)
-		println(") success!");
-	else
-		println(Concat(") failure, got: ", tostrf(got), Concat(", instead of: ", tostrf(expect))));
+	test_case(op1 + op2, expected, test_case_num);
+}
+func test_substraction(float op1, float op2, float expected, integer test_case_num) : void
+{
+	test_case(op1 - op2, expected, test_case_num);
+}
+func test_multiplication(float op1, float op2, float expected, integer test_case_num) : void
+{
+	test_case(op1 * op2, expected, test_case_num);
+}
+func test_division(float op1, float op2, float expected, integer test_case_num) : void
+{
+	test_case(op1 / op2, expected, test_case_num);
+}
+func test_remainder(float op1, float op2, float expected, integer test_case_num) : void
+{
+	test_case(op1 % op2, expected, test_case_num);
+}
+func test_bitwise_or(integer op1, integer op2, integer expected, integer test_case_num) : void
+{
+	test_case(op1 | op2, expected, test_case_num);
+}
+func test_bitwise_and(integer op1, integer op2, integer expected, integer test_case_num) : void
+{
+	test_case(op1 & op2, expected, test_case_num);
+}
+func test_bitwise_xor(integer op1, integer op2, integer expected, integer test_case_num) : void
+{
+	test_case(op1 ^ op2, expected, test_case_num);
+}
+func test_logic_lshift(integer op1, integer op2, integer expected, integer test_case_num) : void
+{
+	test_case(op1 << op2, expected, test_case_num);
+}
+func test_logic_rshift(integer op1, integer op2, integer expected, integer test_case_num) : void
+{
+	test_case(op1 >> op2, expected, test_case_num);
 }
 
-func main() : integer
+func run_arith_op_test() : void
 {
+	println("ARITH OPERATORS TEST\n");
+
+	println("+ (ADDITION) TEST");
+	test_addition(1,1,2,1);
+	test_addition(15,14,29,2);
+	test_addition(10,10,20, 3);
+	test_addition(999,1,1000, 4);
+	println("");
+
+	println("- (SUBSTRACTION) TEST");
+	test_substraction(1,1,0,1);
+	test_substraction(15,14,1,2);
+	test_substraction(10, 11, -1, 3);
+	test_substraction(-1, -1, 0, 4);
+	println("");
+
+	println("* (MULTIPLICATION) TEST");
+	test_multiplication(1, 1, 1, 1);
+	test_multiplication(-1, -1, 1, 2);
+	test_multiplication(100, 0.01, 1, 3);
+	test_multiplication(12, -5, -60, 4);
+	println("");
+
+	println("/ (DIVISION) TEST");
+	test_division(1, 4, 0.25, 1);
+	test_division(-1, -1, 1, 2);
+	test_division(100, 0.01, 10000, 3);
+	test_division(60, 5, 12, 4);
+	println("");
+
+	println("% (REMAINDER) TEST");
+	test_remainder(4, 4, 0, 1);
+	test_remainder(157, 2, 1, 2);
+	test_remainder(777,7, 0, 3);
+	test_remainder(60, 5, 0, 4);
+	println("");
+
+	println("| (BITWISE-OR) TEST");
+	test_bitwise_or(15, 45, 47, 1);
+	test_bitwise_or(1, 0, 1, 2);
+	test_bitwise_or(777, 7, 783, 3);
+	test_bitwise_or(60, 5, 61, 4);
+	println("");
+
+	println("& (BITWISE-AND) TEST");
+	test_bitwise_and(15, 45, 13, 1);
+	test_bitwise_and(1, 0, 0, 2);
+	test_bitwise_and(777, 7, 1, 3);
+	test_bitwise_and(60, 5, 4, 4);
+	println("");
+
+	println("& (BITWISE-XOR) TEST");
+	test_bitwise_xor(15, 45, 34, 1);
+	test_bitwise_xor(1, 0, 1, 2);
+	test_bitwise_xor(777, 7, 782, 3);
+	test_bitwise_xor(60, 5, 57, 4);
+	println("");
+
+	println(">> (RIGHT-SHIFT) TEST");
+	test_logic_rshift(2, 2, 0, 1);
+	test_logic_rshift(444, 8, 1, 2);
+	test_logic_rshift(128, 2, 32, 3);
+	test_logic_rshift(256, 4, 16, 4);
+	println("");
+
+	println("<< (LEFT-SHIFT) TEST");
+	test_logic_lshift(2, 2, 8, 1);
+	test_logic_lshift(444, 8, 113664, 2);
+	test_logic_lshift(128, 2, 512, 3);
+	test_logic_lshift(256, 4, 4096, 4);
+	println("");
+}
+func run_simple_expr_arith_test() : void
+{
+	println("SIMPLE ARITH EXPR TEST");
+
 	test_case(-2 + 3 - 4 * 5 * 15 - 15 * 15,-524,1);
 
 	test_case(73 + (100 - 85) - (35 - 24),77,2);
@@ -26,8 +133,35 @@ func main() : integer
 	test_case(20 - (17 + (20 + 18) - (97 + 86)),148,9);
 	test_case(44 - (-56 * (78 - 11)) + 54 - 48,3802,10);
 
-	test_case(-2 - 2 + 2,-2,11);
+	println("");
+}
+func run_complicated_expr_arith_test() : void
+{
+	println("COMPLICATED ARITH EXPR TEST");
 
-	read();
-	return 0;
+	//may occure bug when using a lot of shifts
+
+	test_case((35 - 24 ^ 21 | 123 & 156 & 88) << 3,240,1);
+	test_case(73 >> 2 << 4 + (123 & 100 ^ 25 - 85 | 31 << 2),18,2);
+	test_case(20 >> 2 - 17 * 22 - (2 & 20 - 18 & 15),0,3);
+	test_case((78 ^ 2 & 4 * 5 + 11 >> 4) - (54 << 2 & 21 ^ 6 + 48 * 22),-1000,4);
+
+	test_case(73^73 - (100 << 5 + 85 ^ 22) + (35 *21 ^ 21 + 24 << 4), 1879048203,5);
+	test_case((20 << 2 ^ 2 + 18 * 24 *65) - (97 & 2 & 12 & 231 + 86 | 23 ^ 22), 28129,6);
+	test_case(44 ^ 22 - 56 & 12 * (78 | 21 - 11 << 2) + (54 ^ 43 - 48 | 22 | 1), 1322,7);
+
+	test_case(73 << 2 - (-(100 ^ 12 | 2 + 85 & 12 * 22) + (35 >> 2 + 24 * 2)), 74752,8);
+	test_case(20 * 22 - (17 ^ 22 >> 2 + (20 & 2 | 12 + 18 << 4) - (9 * 2 & 23 + 86 | 12)), 423,9);
+	test_case(44 ^ -12 +2 - (-56 << 2 * (78 | 12 & 21 - 11 ^ 23)) + 54 <<2 - 48, 11534380,10);
+
+	println("");
+}
+
+func run_all_arith_tests() : void
+{
+	run_arith_op_test();
+	run_simple_expr_arith_test();
+	run_complicated_expr_arith_test();
+
+	read("Press any key...");
 }

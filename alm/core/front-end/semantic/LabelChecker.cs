@@ -98,7 +98,8 @@ namespace alm.Core.FrontEnd.SemanticAnalysis
                     Diagnostics.SemanticErrors.Add(new OperatorMustBeSituatedInLoop(jumpStatement.IsContinue() ? "сontinue" : "break",jumpStatement.SourceContext));
             }
             else
-                ResolveExpression(((ReturnStatement)jumpStatement).ReturnBody, table);
+                if (((ReturnStatement)jumpStatement).ReturnBody != null)
+                    ResolveExpression(((ReturnStatement)jumpStatement).ReturnBody, table);
         }
         public static void ResolveIterationStatement(IterationStatement iterationStatement, Table.Table table)
         {

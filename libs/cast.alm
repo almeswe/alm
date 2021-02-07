@@ -66,20 +66,12 @@ func toint32(boolean value) : integer
 func ToSingle(string value) : float;
 
 @external "System.Convert"
-func ToSingle(char value) : float;
-
-@external "System.Convert"
 func ToSingle(integer value) : float;
 
 @external "System.Convert"
 func ToSingle(boolean value) : float;
 
 func tofloat(string value) : float
-{
-	return ToSingle(value);
-}
-
-func tofloat(char value) : float
 {
 	return ToSingle(value);
 }

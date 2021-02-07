@@ -237,7 +237,7 @@ namespace alm.Core.SyntaxTree
                 Parser parser = new Parser(lexer);
                 SyntaxTreeNode importedModule = parser.Parse(currentImportedModule);
 
-                CurrentParsingModule = CompilationEntryModule;
+                CurrentParsingModule = currentImportedModule;
 
                 //foreach (SyntaxTreeNode child in importedModule.Childs)
                 this.AddNode(importedModule);

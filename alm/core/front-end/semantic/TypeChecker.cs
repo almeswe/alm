@@ -9,6 +9,7 @@ using alm.Other.Enums;
 
 using static alm.Core.Compiler.Compiler;
 using static alm.Other.String.StringMethods;
+using alm.Other.Structs;
 
 namespace alm.Core.FrontEnd.SemanticAnalysis
 {
@@ -636,6 +637,15 @@ namespace alm.Core.FrontEnd.SemanticAnalysis
             {
                 castMethod = new MethodInvokationExpression(GetCastMethodName(castCase), parameters, parameters[0].SourceContext);
                 ((MethodInvokationExpression)castMethod).ReturnType = returnType;
+
+                //check if this cast method exists
+                if (!Diagnostics.SemanticAnalysisFailed)
+                {
+                    LabelChecker.ResolveMethodInvokation((MethodInvokationExpression)castMethod, GlobalTable.Table);
+                    if (Diagnostics.SemanticAnalysisFailed)
+                        Diagnostics.SemanticErrors[Diagnostics.SemanticErrors.Count - 1] = new CannotFindCastMethod(((MethodInvokationExpression)castMethod).Name);
+                }
+
             }
             else
                 castMethod = parameters[0].ParameterInstance;

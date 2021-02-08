@@ -277,7 +277,7 @@ namespace alm.Core.FrontEnd.SyntaxAnalysis
                 return new ErroredStatement(new MissingSemi(Lexer.PreviousToken));
             Lexer.GetNextToken();
 
-            return new ImportStatement(modules.ToArray());
+            return new ImportStatement(CurrentParsingFile,modules.ToArray());
         }
         public Statement ParseMethodDeclaration()
         {

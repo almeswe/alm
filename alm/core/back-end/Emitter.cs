@@ -54,7 +54,13 @@ namespace alm.Core.BackEnd
             Type[] arguments = CreateTypes(method.GetArgumentsTypes());
             Type type = Type.GetType(GetCreatedExternalMethod(method.Name, arguments).NETPackage);
             EmitMethodParameters(method.Parameters, methodIL);
-            methodIL.EmitCall(OpCodes.Call, type.GetMethod(method.Name, arguments), null);
+            if (type != null && type.GetMethod(method.Name, arguments) != null)
+                methodIL.EmitCall(OpCodes.Call, type.GetMethod(method.Name, arguments), null);
+            else
+                if (type == null)
+                    ConsoleCustomizer.ColorizedPrintln($"Error occurred when trying to find package \"{GetCreatedExternalMethod(method.Name, arguments).NETPackage}\".", ConsoleColor.DarkRed);
+                else
+                    ConsoleCustomizer.ColorizedPrintln($"No method [{method.Name}] with those type of arguments found in package \"{GetCreatedExternalMethod(method.Name, arguments).NETPackage}\".", ConsoleColor.DarkRed);
         }
 
         private static void EmitMethodArguments(ArgumentDeclaration[] arguments)

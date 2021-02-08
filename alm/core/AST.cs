@@ -1,17 +1,20 @@
-﻿using alm.Core.Errors;
-using alm.Core.FrontEnd.SemanticAnalysis;
-using alm.Core.FrontEnd.SyntaxAnalysis;
+﻿using System;
+using System.Linq;
+using System.Collections.Generic;
+
+using alm.Core.Errors;
 using alm.Core.InnerTypes;
-using alm.Other.ConsoleStuff;
+using alm.Core.FrontEnd.SyntaxAnalysis;
+using alm.Core.FrontEnd.SemanticAnalysis;
+
 using alm.Other.Enums;
 using alm.Other.Structs;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using static alm.Core.Compiler.Compiler;
-using static alm.Core.Compiler.Compiler.CompilationVariables;
+using alm.Other.ConsoleStuff;
+
 using static alm.Other.Enums.TokenType;
+using static alm.Core.Compiler.Compiler;
 using static alm.Other.Structs.SourceContext;
+using static alm.Core.Compiler.Compiler.CompilationVariables;
 
 namespace alm.Core.SyntaxTree
 {
@@ -167,15 +170,18 @@ namespace alm.Core.SyntaxTree
         public string[] ImportPaths { get; private set; }
         public SyntaxTreeNode[] ImportRoots { get; private set; }
 
+        private string Where;
+
         public override NodeType NodeKind => NodeType.Import;
         public override ConsoleColor ConsoleColor => ConsoleColor.Red;
 
-        public ImportStatement(Expression[] modules)
+        public ImportStatement(string Where,Expression[] modules)
         {
             if (modules.Length > 2)
                 this.SetSourceContext(modules[0], modules.Last());
             else
                 this.SetSourceContext(modules[0]);
+            this.Where = Where;
             this.ImportPaths = this.CreatePathInstances(modules);
             this.TryToJoinImportedModules();
         }
@@ -237,9 +243,8 @@ namespace alm.Core.SyntaxTree
                 Parser parser = new Parser(lexer);
                 SyntaxTreeNode importedModule = parser.Parse(currentImportedModule);
 
-                CurrentParsingModule = currentImportedModule;
-
-                //foreach (SyntaxTreeNode child in importedModule.Childs)
+                CurrentParsingModule = this.Where;
+   
                 this.AddNode(importedModule);
 
                 importedModules.Add(importedModule);
@@ -337,7 +342,7 @@ namespace alm.Core.SyntaxTree
             return arguments;
         }
 
-        public override string ToString() => (this.IsExternal ? "ext " : "") + $"func {this.Name}(args:{this.ArgCount})->{this.ReturnType}";
+        public override string ToString() => (this.IsExternal ? $"ext [{this.NETPackage}] " : "") + $"func {this.Name}(args:{this.ArgCount})->{this.ReturnType}";
     }
     public sealed class IdentifierDeclaration : Statement
     {

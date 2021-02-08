@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using alm.Other.Structs;
 
 using static alm.Other.Enums.TokenType;
+using static alm.Core.Compiler.Compiler.CompilationVariables;
 
 namespace alm.Core.FrontEnd.SyntaxAnalysis
 {
@@ -62,10 +63,11 @@ namespace alm.Core.FrontEnd.SyntaxAnalysis
 
         public Lexer(string path)
         {
-            Stream = new StreamReader(path,System.Text.Encoding.UTF8);
             CurrentCharIndex = 0;
             CurrentLineIndex = 1;
             CurrentTokenIndex = -1;
+            CurrentParsingModule = path;
+            Stream = new StreamReader(path, System.Text.Encoding.UTF8);
             GetTokens();
         }
         public Token GetNextToken()

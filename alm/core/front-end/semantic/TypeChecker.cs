@@ -9,7 +9,6 @@ using alm.Other.Enums;
 
 using static alm.Core.Compiler.Compiler;
 using static alm.Other.String.StringMethods;
-using alm.Other.Structs;
 
 namespace alm.Core.FrontEnd.SemanticAnalysis
 {
@@ -637,20 +636,28 @@ namespace alm.Core.FrontEnd.SemanticAnalysis
             {
                 castMethod = new MethodInvokationExpression(GetCastMethodName(castCase), parameters, parameters[0].SourceContext);
                 ((MethodInvokationExpression)castMethod).ReturnType = returnType;
-
-                //check if this cast method exists
-                if (!Diagnostics.SemanticAnalysisFailed)
-                {
-                    LabelChecker.ResolveMethodInvokation((MethodInvokationExpression)castMethod, GlobalTable.Table);
-                    if (Diagnostics.SemanticAnalysisFailed)
-                        Diagnostics.SemanticErrors[Diagnostics.SemanticErrors.Count - 1] = new CannotFindCastMethod(((MethodInvokationExpression)castMethod).Name);
-                }
-
+                castMethod.Parent = parent;
+                if (!CheckCastMethod((MethodInvokationExpression)castMethod))
+                    Diagnostics.SemanticErrors.Add(new CannotFindCastMethod(((MethodInvokationExpression)castMethod).Name, CompilationVariables.CurrentParsingModule));
             }
             else
+            {
                 castMethod = parameters[0].ParameterInstance;
-            castMethod.Parent = parent;
+                castMethod.Parent = parent;
+            }
             return castMethod;
+        }
+        private static bool CheckCastMethod(MethodInvokationExpression method)
+        {
+            SyntaxTreeNode root = null;
+            for (SyntaxTreeNode parent = method.Parent; parent != null; parent = parent.Parent)
+                root = parent;
+            if (root == null)
+                return false;
+            foreach (MethodDeclaration moduleMethod in root.GetChildsByType(typeof(MethodDeclaration), true))
+                if (moduleMethod.Name == method.Name)
+                    return true;
+            return false;
         }
 
         public static void Replace(SyntaxTreeNode parent,SyntaxTreeNode replaceThis, SyntaxTreeNode addThis)

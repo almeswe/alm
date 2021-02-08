@@ -144,7 +144,6 @@ namespace alm.Core.FrontEnd.SemanticAnalysis
         public static void ResolveMethodInvokationStatement(MethodInvokationStatement method, Table.Table table)
         {
             ResolveMethodInvokation((MethodInvokationExpression)method.Instance, table);
-            ResolveMethodParameters(((MethodInvokationExpression)method.Instance).Parameters, table);
         }
 
         public static void ResolveIdentifierExpression(IdentifierExpression identifier, Table.Table table, EmbeddedStatement initializedInBlock, bool checkInit = true)
@@ -193,9 +192,9 @@ namespace alm.Core.FrontEnd.SemanticAnalysis
         {
             ResolveMethodParameters(method.Parameters, table);
 
-            if (table.CheckMethod(method.Name, method.GetArgumentsTypes(),true))
+            if (table.CheckMethod(method.Name, method.GetParametersTypes(),true))
             {
-                TableMethod tableMethod = table.FetchMethod(method.Name, method.GetArgumentsTypes());
+                TableMethod tableMethod = table.FetchMethod(method.Name, method.GetParametersTypes());
                 for (int i = 0; i < method.ArgCount; i++)
                     method.Parameters[i].Type = tableMethod.Arguments[i].Type;
                 method.ReturnType = tableMethod.ReturnType;

@@ -907,10 +907,9 @@ namespace alm.Core.SyntaxTree
                 this.AddNode(parameter);
         }
 
-        public InnerType[] GetArgumentsTypes()
+        public InnerType[] GetParametersTypes()
         {
             InnerType[] types = new InnerType[this.ArgCount];
-            TypeChecker.ReportErrors = false;
             for (int i = 0; i < this.ArgCount; i++)
                 types[i] = TypeChecker.ResolveExpressionType(this.Parameters[i].ParameterInstance);
             return types;

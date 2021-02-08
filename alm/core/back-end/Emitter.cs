@@ -51,7 +51,7 @@ namespace alm.Core.BackEnd
         }
         private static void EmitExternalMethodInvokation(MethodInvokationExpression method, ILGenerator methodIL)
         {
-            Type[] arguments = CreateTypes(method.GetArgumentsTypes());
+            Type[] arguments = CreateTypes(method.GetParametersTypes());
             Type type = Type.GetType(GetCreatedExternalMethod(method.Name, arguments).NETPackage);
             EmitMethodParameters(method.Parameters, methodIL);
             if (type != null && type.GetMethod(method.Name, arguments) != null)
@@ -419,11 +419,11 @@ namespace alm.Core.BackEnd
         {
             if (EmitBaseMethod(method, methodIL))
                 return;
-            if (GetCreatedExternalMethod(method.Name, CreateTypes(method.GetArgumentsTypes())) != null)
+            if (GetCreatedExternalMethod(method.Name, CreateTypes(method.GetParametersTypes())) != null)
                 EmitExternalMethodInvokation(method, methodIL);
             else
             {
-                MethodInfo createdMethod = GetCreatedMethod(method.Name, CreateTypes(method.GetArgumentsTypes()));
+                MethodInfo createdMethod = GetCreatedMethod(method.Name, CreateTypes(method.GetParametersTypes()));
                 EmitMethodParameters(method.Parameters, methodIL);
                 methodIL.EmitCall(OpCodes.Call, createdMethod, null);
             }

@@ -894,7 +894,6 @@ namespace alm.Core.FrontEnd.SyntaxAnalysis
                 case tkSQuote:
                     return ParseCharConstant();
                 case tkIntConst:
-                    //todo integral type -> byte,short .. long
                     return ParseIntegralConstant();
                 case tkRealConst:
                     return ParseRealConstant();
@@ -913,9 +912,9 @@ namespace alm.Core.FrontEnd.SyntaxAnalysis
             {
                 long value = System.Math.Abs(System.Convert.ToInt64(Lexer.PreviousToken.Value));
                 if (System.Math.Abs(value) <= System.Int32.MaxValue)
-                    return new Int32Constant(Lexer.PreviousToken.Value);
+                    return new Int32Constant(Lexer.PreviousToken);
                 if (System.Math.Abs(value) <= System.Int64.MaxValue)
-                    return new Int64Constant(Lexer.PreviousToken.Value);
+                    return new Int64Constant(Lexer.PreviousToken);
             }
             catch (System.Exception e)
             {

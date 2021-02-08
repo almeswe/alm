@@ -109,7 +109,8 @@ namespace alm.Core.FrontEnd.SemanticAnalysis
                 case BinaryExpression.BinaryOperator.FDiv:
                 case BinaryExpression.BinaryOperator.IDiv:
                     if (LOperandType is NumericType && ROperandType is NumericType)
-                        return TypeCaster.HigherPriorityType(LOperandType, ROperandType);
+                        if (TypeCaster.CanCast(LOperandType, ROperandType, true))
+                            return TypeCaster.HigherPriorityType(LOperandType, ROperandType);
                     ReportErrorInArithExpression(new OperatorWithWrongOperandTypes($"Operator [{binaryArithExpression.GetOperatorRepresentation()}] must be located between two numeric operands",binaryArithExpression.SourceContext));
                     if (!(LOperandType is NumericType))
                         return LOperandType;
@@ -130,7 +131,8 @@ namespace alm.Core.FrontEnd.SemanticAnalysis
                     if (LOperandType is Char && ROperandType is Char)
                         return new Int32();
                     if (LOperandType is NumericType && ROperandType is NumericType)
-                        return TypeCaster.HigherPriorityType(LOperandType, ROperandType);
+                        if (TypeCaster.CanCast(LOperandType,ROperandType,true))
+                            return TypeCaster.HigherPriorityType(LOperandType, ROperandType);
                     ReportErrorInArithExpression(new OperatorWithWrongOperandTypes($"Operator [{binaryArithExpression.GetOperatorRepresentation()}] must be located between two numeric operands", binaryArithExpression.SourceContext));
                     if (!(LOperandType is NumericType))
                         return LOperandType;
@@ -144,13 +146,13 @@ namespace alm.Core.FrontEnd.SemanticAnalysis
                         if (LOperandType is String)
                             return new String();
                         else
-                            return TypeCaster.HigherPriorityType(LOperandType, ROperandType);
-                    ReportErrorInArithExpression(new OperatorWithWrongOperandTypes($"Operator [+] must be located between two numeric! operands, or between two strings for concatenation", binaryArithExpression.SourceContext));
+                            if (TypeCaster.CanCast(LOperandType, ROperandType, true))
+                                return TypeCaster.HigherPriorityType(LOperandType, ROperandType);
+                    ReportErrorInArithExpression(new OperatorWithWrongOperandTypes($"Operator [+] must be located between two numeric operands, or between two strings for concatenation", binaryArithExpression.SourceContext));
                     if (!(LOperandType is NumericType) && !(LOperandType is String))
                         return LOperandType;
                     else
                         return ROperandType;
-
 
                 case BinaryExpression.BinaryOperator.LShift:
                 case BinaryExpression.BinaryOperator.RShift:
@@ -158,7 +160,8 @@ namespace alm.Core.FrontEnd.SemanticAnalysis
                 case BinaryExpression.BinaryOperator.BitwiseAnd:
                 case BinaryExpression.BinaryOperator.BitwiseXor:
                     if (LOperandType is IntegralType && ROperandType is IntegralType)
-                        return TypeCaster.HigherPriorityType(LOperandType, ROperandType);
+                        if (TypeCaster.CanCast(LOperandType, ROperandType, true))
+                            return TypeCaster.HigherPriorityType(LOperandType, ROperandType);
                     ReportErrorInArithExpression(new OperatorWithWrongOperandTypes($"Operator [{binaryArithExpression.GetOperatorRepresentation()}] must be located between two integral operands", binaryArithExpression.SourceContext));
                     if (!(LOperandType is IntegralType))
                         return LOperandType;
@@ -290,7 +293,7 @@ namespace alm.Core.FrontEnd.SemanticAnalysis
         }
         public static void ResolveMethodsParametersTypes(MethodInvokationExpression method)
         {
-            TableMethod tableMethod = GlobalTable.Table.FetchMethod(method.Name, method.GetArgumentsTypes());
+            TableMethod tableMethod = GlobalTable.Table.FetchMethod(method.Name, method.GetParametersTypes());
             if (tableMethod == null)
                 return;
             for (int i = 0; i < tableMethod.ArgCount; i++)
@@ -391,10 +394,11 @@ namespace alm.Core.FrontEnd.SemanticAnalysis
                 }
                 else
                     if (fromC.CanCast(toC))
-                    return true;
+                        return true;
                 return false;
             }
-            else return false;
+            else 
+                return false;
         }
         public static InnerType HigherPriorityType(InnerType ftype, InnerType stype)
         {
@@ -402,13 +406,17 @@ namespace alm.Core.FrontEnd.SemanticAnalysis
             {
                 NumericType ftypeC = (NumericType)ftype;
                 NumericType stypeC = (NumericType)stype;
-                if (ftypeC.CanCastTo.Contains(stypeC))
+                if (ftypeC.CanCast(stypeC))
                     return stypeC;
                 else 
                     return ftypeC;
             }
             else
                 return null;
+        }
+        public static InnerType LowerPriorityType(InnerType ftype, InnerType stype)
+        {
+            return HigherPriorityType(ftype, stype) == ftype ? stype : ftype;
         }
         public static CastCase DefineCastCase(InnerType ftype, InnerType stype)
         {
@@ -522,7 +530,7 @@ namespace alm.Core.FrontEnd.SemanticAnalysis
                     break;
 
                 default:
-                    TryToCastExpression(binaryBoolean.LeftOperand,new Undefined());
+                    TryToCastExpression(binaryBoolean.LeftOperand, new Undefined());
                     TryToCastExpression(binaryBoolean.RightOperand, new Undefined());
                     break;
 
@@ -584,7 +592,7 @@ namespace alm.Core.FrontEnd.SemanticAnalysis
         }
         public static void TryToCastMethodParameters(MethodInvokationExpression method)
         {
-            TableMethod tableMethod = GlobalTable.Table.FetchMethod(method.Name,method.GetArgumentsTypes());
+            TableMethod tableMethod = GlobalTable.Table.FetchMethod(method.Name,method.GetParametersTypes());
             for (int i = 0; i < tableMethod.ArgCount; i++)
                 TryToCastExpression(method.Parameters[i].ParameterInstance,tableMethod.Arguments[i].Type);    
         }
@@ -632,32 +640,12 @@ namespace alm.Core.FrontEnd.SemanticAnalysis
         private static Expression CreateCastMethod(SyntaxTreeNode parent,InnerType returnType,ParameterDeclaration[] parameters, CastCase castCase)
         {
             Expression castMethod;
-            if (castCase != CastCase.NoNeedToCast)
-            {
-                castMethod = new MethodInvokationExpression(GetCastMethodName(castCase), parameters, parameters[0].SourceContext);
-                ((MethodInvokationExpression)castMethod).ReturnType = returnType;
-                castMethod.Parent = parent;
-                if (!CheckCastMethod((MethodInvokationExpression)castMethod))
-                    Diagnostics.SemanticErrors.Add(new CannotFindCastMethod(((MethodInvokationExpression)castMethod).Name, CompilationVariables.CurrentParsingModule));
-            }
+            if (castCase != CastCase.NoNeedToCast && castCase != CastCase.Undefined)
+                castMethod = new MethodInvokationExpression(GetCastMethodName(castCase), parameters, parameters[0].SourceContext) { ReturnType = returnType };
             else
-            {
                 castMethod = parameters[0].ParameterInstance;
-                castMethod.Parent = parent;
-            }
+            castMethod.Parent = parent;
             return castMethod;
-        }
-        private static bool CheckCastMethod(MethodInvokationExpression method)
-        {
-            SyntaxTreeNode root = null;
-            for (SyntaxTreeNode parent = method.Parent; parent != null; parent = parent.Parent)
-                root = parent;
-            if (root == null)
-                return false;
-            foreach (MethodDeclaration moduleMethod in root.GetChildsByType(typeof(MethodDeclaration), true))
-                if (moduleMethod.Name == method.Name)
-                    return true;
-            return false;
         }
 
         public static void Replace(SyntaxTreeNode parent,SyntaxTreeNode replaceThis, SyntaxTreeNode addThis)
@@ -670,24 +658,14 @@ namespace alm.Core.FrontEnd.SemanticAnalysis
             {
                 case NodeType.MethodInvokation:
                     for (int i = 0; i < parent.Childs.Count; i++)
-                    {
                         if (((MethodInvokationExpression)parent).Parameters[i] == replaceThis)
-                        {
-                            ((MethodInvokationExpression)parent).Parameters[i] = new ParameterDeclaration((Expression)addThis);
-                            ((MethodInvokationExpression)parent).Parameters[i].Parent = parent;
-                        }
-                    }
+                            ((MethodInvokationExpression)parent).Parameters[i] = new ParameterDeclaration((Expression)addThis) { Parent = parent };
                     break;
 
                 case NodeType.MethodInvokationAsStatement:
                     for (int i = 0; i < parent.Childs.Count; i++)
-                    {
                         if (((MethodInvokationExpression)((MethodInvokationStatement)parent).Instance).Parameters[i] == replaceThis)
-                        {
-                            ((MethodInvokationExpression)((MethodInvokationStatement)parent).Instance).Parameters[i] = new ParameterDeclaration((Expression)addThis);
-                            ((MethodInvokationExpression)((MethodInvokationStatement)parent).Instance).Parameters[i].Parent = parent;
-                        }
-                    }
+                            ((MethodInvokationExpression)((MethodInvokationStatement)parent).Instance).Parameters[i] = new ParameterDeclaration((Expression)addThis) { Parent = parent };
                     break;
             }
         }
@@ -698,14 +676,14 @@ namespace alm.Core.FrontEnd.SemanticAnalysis
             {
                 case CastCase.LongToFloat:
                 case CastCase.IntegerToFloat:
-                    return "tofloat";
+                    return "ToSingle";
 
                 case CastCase.CharToLong:
                 case CastCase.IntegerToLong:
-                    return "toint64";
+                    return "ToInt64";
 
                 case CastCase.CharToInteger:
-                    return "toint32";
+                    return "ToInt32";
 
                 default:
                     throw new System.Exception();

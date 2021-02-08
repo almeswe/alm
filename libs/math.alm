@@ -1,34 +1,22 @@
-﻿func pi() : float 
+﻿func pi() : float
 	return 3.1415926535;
 
-func e() : float 
-	return 2.7182818284; 
+func e() : float
+	return 2.7182818284;
 
-@external "System.Math"
-func Log(float a,float newBase) : float;
+func mod(integer a, integer b) : integer
+	return a % b;
 
-func Lg(float d) : float
-	return Log(d, 10);
-
-func Ln(float d) : float
-	return Log(d, e());
-
-func Mod(integer a,integer b) : integer
-	return a-((a/b)*b);	
-
-func IsNumSimple(integer num) : boolean
-{	
-	if (num <= 0 or num == 1) 
+func is_simple(integer num) : boolean
+{
+	if (num <= 0 or num == 1)
 		return false;
-	
-	integer i = 2;
-	while(i < num)
-	{
-		if (Mod(num,i) == 0)
+
+	for (integer i = 2; i < num; i += 1;)
+		if (mod(num,i) == 0)
 			return false;
-		i +=1;
-	}
-	
+
+
 	return true;
 }
 
@@ -60,19 +48,19 @@ func Exp(float d) : float;
 func Floor(integer d) : float;
 
 @external "System.Math"
-func IEEERemainder(float a,float b) : float;
+func IEEERemainder(float a, float b) : float;
 
 @external "System.Math"
-func Max(float a,float b) : float;
+func Max(float a, float b) : float;
 
 @external "System.Math"
-func Min(float a,float b) : float;
+func Min(float a, float b) : float;
 
 @external "System.Math"
-func Pow(float x,float y) : float;
+func Pow(float x, float y) : float;
 
 @external "System.Math"
-func Round(float a,float b) : float;
+func Round(float a) : float;
 
 @external "System.Math"
 func Sign(float a) : integer;
@@ -94,3 +82,103 @@ func Tanh(float value) : float;
 
 @external "System.Math"
 func Truncate(float value) : float;
+
+@external "System.Math"
+func Log(float a, float newBase) : float;
+
+func abs(float value) : float
+{
+	return Abs(value);
+}
+func acos(float value) : float
+{
+	return Acos(value);
+}
+func asin(float value) : float
+{
+	return Asin(value);
+}
+func atan(float value) : float
+{
+	return Atan(value);
+}
+func ceiling(float value) : float
+{
+	return Ceiling(value);
+}
+func cos(float d) : float
+{
+	return Cos(d);
+}
+func cosh(float d) : float
+{
+	return Cosh(d);
+}
+func exp(float d) : float
+{
+	return Exp(d);
+}
+func floor(integer d) : float
+{
+	return Floor(d);
+}
+func remainder(float a, float b) : float
+{
+	return IEEERemainder(a, b);
+}
+func max(float a, float b) : float
+{
+	return Max(a, b);
+}
+func min(float a, float b) : float
+{
+	return Min(a, b);
+}
+func power(float x, float y) : float
+{
+	return Pow(x, y);
+}
+func round(float a) : float
+{
+	return Round(a);
+}
+func sign(float a) : integer
+{
+	return Sign(a);
+}
+func sin(float value) : float
+{
+	return Sin(value);
+}
+func sinh(float value) : float
+{
+	return value;
+}
+func sqrt(float value) : float
+{
+	return Sqrt(value);
+}
+func tan(float value) : float
+{
+	return Tan(value);
+}
+func tanh(float value) : float
+{
+	return Tanh(value);
+}
+func trunc(float value) : float
+{
+	return Truncate(value);
+}
+func log(float a, float newBase) : float
+{
+	return Log(a, newBase);
+}
+func lg(float d) : float
+{
+	return Log(d, 10.0);
+}
+func ln(float d) : float
+{
+	return Log(d, e());
+}

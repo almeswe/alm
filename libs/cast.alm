@@ -13,164 +13,6 @@ func ToString(boolean value) : string;
 @external "System.Convert"
 func ToString(char value) : string;
 
-func tostrf(boolean value) : string
-{
-	return ToString(value);
-}
-
-func tostrf(float value) : string
-{
-	return ToString(value);
-}
-
-func tostrf(integer value) : string
-{
-	return ToString(value);
-}
-
-func tostrf(long value) : string
-{
-	return ToString(value);
-}
-
-func tostrf(char value) : string
-{
-	return ToString(value);
-}
-
-func tostrf(string value) : string
-{
-	return value;
-}
-
-@external "System.Convert"
-func ToInt64(string value) : long;
-
-@external "System.Convert"
-func ToInt64(char value) : long;
-
-@external "System.Convert"
-func ToInt64(float value) : long;
-
-@external "System.Convert"
-func ToInt64(boolean value) : long;
-
-@external "System.Convert"
-func ToInt64(integer value) : long;
-
-func toint64(string value) : long
-{
-	return ToInt64(value);
-}
-
-func toint64(char value) : long
-{
-	return ToInt64(value);
-}
-
-func toint64(float value) : long
-{
-	return ToInt64(value);
-}
-
-func toint64(boolean value) : long
-{
-	return ToInt64(value);
-}
-
-func toint64(integer value) : long
-{
-	return ToInt64(value);
-}
-
-func toint64(long value) : long
-{
-	return value;
-}
-
-@external "System.Convert"
-func ToInt32(string value) : integer;
-
-@external "System.Convert"
-func ToInt32(char value) : integer;
-
-@external "System.Convert"
-func ToInt32(float value) : integer;
-
-@external "System.Convert"
-func ToInt32(long value) : integer;
-
-@external "System.Convert"
-func ToInt32(boolean value) : integer;
-
-func toint32(string value) : integer
-{
-	return ToInt32(value);
-}
-
-func toint32(char value) : integer
-{
-	return ToInt32(value);
-}
-
-func toint32(float value) : integer
-{
-	return ToInt32(value);
-}
-
-func toint32(boolean value) : integer
-{
-	return ToInt32(value);
-}
-
-func toint32(long value) : integer
-{
-	return ToInt32(value);
-}
-
-func toint32(integer value) : integer
-{
-	return value;
-}
-
-
-@external "System.Convert"
-func ToSingle(string value) : float;
-
-@external "System.Convert"
-func ToSingle(integer value) : float;
-
-@external "System.Convert"
-func ToSingle(long value) : float;
-
-@external "System.Convert"
-func ToSingle(boolean value) : float;
-
-func tofloat(string value) : float
-{
-	return ToSingle(value);
-}
-
-func tofloat(integer value) : float
-{
-	return ToSingle(value);
-}
-
-func tofloat(long value) : float
-{
-	return ToSingle(value);
-}
-
-func tofloat(boolean value) : float
-{
-	return ToSingle(value);
-}
-
-func tofloat(float value) : float
-{
-	return value;
-}
-
 @external "System.Convert"
 func ToChar(string value) : char;
 
@@ -183,26 +25,145 @@ func ToChar(integer value) : char;
 @external "System.Convert"
 func ToChar(long value) : char;
 
+@external "System.Convert"
+func ToInt64(string value) : long;
+
+@external "System.Convert"
+func ToInt64(float value) : long;
+
+@external "System.Convert"
+func ToInt64(boolean value) : long;
+
+@external "System.Convert"
+func ToInt32(string value) : integer;
+
+@external "System.Convert"
+func ToInt32(float value) : integer;
+
+@external "System.Convert"
+func ToInt32(long value) : integer;
+
+@external "System.Convert"
+func ToInt32(boolean value) : integer;
+
+@external "System.Convert"
+func ToSingle(string value) : float;
+
+@external "System.Convert"
+func ToSingle(boolean value) : float;
+
+func tostrf(boolean value) : string
+{
+	return ToString(value);
+}
+func tostrf(float value) : string
+{
+	return ToString(value);
+}
+func tostrf(integer value) : string
+{
+	return ToString(value);
+}
+func tostrf(long value) : string
+{
+	return ToString(value);
+}
+func tostrf(char value) : string
+{
+	return ToString(value);
+}
+func tostrf(string value) : string
+{
+	return value;
+}
+
+func toint64(string value) : long
+{
+	return ToInt64(value);
+}
+func toint64(char value) : long
+{
+	return ToInt64(value);
+}
+func toint64(float value) : long
+{
+	return ToInt64(value);
+}
+func toint64(boolean value) : long
+{
+	return ToInt64(value);
+}
+func toint64(integer value) : long
+{
+	return ToInt64(value);
+}
+func toint64(long value) : long
+{
+	return value;
+}
+
+func toint32(string value) : integer
+{
+	return ToInt32(value);
+}
+func toint32(char value) : integer
+{
+	return ToInt32(value);
+}
+func toint32(float value) : integer
+{
+	return ToInt32(value);
+}
+func toint32(boolean value) : integer
+{
+	return ToInt32(value);
+}
+func toint32(long value) : integer
+{
+	return ToInt32(value);
+}
+func toint32(integer value) : integer
+{
+	return value;rec
+}
+
+func tofloat(string value) : float
+{
+	return ToSingle(value);
+}
+func tofloat(integer value) : float
+{
+	return ToSingle(value);
+}
+func tofloat(long value) : float
+{
+	return ToSingle(value);
+}
+func tofloat(boolean value) : float
+{
+	return ToSingle(value);
+}
+func tofloat(float value) : float
+{
+	return value;
+}
+
 func tochar(string value) : char
 {
 	return ToChar(value);
 }
-
 func tochar(float value) : char
 {
 	return ToChar(value);
 }
-
 func tochar(integer value) : char
 {
 	return ToChar(value);
 }
-
 func tochar(long value) : char
 {
 	return ToChar(value);
 }
-
 func tochar(char value) : char
 {
 	return value;

@@ -1,4 +1,6 @@
-﻿func pi() : float
+﻿import cast;
+
+func pi() : float
 	return 3.1415926535;
 
 func e() : float

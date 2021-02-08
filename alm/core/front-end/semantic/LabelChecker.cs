@@ -201,7 +201,10 @@ namespace alm.Core.FrontEnd.SemanticAnalysis
                 method.ReturnType = tableMethod.ReturnType;
             }
             else
-                Diagnostics.SemanticErrors.Add(new MethodIsNotDeclared(method.Name,method.SourceContext));
+                if (table.IsMethodWithThisNameDeclared(method.Name))
+                    Diagnostics.SemanticErrors.Add(new MethodWithThoseArgumentsIsNotDeclared(method.Name,method.SourceContext));
+                else
+                    Diagnostics.SemanticErrors.Add(new MethodIsNotDeclared(method.Name, method.SourceContext));
         }
         public static void ResolveMethodInvokations(SyntaxTreeNode inNode, Table.Table table)
         {

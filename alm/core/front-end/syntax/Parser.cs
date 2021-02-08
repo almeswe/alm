@@ -26,7 +26,6 @@ namespace alm.Core.FrontEnd.SyntaxAnalysis
 
         public SyntaxTreeNode Parse(string path)
         {
-            CurrentParsingModule = path;
             this.CurrentParsingFile = path;
             Lexer.GetNextToken();
             return ParseModule(path);

@@ -625,7 +625,6 @@ namespace alm.Core.BackEnd
             try
             {
                 assembly.Save(exeName);
-                System.Diagnostics.Process.Start(exeName);
             }
             catch (Exception e) { ConsoleCustomizer.ColorizedPrintln($"Error occurred when trying to save the binary file.[{e.Message}]", ConsoleColor.DarkRed); }
 

@@ -66,7 +66,6 @@ namespace alm.Core.FrontEnd.SyntaxAnalysis
             CurrentCharIndex = 0;
             CurrentLineIndex = 1;
             CurrentTokenIndex = -1;
-            CurrentParsingModule = path;
             Stream = new StreamReader(path, System.Text.Encoding.UTF8);
             GetTokens();
         }

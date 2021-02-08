@@ -195,7 +195,11 @@ namespace alm.Core.Errors
 
     public sealed class MethodIsNotDeclared : SemanticError
     {
-        public MethodIsNotDeclared(string name, SourceContext context) : base($"Method [{name}] with those types of arguments is not declared.", context) { }
+        public MethodIsNotDeclared(string name, SourceContext context) : base($"Method [{name}] is not declared.", context) { }
+    }
+    public sealed class MethodWithThoseArgumentsIsNotDeclared : SemanticError
+    {
+        public MethodWithThoseArgumentsIsNotDeclared(string name, SourceContext context) : base($"Method [{name}] with those types of arguments is not declared.", context) { }
     }
     public sealed class MethodIsAlreadyDeclared : SemanticError
     {

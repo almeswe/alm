@@ -29,6 +29,7 @@ namespace alm.Core.SyntaxTree
 
         public void BuildTree(string path)
         {
+            CurrentParsingModule = path;
             Lexer lexer = new Lexer(path);
             this.Root = new Parser(lexer).Parse(path);
         }
@@ -239,9 +240,8 @@ namespace alm.Core.SyntaxTree
                     CompilationImports[CurrentParsingModule].Add(currentImportedModule);
 
                 //Parsing module by path 
-                Lexer lexer = new Lexer(currentImportedModule);
-                Parser parser = new Parser(lexer);
-                SyntaxTreeNode importedModule = parser.Parse(currentImportedModule);
+                AbstractSyntaxTree ast = new AbstractSyntaxTree(currentImportedModule);
+                SyntaxTreeNode importedModule = ast.Root;
 
                 CurrentParsingModule = this.Where;
    

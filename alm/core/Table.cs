@@ -19,7 +19,7 @@ namespace alm.Core.Table
         public List<TableMethod> Methods { get; private set; } = new List<TableMethod>();
         public List<TableIdentifier> Identifiers { get; private set; } = new List<TableIdentifier>();
 
-        private static List<TableMethod> BaseFunctions = new List<TableMethod>()
+        private static List<TableMethod> BaseMethods = new List<TableMethod>()
         {
             new TableMethod("len",new Int32(),new TableMethodArgument[]{ new TableMethodArgument(new AnyArray(),1) }, 1),
         };
@@ -41,7 +41,7 @@ namespace alm.Core.Table
             // level = 1 принимается как глобалтная таблица
             Table table = new Table(puttedIn, level);
             if (level == 1)
-                table.Methods.AddRange(BaseFunctions);
+                table.Methods.AddRange(BaseMethods);
             return table;
         }
 
@@ -81,7 +81,7 @@ namespace alm.Core.Table
         public bool CheckMethod(string name, InnerType[] arguments, bool withConvertableTypes = false)
         {
             bool foundWithConvertableTypes = false;
-            foreach (TableMethod method in BaseFunctions)
+            foreach (TableMethod method in BaseMethods)
                 if (method.Name == name)
                     if (TypesAreSame(arguments, method.Arguments))
                         return true;
@@ -115,7 +115,7 @@ namespace alm.Core.Table
         {
             TableMethod methodWithConvertableTypes = null;
 
-            foreach (TableMethod method in BaseFunctions)
+            foreach (TableMethod method in BaseMethods)
                 if (method.Name == name && TypesAreSame(arguments, method.Arguments))
                     return method;
                 else
@@ -132,6 +132,19 @@ namespace alm.Core.Table
                                 methodWithConvertableTypes = method;
 
             return methodWithConvertableTypes;
+        }
+
+        public bool IsMethodWithThisNameDeclared(string name)
+        {
+            List<TableMethod> tableMethods = this.Methods;
+            tableMethods.AddRange(Table.BaseMethods);
+
+            for (Table table = this; table != null; table = table.PuttedIn)
+                foreach (TableMethod method in table.Methods)
+                    if (method.Name == name)
+                            return true;
+
+            return false; 
         }
 
         private bool TypesAreSame(InnerType[] types, TableMethodArgument[] arguments)

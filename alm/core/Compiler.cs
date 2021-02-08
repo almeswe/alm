@@ -79,7 +79,11 @@ namespace alm.Core.Compiler
                         TypeChecker.ResolveModuleTypes(tree.Root);
                 }
                 if (!Diagnostics.SemanticAnalysisFailed && !Diagnostics.SyntaxAnalysisFailed)
+                {
                     Emitter.EmitModule(tree.Root);
+                    if (run)
+                        System.Diagnostics.Process.Start(CompilationVariables.CompilationBinaryPath);
+                }
 
                 tree.ShowTree();
 

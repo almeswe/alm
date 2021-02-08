@@ -23,7 +23,7 @@ namespace alm.Core.Errors
             }
             if (this.FilePath == null)
                 return $"{Message} {this.StartsAt}";
-            return $"{Message} \nIn file <{FilePath[0]}:\\...\\{System.IO.Path.GetFileName(FilePath)}> at {this.StartsAt}";
+            return $"{Message} \nIn file <{System.IO.Path.GetFileName(FilePath)}> at {this.StartsAt}";
         }
     }
 
@@ -213,6 +213,10 @@ namespace alm.Core.Errors
     public sealed class CannotChangeTheString : SemanticError
     {
         public CannotChangeTheString(SourceContext context) : base($"Cannot change the content of \"string\" variable, it has read-only access.", context) { }
+    }
+    public sealed class CannotFindCastMethod : SemanticError
+    {
+        public CannotFindCastMethod(string name) : base($"Cannot find cast method [{name}], to fix this, import \'cast\' lib.", new SourceContext()) { }
     }
 
     public sealed class ErrorForDebug : SemanticError

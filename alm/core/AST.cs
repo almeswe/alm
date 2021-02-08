@@ -231,7 +231,7 @@ namespace alm.Core.SyntaxTree
                 //if find import at list in 1 module, skip it (because it alrealdy imported) 
                 if (this.GetImportsModules(currentImportedModule).Length > 0)
                 {
-                    return;
+                    continue;
                 }
 
                 if (!CompilationImports.ContainsKey(CurrentParsingModule))

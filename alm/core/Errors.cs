@@ -216,7 +216,7 @@ namespace alm.Core.Errors
     }
     public sealed class CannotFindCastMethod : SemanticError
     {
-        public CannotFindCastMethod(string name) : base($"Cannot find cast method [{name}], to fix this, import \'cast\' lib.", new SourceContext()) { }
+        public CannotFindCastMethod(string name,string inFile) : base($"Cannot find cast method [{name}], to fix this, import \'cast\' lib.\nIn file <{System.IO.Path.GetFileName(inFile)}>.", new SourceContext()) { }
     }
 
     public sealed class ErrorForDebug : SemanticError

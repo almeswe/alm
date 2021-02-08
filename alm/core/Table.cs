@@ -21,7 +21,17 @@ namespace alm.Core.Table
 
         private static List<TableMethod> BaseMethods = new List<TableMethod>()
         {
-            new TableMethod("len",new Int32(),new TableMethodArgument[]{ new TableMethodArgument(new AnyArray(),1) }, 1),
+            new TableMethod("len",new Int32(),new TableMethodArgument[]{ new TableMethodArgument(new AnyArray()) }),
+
+            //methods for auto cast
+            //->int64
+            new TableMethod("ToInt64",new Int64(),new TableMethodArgument[]{ new TableMethodArgument(new Int32())}),
+            new TableMethod("ToInt64",new Int64(),new TableMethodArgument[]{ new TableMethodArgument(new Char()) }),
+            //->int32
+            new TableMethod("ToInt32",new Int32(),new TableMethodArgument[]{ new TableMethodArgument(new Char())}),
+            //->float
+            new TableMethod("ToSingle",new Single(),new TableMethodArgument[]{ new TableMethodArgument(new Int32())}),
+            new TableMethod("ToSingle",new Single(),new TableMethodArgument[]{ new TableMethodArgument(new Int64())}),
         };
 
         public Table(Table puttedIn, int level)
@@ -53,9 +63,9 @@ namespace alm.Core.Table
             {
                 List<TableMethodArgument> tableArgs = new List<TableMethodArgument>();
                 for (int i = 0; i < methodDeclaration.ArgCount; i++)
-                    tableArgs.Add(new TableMethodArgument(methodDeclaration.Arguments[i].Type, i));
+                    tableArgs.Add(new TableMethodArgument(methodDeclaration.Arguments[i].Type));
 
-                Methods.Add(new TableMethod(methodDeclaration.Name, methodDeclaration.ReturnType, tableArgs.ToArray(), this.Level));
+                Methods.Add(new TableMethod(methodDeclaration.Name, methodDeclaration.ReturnType, tableArgs.ToArray()));
                 return true;
             }
             return false;
@@ -194,17 +204,15 @@ namespace alm.Core.Table
     {
         public string Name { get; private set; }
 
-        public int Level { get; private set; }
         public int ArgCount { get; private set; }
 
         public InnerType ReturnType { get; private set; }
         public TableMethodArgument[] Arguments { get; private set; }
 
-        public TableMethod(string name, InnerType type, TableMethodArgument[] arguments, int level)
+        public TableMethod(string name, InnerType returnType, TableMethodArgument[] arguments)
         {
             this.Name = name;
-            this.ReturnType = type;
-            this.Level = level;
+            this.ReturnType = returnType;
             this.Arguments = arguments;
             this.ArgCount = arguments.Length;
         }
@@ -227,12 +235,10 @@ namespace alm.Core.Table
     public sealed class TableMethodArgument
     {
         public InnerType Type { get; set; }
-        public int Position { get; private set; }
 
-        public TableMethodArgument(InnerType type, int position)
+        public TableMethodArgument(InnerType type)
         {
             this.Type = type;
-            this.Position = position;
         }
     }
 }

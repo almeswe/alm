@@ -436,6 +436,13 @@ namespace alm.Core.BackEnd
                     EmitExpression(method.Parameters[0].ParameterInstance, methodIL);
                     methodIL.Emit(OpCodes.Ldlen);
                     return true;
+
+                case "ToInt32":
+                case "ToInt64":
+                case "ToSingle":
+                    EmitExpression(method.Parameters[0].ParameterInstance, methodIL);
+                    methodIL.EmitCall(OpCodes.Call,typeof(Convert).GetMethod(method.Name,new Type[] { method.GetParametersTypes()[0].GetEquivalence()} ),null);
+                    return true;
             }
             return false;
         }

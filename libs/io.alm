@@ -22,7 +22,6 @@ func print(float message) : void
 {
 	Write(message);
 }
-
 func println(string message) : void
 {
 	WriteLine(message);
@@ -47,24 +46,20 @@ func println(float message) : void
 {
 	WriteLine(message);
 }
-
 func read() : string
 {
 	return ReadLine();
 }
-
 func read(string message) : string
 {
 	print(message);
 	return read();
 }
-
 func readln(string message) : string
 {
 	println(message);
 	return read();
 }
-
 func readln() : string
 {
 	return readln("");

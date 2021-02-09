@@ -1,13 +1,4 @@
-﻿@external "System.Convert"
-func ToString(integer value) : string;
-
-@external "System.Convert"
-func ToString(long value) : string;
-
-@external "System.Convert"
-func ToString(float value) : string;
-
-func tostrf(boolean value) : string
+﻿func tostrf(boolean value) : string
 {
 	return ToString(value);
 }

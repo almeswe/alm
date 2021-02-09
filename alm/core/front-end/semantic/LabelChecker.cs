@@ -15,13 +15,21 @@ namespace alm.Core.FrontEnd.SemanticAnalysis
 
         public static void ResolveModule(SyntaxTreeNode module)
         {
+            MarkMethods(module);
             IsMainDeclared = false;
-            GlobalTable.Table = Table.Table.CreateTable(null,1);
-            foreach (MethodDeclaration method in module.GetChildsByType(typeof(MethodDeclaration),true))
+            foreach (MethodDeclaration method in module.GetChildsByType(typeof(MethodDeclaration), true))
                 ResolveMethodDeclaration(method);
 
             if (!IsMainDeclared)
                 Diagnostics.SemanticErrors.Add(new MainMethodExpected());
+        }
+
+        public static void MarkMethods(SyntaxTreeNode module)
+        {
+            GlobalTable.Table = Table.Table.CreateTable(null, 1);
+            foreach (MethodDeclaration method in module.GetChildsByType(typeof(MethodDeclaration), true))
+                if (!GlobalTable.Table.PushMethod(method))
+                    Diagnostics.SemanticErrors.Add(new MethodIsAlreadyDeclared(method.Name, method.SourceContext));
         }
 
         public static void ResolveMainDeclaration(MethodDeclaration method)
@@ -34,20 +42,17 @@ namespace alm.Core.FrontEnd.SemanticAnalysis
         public static void ResolveMethodDeclaration(MethodDeclaration method)
         {
             Table.Table MethodTable = Table.Table.CreateTable(GlobalTable.Table);
-            if (GlobalTable.Table.PushMethod(method))
+
+            ResolveMainDeclaration(method);
+            ResolveMethodArguments(method.Arguments, MethodTable);
+            if (!method.IsExternal)
             {
-                ResolveMainDeclaration(method);
-                ResolveMethodArguments(method.Arguments, MethodTable);
-                if (!method.IsExternal)
-                {
-                    if (!(method.ReturnType is Void))
-                        ResolveReturnInBody(method.Body);
-                    ResolveEmbeddedStatement(method.Body, MethodTable);
-                }
+                if (!(method.ReturnType is Void))
+                    ResolveReturnInBody(method.Body);
+                ResolveEmbeddedStatement(method.Body, MethodTable);
             }
-            else
-                Diagnostics.SemanticErrors.Add(new MethodIsAlreadyDeclared(method.Name,method.SourceContext));
         }
+    
         public static void ResolveEmbeddedStatement(EmbeddedStatement body, Table.Table table)
         {
             Table.Table bodyTable = Table.Table.CreateTable(table);

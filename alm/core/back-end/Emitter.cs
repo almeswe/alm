@@ -23,23 +23,51 @@ namespace alm.Core.BackEnd
         private static AssemblyBuilder assembly;
 
         private static Dictionary<string, int> MethodArguments = new Dictionary<string, int>();
-        private static Dictionary<MethodInfo, Type[]> Methods = new Dictionary<MethodInfo, Type[]>();
         private static Dictionary<string, LocalVariableInfo> MethodLocals = new Dictionary<string, LocalVariableInfo>();
-        private static Dictionary<MethodDeclaration, Type[]> ExternalMethods = new Dictionary<MethodDeclaration, Type[]>();
+
+        private static Dictionary<MethodInfo, Type[]> Methods = new Dictionary<MethodInfo, Type[]>();
+        private static Dictionary<MethodInfo, Type[]> ExternalMethods = new Dictionary<MethodInfo, Type[]>();
+        //package: method names 
+        private static Dictionary<MethodDeclaration, string> ExternalPackages = new Dictionary<MethodDeclaration, string>();
 
         private static Label BreakLabel = default;
         private static Label ContinueLabel = default;
 
+        private static void EmitMethodDeclarations(SyntaxTreeNode root)
+        {
+            foreach (MethodDeclaration method in root.GetChildsByType(typeof(MethodDeclaration), true))
+                EmitMethodDeclaration(method);
+            module.CreateGlobalFunctions();
+        }
+
+        private static void MarkMethodDeclarations(SyntaxTreeNode root)
+        {
+            foreach (MethodDeclaration method in root.GetChildsByType(typeof(MethodDeclaration), true))
+            {
+                Type[] argumentTypes = CreateTypes(method.GetArgumentsTypes());
+                MethodBuilder methodBuilder = module.DefineGlobalMethod(method.Name, MethodAttributes.Public | MethodAttributes.Static, method.ReturnType.GetEquivalence(), argumentTypes);
+
+                if (!method.IsExternal)
+                    Methods.Add(methodBuilder, argumentTypes);
+                else
+                {
+                    ExternalMethods.Add(methodBuilder, argumentTypes);
+                    ExternalPackages.Add(method,method.NETPackage);
+                }
+            }
+        }
+
         private static void EmitMethodDeclaration(MethodDeclaration method)
         {
             Type[] argumentTypes = CreateTypes(method.GetArgumentsTypes());
-            MethodBuilder methodBuilder = module.DefineGlobalMethod(method.Name, MethodAttributes.Public | MethodAttributes.Static, method.ReturnType.GetEquivalence(), argumentTypes);
-            ILGenerator methodIL = methodBuilder.GetILGenerator();
+            MethodBuilder methodBuilder;
 
-            if (!method.IsExternal)
-                Methods.Add(methodBuilder, argumentTypes);
+            if (method.IsExternal)
+                 methodBuilder = (MethodBuilder)GetCreatedExternalMethod(method.Name, argumentTypes);
             else
-                ExternalMethods.Add(method, argumentTypes);
+                 methodBuilder = (MethodBuilder)GetCreatedMethod(method.Name, argumentTypes);
+
+            ILGenerator methodIL = methodBuilder.GetILGenerator();
 
             EmitMethodArguments(method.Arguments);
             methodIL.Emit(OpCodes.Nop);
@@ -52,15 +80,15 @@ namespace alm.Core.BackEnd
         private static void EmitExternalMethodInvokation(MethodInvokationExpression method, ILGenerator methodIL)
         {
             Type[] arguments = CreateTypes(method.GetParametersTypes());
-            Type type = Type.GetType(GetCreatedExternalMethod(method.Name, arguments).NETPackage);
+            Type type = Type.GetType(GetExternalPackage(method.Name, arguments));
             EmitMethodParameters(method.Parameters, methodIL);
             if (type != null && type.GetMethod(method.Name, arguments) != null)
                 methodIL.EmitCall(OpCodes.Call, type.GetMethod(method.Name, arguments), null);
             else
                 if (type == null)
-                    ConsoleCustomizer.ColorizedPrintln($"Error occurred when trying to find package \"{GetCreatedExternalMethod(method.Name, arguments).NETPackage}\".", ConsoleColor.DarkRed);
+                    ConsoleCustomizer.ColorizedPrintln($"Error occurred when trying to find package \"{GetExternalPackage(method.Name, arguments)}\".", ConsoleColor.DarkRed);
                 else
-                    ConsoleCustomizer.ColorizedPrintln($"No method [{method.Name}] with those type of arguments found in package \"{GetCreatedExternalMethod(method.Name, arguments).NETPackage}\".", ConsoleColor.DarkRed);
+                    ConsoleCustomizer.ColorizedPrintln($"No method [{method.Name}] with those type of arguments found in package \"{GetExternalPackage(method.Name, arguments)}\".", ConsoleColor.DarkRed);
         }
 
         private static void EmitMethodArguments(ArgumentDeclaration[] arguments)
@@ -614,15 +642,10 @@ namespace alm.Core.BackEnd
                 methodIL.Emit(OpCodes.Ldc_I4, constant.Value == "true" ? 1 : 0);
         }
 
-        private static void EmitMethodDeclarations(SyntaxTreeNode inNode)
-        {
-            foreach (MethodDeclaration method in inNode.GetChildsByType(typeof(MethodDeclaration), true))
-                EmitMethodDeclaration(method);
-            module.CreateGlobalFunctions();
-        }
         public static void EmitModule(SyntaxTreeNode moduleRoot, string moduleName = "alm", string assemblyName = "alm")
         {
             LoadBootstrapper(moduleName, assemblyName);
+            MarkMethodDeclarations(moduleRoot);
             EmitMethodDeclarations(moduleRoot);
             try
             {
@@ -671,15 +694,22 @@ namespace alm.Core.BackEnd
         private static MethodInfo GetCreatedMethod(string methodName, Type[] arguments)
         {
             foreach (KeyValuePair<MethodInfo, Type[]> method in Methods)
-                if (method.Key.Name == methodName && TypesAreEqual(arguments, method.Value))
+                if (method.Key.Name == methodName && TypesAreSame(arguments, method.Value))
                     return method.Key;
             return null;
         }
-        private static MethodDeclaration GetCreatedExternalMethod(string methodName, Type[] arguments)
+        private static MethodInfo GetCreatedExternalMethod(string methodName, Type[] arguments)
         {
-            foreach (KeyValuePair<MethodDeclaration, Type[]> method in ExternalMethods)
-                if (method.Key.Name == methodName && TypesAreEqual(arguments, method.Value))
+            foreach (KeyValuePair<MethodInfo, Type[]> method in ExternalMethods)
+                if (method.Key.Name == methodName && TypesAreSame(arguments, method.Value))
                     return method.Key;
+            return null;
+        }
+        private static string GetExternalPackage(string methodName, Type[] arguments)
+        {
+            foreach (KeyValuePair<MethodDeclaration, string> method in ExternalPackages)
+                if (method.Key.Name == methodName && TypesAreSame(arguments, CreateTypes(method.Key.GetArgumentsTypes())))
+                    return method.Value;
             return null;
         }
         private static Type[] CreateTypes(InnerType[] types)
@@ -697,7 +727,7 @@ namespace alm.Core.BackEnd
             return args;
         }
 
-        private static bool TypesAreEqual(Type[] arguments1, Type[] arguments2)
+        private static bool TypesAreSame(Type[] arguments1, Type[] arguments2)
         {
             if (arguments1.Length != arguments2.Length)
                 return false;

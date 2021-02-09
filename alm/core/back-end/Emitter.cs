@@ -9,9 +9,9 @@ using alm.Core.InnerTypes;
 using alm.Other.Enums;
 using alm.Other.ConsoleStuff;
 
-using static alm.Core.Compiler.Compiler.CompilationVariables;
-
 using alm.Core.FrontEnd.SemanticAnalysis;
+
+using static alm.Core.Compiler.Compiler.CompilationVariables;
 
 namespace alm.Core.BackEnd
 {
@@ -33,6 +33,24 @@ namespace alm.Core.BackEnd
         private static Label BreakLabel = default;
         private static Label ContinueLabel = default;
 
+        public static void EmitModule(SyntaxTreeNode moduleRoot, string moduleName = "alm", string assemblyName = "alm")
+        {
+            LoadBootstrapper(moduleName, assemblyName);
+            MarkMethodDeclarations(moduleRoot);
+            EmitMethodDeclarations(moduleRoot);
+            try
+            {
+                assembly.SetEntryPoint(GetCreatedMethod("main", new Type[0]));
+            }
+            catch (Exception e) { ConsoleCustomizer.ColorizedPrintln($"Error occurred when trying to set the entry point.[{e.Message}]", ConsoleColor.DarkRed); }
+            try
+            {
+                assembly.Save(exeName);
+            }
+            catch (Exception e) { ConsoleCustomizer.ColorizedPrintln($"Error occurred when trying to save the binary file.[{e.Message}]", ConsoleColor.DarkRed); }
+
+            Reset();
+        }
         private static void EmitMethodDeclarations(SyntaxTreeNode root)
         {
             foreach (MethodDeclaration method in root.GetChildsByType(typeof(MethodDeclaration), true))
@@ -108,54 +126,6 @@ namespace alm.Core.BackEnd
             if (body.Parent is MethodDeclaration)
                 if (((MethodDeclaration)body.Parent).ReturnType.GetEquivalence() == typeof(void))
                     methodIL.Emit(OpCodes.Ret);
-        }
-
-        private static void EmitStatement(Statement statement, ILGenerator methodIL)
-        {
-            switch (statement.NodeKind)
-            {
-                case NodeType.AssignmentStatement:
-                    EmitAssignmentStatement((AssignmentStatement)statement, methodIL);
-                    break;
-
-                case NodeType.Declaration:
-                    EmitDeclarationStatement((IdentifierDeclaration)statement, methodIL);
-                    break;
-
-                case NodeType.MethodInvokationAsStatement:
-                    EmitMethodInvokationStatement((MethodInvokationStatement)statement, methodIL);
-                    break;
-
-                case NodeType.If:
-                    EmitIfStatement((IfStatement)statement, methodIL);
-                    break;
-
-                case NodeType.While:
-                    EmitWhileLoopStatement((WhileLoopStatement)statement, methodIL);
-                    break;
-
-                case NodeType.Do:
-                    EmitDoLoopStatement((DoLoopStatement)statement, methodIL);
-                    break;
-
-                case NodeType.For:
-                    EmitForLoopStatement((ForLoopStatement)statement, methodIL);
-                    break;
-
-                case NodeType.Return:
-                    EmitReturnStatement((ReturnStatement)statement, methodIL);
-                    break;
-
-                case NodeType.Break:
-                    methodIL.Emit(OpCodes.Br, BreakLabel);
-                    break;
-                case NodeType.Continue:
-                    methodIL.Emit(OpCodes.Br, ContinueLabel);
-                    break;
-
-                default:
-                    throw new Exception();
-            }
         }
 
         private static void EmitCondition(Expression condition, ILGenerator methodIL)
@@ -253,6 +223,53 @@ namespace alm.Core.BackEnd
             methodIL.MarkLabel(toEndCase);
         }
 
+        private static void EmitStatement(Statement statement, ILGenerator methodIL)
+        {
+            switch (statement.NodeKind)
+            {
+                case NodeType.AssignmentStatement:
+                    EmitAssignmentStatement((AssignmentStatement)statement, methodIL);
+                    break;
+
+                case NodeType.Declaration:
+                    EmitDeclarationStatement((IdentifierDeclaration)statement, methodIL);
+                    break;
+
+                case NodeType.MethodInvokationAsStatement:
+                    EmitMethodInvokationStatement((MethodInvokationStatement)statement, methodIL);
+                    break;
+
+                case NodeType.If:
+                    EmitIfStatement((IfStatement)statement, methodIL);
+                    break;
+
+                case NodeType.While:
+                    EmitWhileLoopStatement((WhileLoopStatement)statement, methodIL);
+                    break;
+
+                case NodeType.Do:
+                    EmitDoLoopStatement((DoLoopStatement)statement, methodIL);
+                    break;
+
+                case NodeType.For:
+                    EmitForLoopStatement((ForLoopStatement)statement, methodIL);
+                    break;
+
+                case NodeType.Return:
+                    EmitReturnStatement((ReturnStatement)statement, methodIL);
+                    break;
+
+                case NodeType.Break:
+                    methodIL.Emit(OpCodes.Br, BreakLabel);
+                    break;
+                case NodeType.Continue:
+                    methodIL.Emit(OpCodes.Br, ContinueLabel);
+                    break;
+
+                default:
+                    throw new Exception();
+            }
+        }
         private static void EmitIfStatement(IfStatement ifStatement, ILGenerator methodIL)
         {
             Label toEnd = methodIL.DefineLabel();
@@ -405,8 +422,6 @@ namespace alm.Core.BackEnd
         }
         private static void EmitArrayElement(ArrayElementExpression arrayElement, ILGenerator methodIL)
         {
-            Type arrayType = arrayElement.Type.GetEquivalence();
-
             if (IsArgument(arrayElement.ArrayName))
                 methodIL.Emit(OpCodes.Ldarg, GetArgumentsIndex(arrayElement.ArrayName));
             else
@@ -415,8 +430,10 @@ namespace alm.Core.BackEnd
             EmitArrayElementIndexes(arrayElement, methodIL);
 
             if (arrayElement.IsArrayPrimitive())
-                if ((arrayType.ToString().Contains("System.String") || arrayType.ToString().Contains("System.Char")) && arrayElement.Type.GetEquivalence() == typeof(char))
+                if (arrayElement.ArrayType is InnerTypes.String && arrayElement.Type is InnerTypes.Char)
                     EmitGetCharsMethod(methodIL);
+                else if (arrayElement.ArrayType.ALMRepresentation.Contains("System.Char") && arrayElement.Type is InnerTypes.Char)
+                    methodIL.Emit(OpCodes.Ldelem_U2);
                 else
                     methodIL.Emit(OpCodes.Ldelem, arrayElement.Type.GetEquivalence());
             else
@@ -642,25 +659,6 @@ namespace alm.Core.BackEnd
                 methodIL.Emit(OpCodes.Ldc_I4, constant.Value == "true" ? 1 : 0);
         }
 
-        public static void EmitModule(SyntaxTreeNode moduleRoot, string moduleName = "alm", string assemblyName = "alm")
-        {
-            LoadBootstrapper(moduleName, assemblyName);
-            MarkMethodDeclarations(moduleRoot);
-            EmitMethodDeclarations(moduleRoot);
-            try
-            {
-                assembly.SetEntryPoint(GetCreatedMethod("main", new Type[0]));
-            }
-            catch (Exception e) { ConsoleCustomizer.ColorizedPrintln($"Error occurred when trying to set the entry point.[{e.Message}]", ConsoleColor.DarkRed); }
-            try
-            {
-                assembly.Save(exeName);
-            }
-            catch (Exception e) { ConsoleCustomizer.ColorizedPrintln($"Error occurred when trying to save the binary file.[{e.Message}]", ConsoleColor.DarkRed); }
-
-            Reset();
-        }
-
         private static LocalVariableInfo GetCreatedLocal(string localName)
         {
             foreach (KeyValuePair<string, LocalVariableInfo> local in MethodLocals)
@@ -747,6 +745,7 @@ namespace alm.Core.BackEnd
             MethodLocals.Clear();
             MethodArguments.Clear();
             ExternalMethods.Clear();
+            ExternalPackages.Clear();
         }
         public static void LoadBootstrapper(string assemblyName, string moduleName)
         {

@@ -346,7 +346,6 @@ namespace alm.Core.SyntaxTree
     }
     public sealed class IdentifierDeclaration : Statement
     {
-        // <identifier_type> <identifier> | <identifier_type> <identifier> '=' <expression>
         public InnerType DeclaringIdentifierType { get; private set; }
         public IdentifierExpression[] DeclaringIdentifiers { get; private set; }
         public AssignmentStatement AssingningExpression { get; private set; }
@@ -799,6 +798,7 @@ namespace alm.Core.SyntaxTree
     public sealed class ArrayElementExpression : Expression
     {
         public InnerType Type { get; set; }
+        public InnerType ArrayType { get; set; }
         public ushort Dimension { get; private set; }
         //?
         public ushort ArrayDimension { get; set; }

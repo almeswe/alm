@@ -10,7 +10,6 @@ using alm.Other.Enums;
 using alm.Other.Structs;
 
 using static alm.Other.Enums.TokenType;
-using static alm.Core.Compiler.Compiler.CompilationVariables;
 
 namespace alm.Core.FrontEnd.SyntaxAnalysis
 {
@@ -373,6 +372,9 @@ namespace alm.Core.FrontEnd.SyntaxAnalysis
                     Lexer.GetNextToken();
             }
 
+            if (identifiers.Count == 0)
+                return new ErroredStatement(new IdentifierExpected(Lexer.CurrentToken));
+
             if (Match(tkAssign))
             {
                 Lexer.GetNextToken();
@@ -466,7 +468,7 @@ namespace alm.Core.FrontEnd.SyntaxAnalysis
                 case tkFor:
                     return ParseForLoopStatement();
                 default:
-                    return new ErroredStatement(new SyntaxErrorMessage("Statement expected", Lexer.CurrentToken));
+                    return new ErroredStatement(new SyntaxErrorMessage($"Statement expected, but met [{Lexer.CurrentToken}]", Lexer.CurrentToken));
             }
         }
         public Statement ParseIdentifierAmbiguityStatement()

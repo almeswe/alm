@@ -1,93 +1,15 @@
-﻿import cast;
-
-func pi() : float
-	return 3.1415926535;
-
-func e() : float
-	return 2.7182818284;
-
-func mod(integer a, integer b) : integer
-	return a % b;
-
-func is_simple(integer num) : boolean
+﻿func pi() : float
 {
-	if (num <= 0 or num == 1)
-		return false;
-
-	for (integer i = 2; i < num; i += 1;)
-		if (mod(num,i) == 0)
-			return false;
-
-
-	return true;
+	return 3.1415926535;
 }
-
-@external "System.Math"
-func Abs(float value) : float;
-
-@external "System.Math"
-func Acos(float value) : float;
-
-@external "System.Math"
-func Asin(float value) : float;
-
-@external "System.Math"
-func Atan(float value) : float;
-
-@external "System.Math"
-func Ceiling(float value) : float;
-
-@external "System.Math"
-func Cos(float d) : float;
-
-@external "System.Math"
-func Cosh(float d) : float;
-
-@external "System.Math"
-func Exp(float d) : float;
-
-@external "System.Math"
-func Floor(integer d) : float;
-
-@external "System.Math"
-func IEEERemainder(float a, float b) : float;
-
-@external "System.Math"
-func Max(float a, float b) : float;
-
-@external "System.Math"
-func Min(float a, float b) : float;
-
-@external "System.Math"
-func Pow(float x, float y) : float;
-
-@external "System.Math"
-func Round(float a) : float;
-
-@external "System.Math"
-func Sign(float a) : integer;
-
-@external "System.Math"
-func Sin(float value) : float;
-
-@external "System.Math"
-func Sinh(float value) : float;
-
-@external "System.Math"
-func Sqrt(float value) : float;
-
-@external "System.Math"
-func Tan(float value) : float;
-
-@external "System.Math"
-func Tanh(float value) : float;
-
-@external "System.Math"
-func Truncate(float value) : float;
-
-@external "System.Math"
-func Log(float a, float newBase) : float;
-
+func e() : float
+{
+	return 2.7182818284;
+}
+func mod(integer a, integer b) : integer
+{
+	return a % b;
+}
 func abs(float value) : float
 {
 	return Abs(value);
@@ -184,3 +106,69 @@ func ln(float d) : float
 {
 	return Log(d, e());
 }
+
+@external "System.Math"
+func Abs(float value) : float;
+
+@external "System.Math"
+func Acos(float value) : float;
+
+@external "System.Math"
+func Asin(float value) : float;
+
+@external "System.Math"
+func Atan(float value) : float;
+
+@external "System.Math"
+func Ceiling(float value) : float;
+
+@external "System.Math"
+func Cos(float d) : float;
+
+@external "System.Math"
+func Cosh(float d) : float;
+
+@external "System.Math"
+func Exp(float d) : float;
+
+@external "System.Math"
+func Floor(integer d) : float;
+
+@external "System.Math"
+func IEEERemainder(float a, float b) : float;
+
+@external "System.Math"
+func Max(float a, float b) : float;
+
+@external "System.Math"
+func Min(float a, float b) : float;
+
+@external "System.Math"
+func Pow(float x, float y) : float;
+
+@external "System.Math"
+func Round(float a) : float;
+
+@external "System.Math"
+func Sign(float a) : integer;
+
+@external "System.Math"
+func Sin(float value) : float;
+
+@external "System.Math"
+func Sinh(float value) : float;
+
+@external "System.Math"
+func Sqrt(float value) : float;
+
+@external "System.Math"
+func Tan(float value) : float;
+
+@external "System.Math"
+func Tanh(float value) : float;
+
+@external "System.Math"
+func Truncate(float value) : float;
+
+@external "System.Math"
+func Log(float a, float newBase) : float;

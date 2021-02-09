@@ -7,51 +7,6 @@ func ToString(long value) : string;
 @external "System.Convert"
 func ToString(float value) : string;
 
-@external "System.Convert"
-func ToString(boolean value) : string;
-
-@external "System.Convert"
-func ToString(char value) : string;
-
-@external "System.Convert"
-func ToChar(string value) : char;
-
-@external "System.Convert"
-func ToChar(float value) : char;
-
-@external "System.Convert"
-func ToChar(integer value) : char;
-
-@external "System.Convert"
-func ToChar(long value) : char;
-
-@external "System.Convert"
-func ToInt64(string value) : long;
-
-@external "System.Convert"
-func ToInt64(float value) : long;
-
-@external "System.Convert"
-func ToInt64(boolean value) : long;
-
-@external "System.Convert"
-func ToInt32(string value) : integer;
-
-@external "System.Convert"
-func ToInt32(float value) : integer;
-
-@external "System.Convert"
-func ToInt32(long value) : integer;
-
-@external "System.Convert"
-func ToInt32(boolean value) : integer;
-
-@external "System.Convert"
-func ToSingle(string value) : float;
-
-@external "System.Convert"
-func ToSingle(boolean value) : float;
-
 func tostrf(boolean value) : string
 {
 	return ToString(value);
@@ -124,7 +79,7 @@ func toint32(long value) : integer
 }
 func toint32(integer value) : integer
 {
-	return value;rec
+	return value;
 }
 
 func tofloat(string value) : float
@@ -168,3 +123,48 @@ func tochar(char value) : char
 {
 	return value;
 }
+
+@external "System.Convert"
+func ToString(boolean value) : string;
+
+@external "System.Convert"
+func ToString(char value) : string;
+
+@external "System.Convert"
+func ToChar(string value) : char;
+
+@external "System.Convert"
+func ToChar(float value) : char;
+
+@external "System.Convert"
+func ToChar(integer value) : char;
+
+@external "System.Convert"
+func ToChar(long value) : char;
+
+@external "System.Convert"
+func ToInt64(string value) : long;
+
+@external "System.Convert"
+func ToInt64(float value) : long;
+
+@external "System.Convert"
+func ToInt64(boolean value) : long;
+
+@external "System.Convert"
+func ToInt32(string value) : integer;
+
+@external "System.Convert"
+func ToInt32(float value) : integer;
+
+@external "System.Convert"
+func ToInt32(long value) : integer;
+
+@external "System.Convert"
+func ToInt32(boolean value) : integer;
+
+@external "System.Convert"
+func ToSingle(string value) : float;
+
+@external "System.Convert"
+func ToSingle(boolean value) : float;

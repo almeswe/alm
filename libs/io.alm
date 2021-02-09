@@ -1,43 +1,4 @@
-﻿@external "System.Console"
-func Write(string value) : void;
-
-@external "System.Console"
-func Write(char value) : void;
-
-@external "System.Console"
-func Write(boolean value) : void;
-
-@external "System.Console"
-func Write(integer value) : void;
-
-@external "System.Console"
-func Write(long value) : void;
-
-@external "System.Console"
-func Write(float value) : void;
-
-@external "System.Console"
-func WriteLine(string value) : void;
-
-@external "System.Console"
-func WriteLine(char value) : void;
-
-@external "System.Console"
-func WriteLine(boolean value) : void;
-
-@external "System.Console"
-func WriteLine(integer value) : void;
-
-@external "System.Console"
-func WriteLine(long value) : void;
-
-@external "System.Console"
-func WriteLine(float value) : void;
-
-@external "System.Console"
-func ReadLine() : string;
-
-func print(string message) : void
+﻿func print(string message) : void
 {
 	Write(message);
 }
@@ -108,3 +69,42 @@ func readln() : string
 {
 	return readln("");
 }
+
+@external "System.Console"
+func Write(string value) : void;
+
+@external "System.Console"
+func Write(char value) : void;
+
+@external "System.Console"
+func Write(boolean value) : void;
+
+@external "System.Console"
+func Write(integer value) : void;
+
+@external "System.Console"
+func Write(long value) : void;
+
+@external "System.Console"
+func Write(float value) : void;
+
+@external "System.Console"
+func WriteLine(string value) : void;
+
+@external "System.Console"
+func WriteLine(char value) : void;
+
+@external "System.Console"
+func WriteLine(boolean value) : void;
+
+@external "System.Console"
+func WriteLine(integer value) : void;
+
+@external "System.Console"
+func WriteLine(long value) : void;
+
+@external "System.Console"
+func WriteLine(float value) : void;
+
+@external "System.Console"
+func ReadLine() : string;

@@ -1,11 +1,6 @@
-﻿func pi() : float
-{
-	return 3.1415926535;
-}
-func e() : float
-{
-	return 2.7182818284;
-}
+﻿global float e = 2.7182818284;
+global float pi = 3.1415926535;
+
 func mod(integer a, integer b) : integer
 {
 	return a % b;
@@ -76,7 +71,7 @@ func sin(float value) : float
 }
 func sinh(float value) : float
 {
-	return value;
+	return Sinh(value);
 }
 func sqrt(float value) : float
 {
@@ -100,11 +95,11 @@ func log(float a, float newBase) : float
 }
 func lg(float d) : float
 {
-	return Log(d, 10.0);
+	return Log(d, 10);
 }
 func ln(float d) : float
 {
-	return Log(d, e());
+	return Log(d, e);
 }
 
 @external "System.Math"

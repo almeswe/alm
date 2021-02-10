@@ -153,8 +153,9 @@ namespace alm.Core.FrontEnd.SemanticAnalysis
                 foreach (IdentifierExpression identifier in assignment.AdressorExpressions)
                 {
                     ResolveIdentifierExpression(identifier, table, body);
-                    if (table == GlobalTable.Table)
-                        table.FetchIdentifier(identifier.Name).InitializedGlobally = true;
+                    TableIdentifier tableIdentifier = table.FetchIdentifier(identifier.Name);
+                    if (tableIdentifier.IsGlobal)
+                        tableIdentifier.InitializedGlobally = true;
                 }
             else
                 ResolveAdressor(assignment.AdressorExpressions[0], body, table);
@@ -208,10 +209,11 @@ namespace alm.Core.FrontEnd.SemanticAnalysis
             if (adressor is IdentifierExpression)
             {
                 ResolveIdentifierExpression((IdentifierExpression)adressor, table, body, false);
-                if (table == GlobalTable.Table)
-                    table.FetchIdentifier(((IdentifierExpression)adressor).Name).InitializedGlobally = true;
+                TableIdentifier tableIdentifier = table.FetchIdentifier(((IdentifierExpression)adressor).Name);
+                if (tableIdentifier != null && tableIdentifier.IsGlobal)
+                    tableIdentifier.InitializedGlobally = true;
                 else
-                    table.InitializeInBlock((IdentifierExpression)adressor,body);
+                    table.InitializeInBlock((IdentifierExpression)adressor, body);
             }
             else
                 ResolveArrayElement((ArrayElementExpression)adressor, table,true);

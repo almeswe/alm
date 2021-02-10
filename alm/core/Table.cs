@@ -78,7 +78,7 @@ namespace alm.Core.Table
             if (!CheckIdentifier(identifierExpression.Name))
             {
                 if (global)
-                    Table.GlobalIdentifiers.Add(new TableIdentifier(identifierExpression.Name, identifierExpression.Type));
+                    Table.GlobalIdentifiers.Add(new TableIdentifier(identifierExpression.Name, identifierExpression.Type,true));
                 else
                     this.Identifiers.Add(new TableIdentifier(identifierExpression.Name, identifierExpression.Type));
                 return true;
@@ -232,15 +232,18 @@ namespace alm.Core.Table
     }
     public sealed class TableIdentifier
     {
+        public bool IsGlobal { get; private set; }
+        public bool InitializedGlobally { get; set; }
+
         public string Name { get; private set; }
         public InnerType Type { get; private set; }
-        public bool InitializedGlobally { get; set; }
         public List<EmbeddedStatement> InitializedBlocks { get; set; } = new List<EmbeddedStatement>();
 
-        public TableIdentifier(string name, InnerType type)
+        public TableIdentifier(string name, InnerType type, bool isGlobal = false)
         {
             this.Name = name;
             this.Type = type;
+            this.IsGlobal = isGlobal;
         }
     }
     public sealed class TableMethodArgument

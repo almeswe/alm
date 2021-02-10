@@ -31,6 +31,7 @@
         Equal,
         NotEqual,
         AssignmentStatement,
+        GlobalDeclaration,
         Declaration,
         Division,
         Multiplication,

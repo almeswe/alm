@@ -111,8 +111,11 @@ namespace alm.Core.BackEnd
             {
                 FieldInfo field = Class.DefineField(identifier.Name,identifier.Type.GetEquivalence(), FieldAttributes.Private | FieldAttributes.Static);
                 Fields.Add(field);
-                EmitExpression(declaration.Declaration.AssingningExpression.AdressableExpression, constructorIL);
-                constructorIL.Emit(OpCodes.Stsfld,field);
+                if (declaration.Declaration.AssingningExpression != null)
+                {
+                    EmitExpression(declaration.Declaration.AssingningExpression.AdressableExpression, constructorIL);
+                    constructorIL.Emit(OpCodes.Stsfld, field);
+                }
             }
         }
 

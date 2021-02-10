@@ -147,7 +147,9 @@ namespace alm.Core.FrontEnd.SyntaxAnalysis
                     return new Token(tkImport, new Position(CurrentCharIndex-6, CurrentLineIndex), word);
 
                 case "external": 
-                    return new Token(tkExternalProp, new Position(CurrentCharIndex-8, CurrentLineIndex));
+                    return new Token(tkExternalProp, new Position(CurrentCharIndex-8, CurrentLineIndex),word);
+                case "global":
+                    return new Token(tkGlobal, new Position(CurrentCharIndex - 6, CurrentLineIndex),word);
 
                 case "return": 
                     return new Token(tkRet, new Position(CurrentCharIndex-6, CurrentLineIndex), word);

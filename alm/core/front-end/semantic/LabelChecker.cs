@@ -1,5 +1,5 @@
-﻿using alm.Core.Errors;
-using alm.Core.Table;
+﻿using alm.Core.Table;
+using alm.Core.Errors;
 using alm.Core.InnerTypes;
 using alm.Core.SyntaxTree;
 
@@ -17,9 +17,8 @@ namespace alm.Core.FrontEnd.SemanticAnalysis
         {
             MarkMethods(module);
             IsMainDeclared = false;
-            foreach (MethodDeclaration method in module.GetChildsByType(typeof(MethodDeclaration), true))
-                ResolveMethodDeclaration(method);
-
+            ResolveGlobalIdentifierDeclarations(module);
+            ResolveMethodDeclarations(module);
             if (!IsMainDeclared)
                 Diagnostics.SemanticErrors.Add(new MainMethodExpected());
         }
@@ -32,18 +31,22 @@ namespace alm.Core.FrontEnd.SemanticAnalysis
                     Diagnostics.SemanticErrors.Add(new MethodIsAlreadyDeclared(method.Name, method.SourceContext));
         }
 
-        public static void ResolveMainDeclaration(MethodDeclaration method)
+        public static void ResolveMainMethodDeclaration(MethodDeclaration method)
         {
             if (method.Name == "main")
                 if (method.ArgCount == 0 && method.ReturnType is Int32)
                     IsMainDeclared = true;
         }
-
+        public static void ResolveMethodDeclarations(SyntaxTreeNode inNode)
+        {
+            foreach (MethodDeclaration method in inNode.GetChildsByType(typeof(MethodDeclaration), true))
+                ResolveMethodDeclaration(method);
+        }
         public static void ResolveMethodDeclaration(MethodDeclaration method)
         {
             Table.Table MethodTable = Table.Table.CreateTable(GlobalTable.Table);
 
-            ResolveMainDeclaration(method);
+            ResolveMainMethodDeclaration(method);
             ResolveMethodArguments(method.Arguments, MethodTable);
             if (!method.IsExternal)
             {
@@ -53,6 +56,20 @@ namespace alm.Core.FrontEnd.SemanticAnalysis
             }
         }
     
+        public static void ResolveGlobalIdentifierDeclarations(SyntaxTreeNode inNode)
+        {
+            foreach (GlobalIdentifierDeclaration declaration in inNode.GetChildsByType(typeof(GlobalIdentifierDeclaration), true))
+                ResolveGlobalIdentifierDeclaration(declaration);
+        }
+        public static void ResolveGlobalIdentifierDeclaration(GlobalIdentifierDeclaration declaration)
+        {
+            if (declaration.Declaration.AssingningExpression != null)
+                ResolveAssignmentStatement(declaration.Declaration.AssingningExpression, GlobalTable.Table);
+            else
+                foreach (IdentifierExpression identifier in declaration.Declaration.DeclaringIdentifiers)
+                    ResolveIdentifierExpression(identifier, GlobalTable.Table, null);
+        }
+
         public static void ResolveEmbeddedStatement(EmbeddedStatement body, Table.Table table)
         {
             Table.Table bodyTable = Table.Table.CreateTable(table);
@@ -134,9 +151,13 @@ namespace alm.Core.FrontEnd.SemanticAnalysis
 
             if (assignment.AdressorExpressions.Length > 1)
                 foreach (IdentifierExpression identifier in assignment.AdressorExpressions)
+                {
                     ResolveIdentifierExpression(identifier, table, body);
+                    if (table == GlobalTable.Table)
+                        table.FetchIdentifier(identifier.Name).InitializedGlobally = true;
+                }
             else
-                ResolveAdressor(assignment.AdressorExpressions[0],body, table);
+                ResolveAdressor(assignment.AdressorExpressions[0], body, table);
         }
         public static void ResolveDeclarationStatement(IdentifierDeclaration declaration, Table.Table table)
         {
@@ -155,8 +176,9 @@ namespace alm.Core.FrontEnd.SemanticAnalysis
         {
             if (identifier.IdentifierState == IdentifierExpression.State.Decl)
             {
-                if (!table.PushIdentifier(identifier))
-                    Diagnostics.SemanticErrors.Add(new IdentifierIsAlreadyDeclared(identifier.Name,identifier.SourceContext));
+                if (!table.PushIdentifier(identifier, table == GlobalTable.Table ? true : false))
+                    Diagnostics.SemanticErrors.Add(new IdentifierIsAlreadyDeclared(identifier.Name, identifier.SourceContext));
+
                 if (initializedInBlock != null)
                     table.InitializeInBlock(identifier, initializedInBlock);
             }
@@ -168,9 +190,8 @@ namespace alm.Core.FrontEnd.SemanticAnalysis
                 {
                     TableIdentifier tableIdentifier = table.FetchIdentifier(identifier.Name);
                     identifier.Type = tableIdentifier.Type;
-
                     //check for initialization in this block
-                    if (!table.IsInitializedInBlock(identifier, initializedInBlock) && checkInit)
+                    if (!table.IsInitializedInBlock(identifier, initializedInBlock) && checkInit && !tableIdentifier.InitializedGlobally)
                         Diagnostics.SemanticErrors.Add(new IdentifierIsNotInitialized(identifier.Name, identifier.SourceContext));
                 }
             }
@@ -187,7 +208,10 @@ namespace alm.Core.FrontEnd.SemanticAnalysis
             if (adressor is IdentifierExpression)
             {
                 ResolveIdentifierExpression((IdentifierExpression)adressor, table, body, false);
-                table.InitializeInBlock((IdentifierExpression)adressor,body);
+                if (table == GlobalTable.Table)
+                    table.FetchIdentifier(((IdentifierExpression)adressor).Name).InitializedGlobally = true;
+                else
+                    table.InitializeInBlock((IdentifierExpression)adressor,body);
             }
             else
                 ResolveArrayElement((ArrayElementExpression)adressor, table,true);
@@ -250,6 +274,7 @@ namespace alm.Core.FrontEnd.SemanticAnalysis
                 TableIdentifier tableIdentifier = table.FetchIdentifier(arrayElement.ArrayName);
                 arrayElement.ArrayDimension = (ushort)((ArrayType)tableIdentifier.Type).Dimension;
                 arrayElement.Type = ((ArrayType)tableIdentifier.Type).GetDimensionElementType(arrayElement.Dimension);
+                arrayElement.ArrayType = tableIdentifier.Type;
 
                 if (arrayElement.Type is null || arrayElement.ArrayDimension != arrayElement.Dimension)
                     Diagnostics.SemanticErrors.Add(new WrongArrayElementDimension(arrayElement.SourceContext));

@@ -16,9 +16,11 @@ namespace alm.Core.Table
         public Table PuttedIn { get; private set; }
 
         public List<Table> ThisContains { get; private set; } = new List<Table>();
-        public List<TableMethod> Methods { get; private set; } = new List<TableMethod>();
+
+        private static List<TableIdentifier> GlobalIdentifiers = new List<TableIdentifier>();
         public List<TableIdentifier> Identifiers { get; private set; } = new List<TableIdentifier>();
 
+        public List<TableMethod> Methods { get; private set; } = new List<TableMethod>();
         private static List<TableMethod> BaseMethods = new List<TableMethod>()
         {
             new TableMethod("len",new Int32(),new TableMethodArgument[]{ new TableMethodArgument(new AnyArray()) }),
@@ -52,6 +54,7 @@ namespace alm.Core.Table
             Table table = new Table(puttedIn, level);
             if (level == 1)
                 table.Methods.AddRange(BaseMethods);
+            Table.GlobalIdentifiers = new List<TableIdentifier>();
             return table;
         }
 
@@ -70,11 +73,14 @@ namespace alm.Core.Table
             }
             return false;
         }
-        public bool PushIdentifier(IdentifierExpression identifierExpression)
+        public bool PushIdentifier(IdentifierExpression identifierExpression, bool global = false)
         {
             if (!CheckIdentifier(identifierExpression.Name))
             {
-                this.Identifiers.Add(new TableIdentifier(identifierExpression.Name, identifierExpression.Type, this.Level));
+                if (global)
+                    Table.GlobalIdentifiers.Add(new TableIdentifier(identifierExpression.Name, identifierExpression.Type));
+                else
+                    this.Identifiers.Add(new TableIdentifier(identifierExpression.Name, identifierExpression.Type));
                 return true;
             }
             return false;
@@ -82,9 +88,13 @@ namespace alm.Core.Table
 
         public bool CheckIdentifier(string name)
         {
+            foreach (TableIdentifier identifier in Table.GlobalIdentifiers)
+                if (identifier.Name == name)
+                    return true;
+
             for (Table table = this; table != null; table = table.PuttedIn)
-                foreach (TableIdentifier var in table.Identifiers)
-                    if (var.Name == name)
+                foreach (TableIdentifier identifier in table.Identifiers)
+                    if (identifier.Name == name)
                         return true;
             return false;
         }
@@ -115,10 +125,14 @@ namespace alm.Core.Table
 
         public TableIdentifier FetchIdentifier(string name)
         {
+            foreach (TableIdentifier identifier in Table.GlobalIdentifiers)
+                if (identifier.Name == name)
+                    return identifier;
+
             for (Table table = this; table != null; table = table.PuttedIn)
-                foreach (TableIdentifier var in table.Identifiers)
-                    if (var.Name == name)
-                        return var;
+                foreach (TableIdentifier identifier in table.Identifiers)
+                    if (identifier.Name == name)
+                        return identifier;
             return null;
         }
         public TableMethod FetchMethod(string name, InnerType[] arguments)
@@ -197,7 +211,6 @@ namespace alm.Core.Table
                     return true;
             return false;
         }
-
     }
 
     public sealed class TableMethod
@@ -219,17 +232,15 @@ namespace alm.Core.Table
     }
     public sealed class TableIdentifier
     {
-        public int Level { get; private set; }
         public string Name { get; private set; }
-
         public InnerType Type { get; private set; }
+        public bool InitializedGlobally { get; set; }
         public List<EmbeddedStatement> InitializedBlocks { get; set; } = new List<EmbeddedStatement>();
 
-        public TableIdentifier(string name, InnerType type, int level)
+        public TableIdentifier(string name, InnerType type)
         {
             this.Name = name;
             this.Type = type;
-            this.Level = level;
         }
     }
     public sealed class TableMethodArgument

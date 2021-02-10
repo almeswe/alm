@@ -43,6 +43,13 @@ namespace alm.Core.FrontEnd.SyntaxAnalysis
                     return moduleRoot;
             }
 
+            while(Match(tkGlobal))
+            {
+                moduleRoot.AddNode(ParseGlobalDeclarationStatement());
+                if (IsErrored(moduleRoot.Childs.Last()))
+                    return moduleRoot;
+            }
+
             while (!Match(tkEOF))
             {
                 moduleRoot.AddNode(ParseMethodDeclaration());
@@ -217,8 +224,6 @@ namespace alm.Core.FrontEnd.SyntaxAnalysis
             List<Expression> indexes = new List<Expression>();
             IdentifierExpression identifier = (IdentifierExpression)ParseIdentifierExpression(IdentifierExpression.State.Decl);
 
-            if (!Match(tkSqLbra))
-                return new ErroredExpression(new SyntaxErrorMessage("Для получения элемента по индексу массива нужен символ \'[\'", Lexer.CurrentToken));
             Lexer.GetNextToken();
 
             while (!Match(tkSqRbra) && !Match(tkEOF))
@@ -346,6 +351,18 @@ namespace alm.Core.FrontEnd.SyntaxAnalysis
             Lexer.GetNextToken();
 
             return new MethodDeclaration(funcName, arguments, funcType,null, funcContext, ((StringConstant)packageName).Value);
+        }
+        public Statement ParseGlobalDeclarationStatement()
+        {
+            if (!Match(tkGlobal))
+                return new ErroredStatement(new ReservedWordExpected("global",Lexer.CurrentToken));
+            Lexer.GetNextToken();
+
+            Statement declaration = ParseDeclarationStatement();
+            if (IsErrored(declaration))
+                return (ErroredStatement)declaration;
+
+            return new GlobalIdentifierDeclaration((IdentifierDeclaration)declaration);
         }
         public Statement ParseDeclarationStatement()
         {

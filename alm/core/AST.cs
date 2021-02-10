@@ -390,6 +390,22 @@ namespace alm.Core.SyntaxTree
 
         public override string ToString() => this.AssingningExpression == null ? "Declaration" : "Decl & Init";
     }
+    public sealed class GlobalIdentifierDeclaration : Statement
+    {
+        public IdentifierDeclaration Declaration { get; private set; }
+
+        public override ConsoleColor ConsoleColor => ConsoleColor.Blue;
+        public override NodeType NodeKind => NodeType.GlobalDeclaration;
+
+        public GlobalIdentifierDeclaration(IdentifierDeclaration declaration)
+        {
+            this.Declaration = declaration;
+            foreach (SyntaxTreeNode child in declaration.Childs)
+                this.AddNode(child);
+        }
+
+        public override string ToString() => this.Declaration.AssingningExpression == null ? "Global Declaration" : "Global Decl & Init";
+    }
 
     public abstract class JumpStatement : Statement
     {

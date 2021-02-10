@@ -80,7 +80,7 @@ namespace alm.Core.Compiler
                 }
                 if (!Diagnostics.SemanticAnalysisFailed && !Diagnostics.SyntaxAnalysisFailed)
                 {
-                    Emitter.EmitModule(tree.Root);
+                    Emitter.EmitModule(tree.Root,Path.GetFileNameWithoutExtension(sourcePath) +"Assembly", Path.GetFileNameWithoutExtension(sourcePath) + "Module","MainClass");
                     if (run)
                         System.Diagnostics.Process.Start(CompilationVariables.CompilationBinaryPath);
                 }

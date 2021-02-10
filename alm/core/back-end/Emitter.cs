@@ -17,73 +17,72 @@ namespace alm.Core.BackEnd
 {
     public sealed class Emitter
     {
-        private static string exeName;
-        private static bool IsLoaded;
-        private static ModuleBuilder module;
-        private static AssemblyBuilder assembly;
+        private static string Binary;
+
+        private static TypeBuilder Class;
+        private static ModuleBuilder Module;
+        private static AssemblyBuilder Assembly;
 
         private static Dictionary<string, int> MethodArguments = new Dictionary<string, int>();
         private static Dictionary<string, LocalVariableInfo> MethodLocals = new Dictionary<string, LocalVariableInfo>();
 
         private static Dictionary<MethodInfo, Type[]> Methods = new Dictionary<MethodInfo, Type[]>();
         private static Dictionary<MethodInfo, Type[]> ExternalMethods = new Dictionary<MethodInfo, Type[]>();
-        //package: method names 
+
         private static Dictionary<MethodDeclaration, string> ExternalPackages = new Dictionary<MethodDeclaration, string>();
+
+        private static List<FieldInfo> Fields = new List<FieldInfo>();
 
         private static Label BreakLabel = default;
         private static Label ContinueLabel = default;
 
-        public static void EmitModule(SyntaxTreeNode moduleRoot, string moduleName = "alm", string assemblyName = "alm")
+        public static void EmitModule(SyntaxTreeNode moduleRoot, string assemblyName, string moduleName, string className)
         {
-            LoadBootstrapper(moduleName, assemblyName);
+            LoadBootstrapper(assemblyName,moduleName,className);
             MarkMethodDeclarations(moduleRoot);
+            EmitGlobalIdentifierDeclarations(moduleRoot);
             EmitMethodDeclarations(moduleRoot);
-            try
-            {
-                assembly.SetEntryPoint(GetCreatedMethod("main", new Type[0]));
-            }
+
+            Class.CreateType();
+            Module.CreateGlobalFunctions();
+
+            try { Assembly.SetEntryPoint(Class.GetDeclaredMethod("main")); }
             catch (Exception e) { ConsoleCustomizer.ColorizedPrintln($"Error occurred when trying to set the entry point.[{e.Message}]", ConsoleColor.DarkRed); }
-            try
-            {
-                assembly.Save(exeName);
-            }
+
+            try { Assembly.Save(Binary); }
             catch (Exception e) { ConsoleCustomizer.ColorizedPrintln($"Error occurred when trying to save the binary file.[{e.Message}]", ConsoleColor.DarkRed); }
-
-            Reset();
         }
-        private static void EmitMethodDeclarations(SyntaxTreeNode root)
+        private static void MarkMethodDeclarations(SyntaxTreeNode inNode)
         {
-            foreach (MethodDeclaration method in root.GetChildsByType(typeof(MethodDeclaration), true))
-                EmitMethodDeclaration(method);
-            module.CreateGlobalFunctions();
-        }
-
-        private static void MarkMethodDeclarations(SyntaxTreeNode root)
-        {
-            foreach (MethodDeclaration method in root.GetChildsByType(typeof(MethodDeclaration), true))
+            foreach (MethodDeclaration method in inNode.GetChildsByType(typeof(MethodDeclaration), true))
             {
                 Type[] argumentTypes = CreateTypes(method.GetArgumentsTypes());
-                MethodBuilder methodBuilder = module.DefineGlobalMethod(method.Name, MethodAttributes.Public | MethodAttributes.Static, method.ReturnType.GetEquivalence(), argumentTypes);
+                MethodBuilder methodBuilder = Class.DefineMethod(method.Name, MethodAttributes.Static, method.ReturnType.GetEquivalence(), argumentTypes);
 
                 if (!method.IsExternal)
                     Methods.Add(methodBuilder, argumentTypes);
                 else
                 {
                     ExternalMethods.Add(methodBuilder, argumentTypes);
-                    ExternalPackages.Add(method,method.NETPackage);
+                    ExternalPackages.Add(method, method.NETPackage);
                 }
             }
         }
 
+        private static void EmitMethodDeclarations(SyntaxTreeNode inNode)
+        {
+            foreach (MethodDeclaration method in inNode.GetChildsByType(typeof(MethodDeclaration), true))
+                EmitMethodDeclaration(method);
+        }
         private static void EmitMethodDeclaration(MethodDeclaration method)
         {
             Type[] argumentTypes = CreateTypes(method.GetArgumentsTypes());
             MethodBuilder methodBuilder;
 
             if (method.IsExternal)
-                 methodBuilder = (MethodBuilder)GetCreatedExternalMethod(method.Name, argumentTypes);
+                methodBuilder = (MethodBuilder)GetCreatedExternalMethod(method.Name, argumentTypes);
             else
-                 methodBuilder = (MethodBuilder)GetCreatedMethod(method.Name, argumentTypes);
+                methodBuilder = (MethodBuilder)GetCreatedMethod(method.Name, argumentTypes);
 
             ILGenerator methodIL = methodBuilder.GetILGenerator();
 
@@ -95,18 +94,26 @@ namespace alm.Core.BackEnd
             MethodLocals.Clear();
             MethodArguments.Clear();
         }
-        private static void EmitExternalMethodInvokation(MethodInvokationExpression method, ILGenerator methodIL)
+
+        private static void EmitGlobalIdentifierDeclarations(SyntaxTreeNode inNode)
         {
-            Type[] arguments = CreateTypes(method.GetParametersTypes());
-            Type type = Type.GetType(GetExternalPackage(method.Name, arguments));
-            EmitMethodParameters(method.Parameters, methodIL);
-            if (type != null && type.GetMethod(method.Name, arguments) != null)
-                methodIL.EmitCall(OpCodes.Call, type.GetMethod(method.Name, arguments), null);
-            else
-                if (type == null)
-                    ConsoleCustomizer.ColorizedPrintln($"Error occurred when trying to find package \"{GetExternalPackage(method.Name, arguments)}\".", ConsoleColor.DarkRed);
-                else
-                    ConsoleCustomizer.ColorizedPrintln($"No method [{method.Name}] with those type of arguments found in package \"{GetExternalPackage(method.Name, arguments)}\".", ConsoleColor.DarkRed);
+            ConstructorBuilder constructor = Class.DefineConstructor(MethodAttributes.Static, CallingConventions.Standard, new Type[0]);
+            ILGenerator constructorIL = constructor.GetILGenerator();
+
+            foreach (GlobalIdentifierDeclaration declaration in inNode.GetChildsByType(typeof(GlobalIdentifierDeclaration), true))
+                EmitGlobalIdentifierDeclaration(declaration, constructorIL);
+
+            constructorIL.Emit(OpCodes.Ret);
+        }
+        private static void EmitGlobalIdentifierDeclaration(GlobalIdentifierDeclaration declaration, ILGenerator constructorIL)
+        {
+            foreach (IdentifierExpression identifier in declaration.Declaration.DeclaringIdentifiers)
+            {
+                FieldInfo field = Class.DefineField(identifier.Name,identifier.Type.GetEquivalence(), FieldAttributes.Private | FieldAttributes.Static);
+                Fields.Add(field);
+                EmitExpression(declaration.Declaration.AssingningExpression.AdressableExpression, constructorIL);
+                constructorIL.Emit(OpCodes.Stsfld,field);
+            }
         }
 
         private static void EmitMethodArguments(ArgumentDeclaration[] arguments)
@@ -394,6 +401,8 @@ namespace alm.Core.BackEnd
             EmitExpression(adressableExpression, methodIL);
             if (IsArgument(identifier.Name))
                 methodIL.Emit(OpCodes.Starg, GetArgumentsIndex(identifier.Name));
+            else if (IsField(identifier.Name))
+                methodIL.Emit(OpCodes.Stsfld, GetCreatedField(identifier.Name));
             else
                 methodIL.Emit(OpCodes.Stloc, (LocalBuilder)GetCreatedLocal(identifier.Name));
         }
@@ -401,6 +410,8 @@ namespace alm.Core.BackEnd
         {
             if (IsArgument(arrayElement.ArrayName))
                 methodIL.Emit(OpCodes.Ldarg, GetArgumentsIndex(arrayElement.ArrayName));
+            else if (IsField(arrayElement.ArrayName))
+                methodIL.Emit(OpCodes.Ldsfld, GetCreatedField(arrayElement.ArrayName));
             else
                 methodIL.Emit(OpCodes.Ldloc, (LocalBuilder)GetCreatedLocal(arrayElement.ArrayName));
 
@@ -424,6 +435,8 @@ namespace alm.Core.BackEnd
         {
             if (IsArgument(arrayElement.ArrayName))
                 methodIL.Emit(OpCodes.Ldarg, GetArgumentsIndex(arrayElement.ArrayName));
+            else if (IsField(arrayElement.ArrayName))
+                methodIL.Emit(OpCodes.Ldsfld, GetCreatedField(arrayElement.ArrayName));
             else
                 methodIL.Emit(OpCodes.Ldloc, (LocalBuilder)GetCreatedLocal(arrayElement.ArrayName));
 
@@ -472,6 +485,19 @@ namespace alm.Core.BackEnd
                 EmitMethodParameters(method.Parameters, methodIL);
                 methodIL.EmitCall(OpCodes.Call, createdMethod, null);
             }
+        }
+        private static void EmitExternalMethodInvokation(MethodInvokationExpression method, ILGenerator methodIL)
+        {
+            Type[] arguments = CreateTypes(method.GetParametersTypes());
+            Type type = Type.GetType(GetExternalPackage(method.Name, arguments));
+            EmitMethodParameters(method.Parameters, methodIL);
+            if (type != null && type.GetMethod(method.Name, arguments) != null)
+                methodIL.EmitCall(OpCodes.Call, type.GetMethod(method.Name, arguments), null);
+            else
+                if (type == null)
+                ConsoleCustomizer.ColorizedPrintln($"Error occurred when trying to find package \"{GetExternalPackage(method.Name, arguments)}\".", ConsoleColor.DarkRed);
+            else
+                ConsoleCustomizer.ColorizedPrintln($"No method [{method.Name}] with those type of arguments found in package \"{GetExternalPackage(method.Name, arguments)}\".", ConsoleColor.DarkRed);
         }
         private static bool EmitBaseMethod(MethodInvokationExpression method, ILGenerator methodIL)
         {
@@ -544,6 +570,8 @@ namespace alm.Core.BackEnd
             {
                 if (IsArgument(identifier.Name))
                     methodIL.Emit(OpCodes.Ldarg, GetArgumentsIndex(identifier.Name));
+                else if (IsField(identifier.Name))
+                    methodIL.Emit(OpCodes.Ldsfld, GetCreatedField(identifier.Name));
                 else
                     methodIL.Emit(OpCodes.Ldloc, (LocalBuilder)GetCreatedLocal(identifier.Name));
             }
@@ -669,8 +697,15 @@ namespace alm.Core.BackEnd
 
         private static bool IsArgument(string localName)
         {
-            foreach (string local in MethodArguments.Keys)
-                if (localName == local)
+            foreach (KeyValuePair<string,int> local in MethodArguments)
+                if (localName == local.Key)
+                    return true;
+            return false;
+        }
+        private static bool IsField(string fieldName)
+        {
+            foreach (FieldInfo field in Fields)
+                if (fieldName == field.Name)
                     return true;
             return false;
         }
@@ -701,6 +736,13 @@ namespace alm.Core.BackEnd
             foreach (KeyValuePair<MethodInfo, Type[]> method in ExternalMethods)
                 if (method.Key.Name == methodName && TypesAreSame(arguments, method.Value))
                     return method.Key;
+            return null;
+        }
+        private static FieldInfo GetCreatedField(string fieldName)
+        {
+            foreach (FieldInfo field in Fields)
+                if (field.Name == fieldName)
+                    return field;
             return null;
         }
         private static string GetExternalPackage(string methodName, Type[] arguments)
@@ -737,29 +779,27 @@ namespace alm.Core.BackEnd
 
         public static void Reset()
         {
-            IsLoaded = false;
-            assembly = null;
-            module = null;
-            exeName = string.Empty;
+            Class = null;
+            Module = null;
+            Assembly = null;
+            Binary = string.Empty;
+            Fields.Clear();
             Methods.Clear();
             MethodLocals.Clear();
             MethodArguments.Clear();
             ExternalMethods.Clear();
             ExternalPackages.Clear();
         }
-        public static void LoadBootstrapper(string assemblyName, string moduleName)
+        public static void LoadBootstrapper(string assemblyName, string moduleName, string className)
         {
-            if (!IsLoaded)
-            {
-                exeName = System.IO.Path.GetFileName(CompilationBinaryPath);
+            Reset();
+            Binary = System.IO.Path.GetFileName(CompilationBinaryPath);
 
-                AppDomain domain = System.Threading.Thread.GetDomain();
-                AssemblyName asmName = new AssemblyName(assemblyName);
+            AppDomain domain = System.Threading.Thread.GetDomain();
 
-                assembly = domain.DefineDynamicAssembly(asmName, AssemblyBuilderAccess.RunAndSave);
-                module = assembly.DefineDynamicModule(moduleName, exeName);
-                IsLoaded = true;
-            }
+            Assembly = domain.DefineDynamicAssembly(new AssemblyName(assemblyName), AssemblyBuilderAccess.RunAndSave);
+            Module = Assembly.DefineDynamicModule(moduleName, Binary);
+            Class = Module.DefineType(className,TypeAttributes.BeforeFieldInit);
         }
     }
 }

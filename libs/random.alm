@@ -1,0 +1,18 @@
+﻿global integer A_VALUE = 45;
+global integer C_VALUE = 21;
+global integer M_VALUE = 67;
+global integer SEED = 2;
+
+func rand() : integer
+{
+	SEED = (A_VALUE * SEED + C_VALUE) % M_VALUE;
+	return SEED;
+}
+func randrange(integer from, integer to) : integer
+{
+	return rand() % (to - from + 1) + from;
+}
+func randrange(long from, long to) : long
+{
+	return rand() % (to - from + 1) + from;
+}

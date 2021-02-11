@@ -791,10 +791,7 @@ namespace alm.Core.FrontEnd.SyntaxAnalysis
             //bad representation
             Expression node;
             if (Match(tkMinus))
-            {
-                Lexer.GetNextToken();
-                node = new UnaryArithExpression(UnaryExpression.UnaryOperator.UnaryMinus, ParseMultiplicative());
-            }
+                node = ParseUnaryMinusExpression();
             else
                 node = ParseMultiplicative();
 

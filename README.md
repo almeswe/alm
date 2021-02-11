@@ -26,15 +26,18 @@
  But i also want to share you here some recomendations for comfortable use.
  
  The example algorithm for first use (with commands):
-  * Open compiler's shell 
-  * **> crfl "main.alm"**
-  * **> opfl this** 
-  * write some code
-  * **> c 1 "test.exe"**
-  * after this you may use only **'rec'** command for recompiling
+ 
+    # Open compiler's shell 
+    > crfl "main.alm"
+    > opfl this
+    # write some code in created file and then:
+    > c 1 "test.exe"
+    # after this you may use only 'rec' command for recompiling:
+    > rec
      
  Other detailed information you may see after typing '?' command:
-  * **> ?**
+ 
+    > ?
   
 ## Examples
 

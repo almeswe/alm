@@ -1,5 +1,53 @@
-import io,cast;
+import io, cast;
 
+func in(char ch,char[] arr) : boolean
+{
+	for (integer i = 0;i < len(arr); i += 1;)
+		if (arr[i] == ch)
+			return true;
+	
+	return false;
+}
+func in(integer num,integer[] arr) : boolean
+{
+	for (integer i = 0;i < len(arr); i += 1;)
+		if (arr[i] == num)
+			return true;
+	
+	return false;
+}
+func in(long num,long[] arr) : boolean
+{
+	for (integer i = 0;i < len(arr); i += 1;)
+		if (arr[i] == num)
+			return true;
+	
+	return false;
+}
+func in(boolean log,boolean[] arr) : boolean
+{
+	for (integer i = 0;i < len(arr); i += 1;)
+		if (arr[i] == log)
+			return true;
+	
+	return false;
+}
+func in(string str,string[] arr) : boolean
+{
+	for (integer i = 0;i < len(arr); i += 1;)
+		if (arr[i] == str)
+			return true;
+	
+	return false;
+}
+func in(float pnt,float[] arr) : boolean
+{
+	for (integer i = 0;i < len(arr); i += 1;)
+		if (arr[i] == pnt)
+			return true;
+	
+	return false;
+}
 func concat_arrays(integer[] arr1, integer[] arr2) : integer[]
 {
 	integer[] result = integer(len(arr1) + len(arr2));
@@ -110,7 +158,7 @@ func concat_arrays(float[] arr1, float[] arr2) : float[]
 }
 
 
-func set_array_len(integer[] arr,integer to_size) : integer[]
+func set_array_len(integer[] arr, integer to_size) : integer[]
 {
 	integer[] result = integer(to_size);
 

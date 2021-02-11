@@ -38,7 +38,7 @@
   
 ## Examples
 
-  Before starting to watch for code examples, i will say that the language has pretty easy C-like syntax.
+  Before you start watching for code examples, i will say that the language has pretty easy C-like syntax.
   
   * ### Hello world!
   

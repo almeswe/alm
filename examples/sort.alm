@@ -1,0 +1,33 @@
+import io;
+import random,array;
+
+func main() : integer
+{
+    integer[] data = integer(20);
+    for(integer i = 0; i < len(data);i+=1;)
+        data[i] = randrange(1,15);
+    data = sort(data);
+    print_array(data);
+    read("Press any key...");
+    
+    return 0;
+}
+
+func sort(integer[] data) : integer[]
+{
+    integer i,j,buff;
+
+    for (i = 0; i < len(data); i += 1;)
+    {
+        for (j = i + 1; j < len(data); j += 1;)
+        {
+            if (data[j] < data[i])
+            {
+                buff = data[i];
+                data[i] = data[j];
+                data[j] = buff;
+            }
+        }
+    }
+    return data;
+}

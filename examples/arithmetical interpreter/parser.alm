@@ -1,0 +1,150 @@
+import io;
+
+global string[] TOKENS;
+global integer TK_INDEX;
+global string CURR_TOKEN;
+
+global boolean PARSER_ERRORED;
+
+func init_parser(string[] tokens) : void
+{
+    TOKENS = tokens;
+    TK_INDEX = -1;
+    PARSER_ERRORED = false;
+    next_token();
+}
+
+func next_token() : void
+{
+    if (len(TOKENS)-1 > TK_INDEX)
+    {
+        TK_INDEX += 1;
+        CURR_TOKEN = TOKENS[TK_INDEX];
+    }
+    else
+    {
+        TK_INDEX += 1;
+        CURR_TOKEN = "\0";
+    }
+}
+
+func parse_expr() : float
+{
+    float result = 0;
+
+    if (match("-"))
+        result = parse_unary_minus();
+    else 
+        result = parse_mul();
+
+    if (match("+"))
+    {
+        next_token();
+        result += parse_expr();
+        return result;
+    }
+    if (match("-"))
+    {
+        next_token();
+        result -= parse_mul();
+
+        if (match("+"))
+        {
+            next_token();
+            result += parse_expr();
+            return result;
+        }
+        if (match("-"))
+        {
+            result += parse_expr();
+            return result;
+        }
+        return result;
+    }
+
+    return result;
+}
+
+func parse_mul() : float
+{
+    float result = parse_factor();
+    if (match("*"))
+    {
+        next_token();
+        result *= parse_mul();
+        return result;
+    }
+    if (match("/"))
+    {
+        next_token();
+        result /= parse_mul();
+        return result;
+    }
+    return result;
+}
+
+func parse_factor() : float
+{
+    if (num_token(CURR_TOKEN))
+    {
+        float num = tofloat(CURR_TOKEN);
+        next_token();
+        return num;
+    }
+    if (match("("))
+        return parse_paren_expr();
+
+    if (match("-"))
+        return parse_unary_minus();
+
+    report_parser_error("number, unary minus, or \'(\' expected");
+    next_token();
+    return 0;
+}
+
+func parse_paren_expr() : float
+{
+    next_token();
+    float result = parse_expr();
+    if (not match(")"))
+        report_parser_error("\')\' expected");
+    return result;
+}
+
+func parse_unary_minus(): float
+{
+    if (match("-",-1))
+        report_parser_error("only one unary minus can be added in a row");
+    next_token();
+    return parse_mul() * -1;
+}
+
+func num_token(string token) : boolean
+{
+    if (len(token) == 0)
+        return false;
+    for (integer i = 0; i < len(token); i += 1;)
+        if (not digit(token[i]))
+         return false;
+    return true;
+}
+
+func match(string token,integer offset) : boolean
+{
+    if (len(TOKENS)-1 < TK_INDEX+offset or TK_INDEX+offset < 0)
+        return false;
+    if (token == TOKENS[TK_INDEX+offset])
+        return true;
+    return false;
+}
+
+func match(string token) : boolean
+{
+    return match(token,0);
+}
+
+func report_parser_error(string message) : void
+{
+    PARSER_ERRORED = true;
+    println("PARSER ERROR: " + message + ".");
+}

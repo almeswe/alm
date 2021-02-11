@@ -1,0 +1,109 @@
+import chr;
+
+global string INPUT;
+global integer CH_INDEX;
+
+global boolean LEXER_ERRORED;
+
+global char CURR_CHAR,EOL = '\0';
+
+func init_lexer(string input) : void
+{
+       LEXER_ERRORED = false;
+       if (not check_input(input))
+              report_lexer_error("bad input");
+
+       CH_INDEX = -1;
+       INPUT = input + "\0";
+}
+
+func check_input(string input) : boolean
+{
+       for (integer i = 0; i < len(input); i += 1;)
+              if ((not digit(input[i])) and not op(input[i]))
+   	              return false;
+       return true;
+}
+
+func get_tokens() : string[]
+{
+    next_char();
+
+    string[] tokens = string(len(INPUT));
+    integer token_count = 0;
+
+    while (CURR_CHAR != EOL)
+    {
+        if (digit(CURR_CHAR))
+        {
+            tokens[token_count] = get_number();
+            token_count += 1;
+            continue;
+        }
+        if (op(CURR_CHAR))
+        {
+            tokens[token_count] = get_op();
+            token_count += 1;
+            continue;
+        }
+        else
+            next_char();
+    }
+    tokens = set_array_len(tokens,token_count);
+    return tokens;
+}
+
+func get_op() : string
+{
+    string op = tostrf(CURR_CHAR);
+    next_char();
+    return op;
+}
+
+func get_number() : string
+{
+    string number = "";
+
+    while(digit(CURR_CHAR) and CURR_CHAR != EOL)
+    {
+        number += tostrf(CURR_CHAR);
+        next_char();
+    }
+    return number;	
+}
+
+func next_char() : void
+{
+    if (len(INPUT)-1 > CH_INDEX)
+    {
+        CH_INDEX += 1;
+        CURR_CHAR = INPUT[CH_INDEX];
+    }	
+    else 
+        CURR_CHAR = EOL;
+}
+
+func digit(char ch) : boolean
+{
+    if (IsDigit(ch))
+        return true;
+    return false;
+}
+
+func op(char ch) : boolean
+{
+    char[] ops = char(6);
+    ops[0] = '+';ops[1] = '*';
+    ops[2] = '(';ops[3] = ')';
+    ops[4] = '-';ops[5] = '/';
+
+    if (in(ch,ops))
+        return true;
+    return false;
+}
+
+func report_lexer_error(string message) : void
+{
+    LEXER_ERRORED = true;
+    println("LEXER ERROR: " + message + ".");
+}

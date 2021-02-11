@@ -1,0 +1,15 @@
+import io;
+import "interpreter.alm";
+
+func main() : integer
+{
+       string input;
+       while(true)
+       {
+              input = read();
+              if (input == "quit")
+                 break;
+              interpret(input);
+       }
+       return 0;
+}

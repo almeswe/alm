@@ -1,0 +1,9 @@
+import io;
+
+func main() : integer
+{
+   println("Hello world!");
+
+   read("Press any key...");
+   return 0;
+}

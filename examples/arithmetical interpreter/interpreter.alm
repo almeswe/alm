@@ -1,0 +1,12 @@
+import cast,array;
+import "lexer.alm","parser.alm";
+
+func interpret(string input) : void
+{
+       init_lexer(input);
+       string[] tokens = get_tokens();
+       init_parser(tokens);
+       float result = parse_expr();
+       if ((not PARSER_ERRORED) and not LEXER_ERRORED)
+              println("= " + tostrf(result));
+}

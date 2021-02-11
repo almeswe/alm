@@ -88,9 +88,12 @@
             return newstr;
         }
 
-        public static string[] Split(string str,char ch)
+        public static string[] Split(string str,char ch,char breakCh = '"')
         {
             string sub = string.Empty;
+
+            bool breaked = false;
+
             System.Collections.Generic.List<string> subs = new System.Collections.Generic.List<string>();
 
             for (int i = 0; i < str.Length; i++)
@@ -102,7 +105,9 @@
                     if (sub.Trim() != string.Empty)
                         subs.Add(sub);
                 }
-                if (str[i] == ch)
+                if (breakCh == str[i])
+                    breaked = breaked ? false : true;
+                if (str[i] == ch && !breaked)
                 {
                     if (sub.Trim() != string.Empty)
                         subs.Add(sub);

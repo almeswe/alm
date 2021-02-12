@@ -10,7 +10,6 @@ namespace alm.Other.ConsoleStuff
 {
     public sealed class ConsoleErrorDrawer
     {
-        //табы иногда какого-то хуя разной длины(?)
         private const int tabSize = 4;
         private const char emphChar = '~';
         private const ConsoleColor emphColor = ConsoleColor.Red;

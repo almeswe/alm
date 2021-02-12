@@ -50,7 +50,6 @@ namespace alm.Core.Table
         }
         public static Table CreateTable(Table puttedIn, int level)
         {
-            // level = 1 принимается как глобалтная таблица
             Table table = new Table(puttedIn, level);
             if (level == 1)
                 table.Methods.AddRange(BaseMethods);
@@ -216,7 +215,6 @@ namespace alm.Core.Table
     public sealed class TableMethod
     {
         public string Name { get; private set; }
-
         public int ArgCount { get; private set; }
 
         public InnerType ReturnType { get; private set; }

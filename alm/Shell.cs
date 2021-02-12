@@ -66,7 +66,6 @@ namespace alm.Core.Shell
 
         private bool IsCommand(string sub)
         {
-            //shtree доступна только в DEBUG
             string[] allCommands = new string[] { "?","c","rec","file","opfl","opdir","crfl","cls","exit","shtree" };
 
             for (int i = 0; i < allCommands.Length; i++)

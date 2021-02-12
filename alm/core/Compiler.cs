@@ -96,13 +96,13 @@ namespace alm.Core.Compiler
         private bool IsFileExists(string fileName)
         {
             if (System.IO.File.Exists(fileName)) return true;
-            ColorizedPrintln("Указанный файл не существует.", ConsoleColor.DarkRed);
+            ColorizedPrintln("Specified file does not exists.", ConsoleColor.DarkRed);
             return false;
         }
         private bool IsCorrectExtension(string fileName)
         {
             if (Path.GetExtension(fileName) == ".alm") return true;
-            ColorizedPrintln("Расширение файла должно быть \".alm\".", ConsoleColor.DarkRed);
+            ColorizedPrintln("File extension should be \".alm\".", ConsoleColor.DarkRed);
             return false;
         }
 

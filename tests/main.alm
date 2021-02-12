@@ -1,8 +1,0 @@
-﻿func a(float a,integer b) : integer
-	return 2;
-
-func main() : integer
-{
-	float b = a(2,'c');
-	return 0;
-}

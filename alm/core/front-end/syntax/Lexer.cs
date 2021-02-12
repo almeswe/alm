@@ -5,6 +5,7 @@ using alm.Other.Structs;
 
 using static alm.Other.Enums.TokenType;
 using static alm.Core.Compiler.Compiler.CompilationVariables;
+using static alm.Core.Compiler.Compiler;
 
 namespace alm.Core.FrontEnd.SyntaxAnalysis
 {
@@ -183,7 +184,7 @@ namespace alm.Core.FrontEnd.SyntaxAnalysis
                         GetNextChar();
                         return new Token(tkNotEqual, new Position(CurrentCharIndex, CurrentLineIndex), "!=");
                     }
-                    return new Token(tkNull);
+                    goto default;
 
                 case '|':
                     if (MatchPeeked('='))
@@ -336,7 +337,7 @@ namespace alm.Core.FrontEnd.SyntaxAnalysis
                     return new Token(tkComma, new Position(CurrentCharIndex, CurrentLineIndex), ",");
 
                 default:
-                    return new Token(tkNull);
+                    return new Token(tkUnknown, new Position(CurrentCharIndex, CurrentLineIndex),CurrentChar.ToString());
             }
         }
         private Token RecognizeIdentifier()
@@ -498,7 +499,6 @@ namespace alm.Core.FrontEnd.SyntaxAnalysis
                                 SingleLineCommentary();
                                 break;
                             default:
-                                //default case like in main "switch"
                                 CurrentCharIndex++;
                                 break;
                         }

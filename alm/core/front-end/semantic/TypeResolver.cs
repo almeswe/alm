@@ -12,7 +12,7 @@ using static alm.Other.String.StringMethods;
 
 namespace alm.Core.FrontEnd.SemanticAnalysis
 {
-    public sealed class TypeChecker
+    public sealed class TypeResolver
     {
         public static bool ReportErrors;
 
@@ -439,18 +439,18 @@ namespace alm.Core.FrontEnd.SemanticAnalysis
 
         public static void TryToCastAssignmentStatement(AssignmentStatement assignment)
         {
-            TypeChecker.ReportErrors = false;
-            InnerType adressorType = TypeChecker.ResolveExpressionType(assignment.AdressorExpressions[0]);
+            TypeResolver.ReportErrors = false;
+            InnerType adressorType = TypeResolver.ResolveExpressionType(assignment.AdressorExpressions[0]);
             TryToCastExpression(assignment.AdressableExpression, adressorType);
         }
         public static void TryToCastMethodInvokationStatement(MethodInvokationStatement method)
         {
-            TypeChecker.ReportErrors = false;
+            TypeResolver.ReportErrors = false;
             TryToCastMethodParameters((MethodInvokationExpression)method.Instance);
         }
         public static void TryToCastConditionExpression(Expression condition)
         {
-            TypeChecker.ReportErrors = false;
+            TypeResolver.ReportErrors = false;
             switch (condition.NodeKind)
             {
                 case NodeType.UnaryBooleanExpression:
@@ -463,7 +463,7 @@ namespace alm.Core.FrontEnd.SemanticAnalysis
         }
         public static void TryToCastReturnStatement(ReturnStatement returnStatement)
         {
-            TypeChecker.ReportErrors = false;
+            TypeResolver.ReportErrors = false;
             MethodDeclaration method = (MethodDeclaration)returnStatement.GetParentByType(typeof(MethodDeclaration));
             if (!returnStatement.IsVoidReturn)
                 TryToCastExpression(returnStatement.ReturnBody,method.ReturnType);
@@ -522,8 +522,8 @@ namespace alm.Core.FrontEnd.SemanticAnalysis
                 case BinaryExpression.BinaryOperator.GreaterThan:
                 case BinaryExpression.BinaryOperator.LessEqualThan:
                 case BinaryExpression.BinaryOperator.GreaterEqualThan:
-                    InnerType LOperandType = TypeChecker.ResolveExpressionType(binaryBoolean.LeftOperand);
-                    InnerType ROperandType = TypeChecker.ResolveExpressionType(binaryBoolean.RightOperand);
+                    InnerType LOperandType = TypeResolver.ResolveExpressionType(binaryBoolean.LeftOperand);
+                    InnerType ROperandType = TypeResolver.ResolveExpressionType(binaryBoolean.RightOperand);
                     InnerType toType = HigherPriorityType(LOperandType, ROperandType);
                     TryToCastExpression(binaryBoolean.LeftOperand, toType);
                     TryToCastExpression(binaryBoolean.RightOperand, toType);
@@ -539,7 +539,7 @@ namespace alm.Core.FrontEnd.SemanticAnalysis
         public static void TryToCastUnaryArithExpression(UnaryArithExpression unaryArith, InnerType toType)
         {
             SyntaxTreeNode parent = unaryArith;
-            InnerType operandType = TypeChecker.ResolveExpressionType(unaryArith.Operand);
+            InnerType operandType = TypeResolver.ResolveExpressionType(unaryArith.Operand);
             if (CanCast(operandType, toType, false))
             {
                 CastCase castCase = DefineCastCase(operandType, toType);
@@ -550,8 +550,8 @@ namespace alm.Core.FrontEnd.SemanticAnalysis
         public static void TryToCastBinaryArithExpression(BinaryArithExpression binaryArith, InnerType toType, bool inCastedBinary = false)
         {
             SyntaxTreeNode parent = binaryArith.Parent;
-            InnerType LOperandType = TypeChecker.ResolveExpressionType(binaryArith.LeftOperand);
-            InnerType ROperandType = TypeChecker.ResolveExpressionType(binaryArith.RightOperand);
+            InnerType LOperandType = TypeResolver.ResolveExpressionType(binaryArith.LeftOperand);
+            InnerType ROperandType = TypeResolver.ResolveExpressionType(binaryArith.RightOperand);
             switch (binaryArith.OperatorKind)
             {
                 case BinaryExpression.BinaryOperator.LShift:
@@ -575,9 +575,9 @@ namespace alm.Core.FrontEnd.SemanticAnalysis
                     }
                     if (!inCastedBinary)
                     {
-                        if (CanCast(TypeChecker.ResolveBinaryArithExpressionType(binaryArith), toType,false))
+                        if (CanCast(TypeResolver.ResolveBinaryArithExpressionType(binaryArith), toType,false))
                         {
-                            CastCase castCase = DefineCastCase(TypeChecker.ResolveBinaryArithExpressionType(binaryArith), toType);
+                            CastCase castCase = DefineCastCase(TypeResolver.ResolveBinaryArithExpressionType(binaryArith), toType);
                             Expression castMethod = CreateCastMethod(parent, toType, new ParameterDeclaration[] { new ParameterDeclaration(binaryArith) }, castCase);
                             Replace(parent, binaryArith, castMethod);
                         }

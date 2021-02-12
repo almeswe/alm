@@ -74,9 +74,9 @@ namespace alm.Core.Compiler
 
                 if (!Diagnostics.SyntaxAnalysisFailed)
                 {
-                    LabelChecker.ResolveModule(tree.Root);
+                    LabelResolver.ResolveModule(tree.Root);
                     if (!Diagnostics.SemanticAnalysisFailed)
-                        TypeChecker.ResolveModuleTypes(tree.Root);
+                        TypeResolver.ResolveModuleTypes(tree.Root);
                 }
                 if (!Diagnostics.SemanticAnalysisFailed && !Diagnostics.SyntaxAnalysisFailed)
                 {

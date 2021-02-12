@@ -98,19 +98,9 @@ namespace alm.Core.Shell
 
     internal static class ShellInfo
     {
-        #if DEBUG
-        //public static string SourcePath = @"C:\Users\Almes\source\repos\Compiler\compiler v.5\Alm\alm\Alm.Tests\TestScripts\AlmDebug.alm";
-        public static string SourcePath = @"C:\Users\Almes\source\repos\Compiler\compiler v.5\src\tests\main.alm";
-        public static string DestinationPath = "alm.exe";
-
-        #endif
-
-        #if !DEBUG
         public static string SourcePath = " ";
         public static string DestinationPath = " ";
-        #endif
-
-
+       
         public static bool ShowTree = false;
         public static bool RunExeAfterCompiling = true;
     }

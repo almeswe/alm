@@ -58,7 +58,7 @@
         tkImport,
         tkContinue,
 
-        tkAt, //@
+        tkAt,
         tkLbra,
         tkRbra,
         tkLpar,
@@ -77,7 +77,7 @@
         tkGlobal,
         tkExternalProp,
 
-        tkNull,
+        tkUnknown,
         tkEOF
     }
 }

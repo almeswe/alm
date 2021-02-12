@@ -9,7 +9,7 @@ using static alm.Core.Compiler.Compiler;
 
 namespace alm.Core.FrontEnd.SemanticAnalysis
 {
-    public sealed class LabelChecker
+    public sealed class LabelResolver
     {
         private static bool IsMainDeclared;
 
@@ -20,7 +20,7 @@ namespace alm.Core.FrontEnd.SemanticAnalysis
             ResolveGlobalIdentifierDeclarations(module);
             ResolveMethodDeclarations(module);
             if (!IsMainDeclared)
-                Diagnostics.SemanticErrors.Add(new MainMethodExpected());
+                ReportError(new MainMethodExpected());
         }
 
         public static void MarkMethods(SyntaxTreeNode module)
@@ -28,7 +28,7 @@ namespace alm.Core.FrontEnd.SemanticAnalysis
             GlobalTable.Table = Table.Table.CreateTable(null, 1);
             foreach (MethodDeclaration method in module.GetChildsByType(typeof(MethodDeclaration), true))
                 if (!GlobalTable.Table.PushMethod(method))
-                    Diagnostics.SemanticErrors.Add(new MethodIsAlreadyDeclared(method.Name, method.SourceContext));
+                    ReportError(new MethodIsAlreadyDeclared(method.Name, method.SourceContext));
         }
 
         public static void ResolveMainMethodDeclaration(MethodDeclaration method)
@@ -117,7 +117,7 @@ namespace alm.Core.FrontEnd.SemanticAnalysis
             if (jumpStatement.IsContinue() | jumpStatement.IsBreak())
             {
                 if (!jumpStatement.IsSituatedInLoop())
-                    Diagnostics.SemanticErrors.Add(new OperatorMustBeSituatedInLoop(jumpStatement.IsContinue() ? "сontinue" : "break",jumpStatement.SourceContext));
+                    ReportError(new OperatorMustBeSituatedInLoop(jumpStatement.IsContinue() ? "сontinue" : "break",jumpStatement.SourceContext));
             }
             else
                 if (((ReturnStatement)jumpStatement).ReturnBody != null)
@@ -178,7 +178,7 @@ namespace alm.Core.FrontEnd.SemanticAnalysis
             if (identifier.IdentifierState == IdentifierExpression.State.Decl)
             {
                 if (!table.PushIdentifier(identifier, table == GlobalTable.Table ? true : false))
-                    Diagnostics.SemanticErrors.Add(new IdentifierIsAlreadyDeclared(identifier.Name, identifier.SourceContext));
+                    ReportError(new IdentifierIsAlreadyDeclared(identifier.Name, identifier.SourceContext));
 
                 if (initializedInBlock != null)
                     table.InitializeInBlock(identifier, initializedInBlock);
@@ -186,14 +186,14 @@ namespace alm.Core.FrontEnd.SemanticAnalysis
             else
             {
                 if (!table.CheckIdentifier(identifier.Name))
-                    Diagnostics.SemanticErrors.Add(new IdentifierIsNotDeclared(identifier.Name, identifier.SourceContext));
+                    ReportError(new IdentifierIsNotDeclared(identifier.Name, identifier.SourceContext));
                 else
                 {
                     TableIdentifier tableIdentifier = table.FetchIdentifier(identifier.Name);
                     identifier.Type = tableIdentifier.Type;
                     //check for initialization in this block
                     if (!table.IsInitializedInBlock(identifier, initializedInBlock) && checkInit && !tableIdentifier.InitializedGlobally)
-                        Diagnostics.SemanticErrors.Add(new IdentifierIsNotInitialized(identifier.Name, identifier.SourceContext));
+                        ReportError(new IdentifierIsNotInitialized(identifier.Name, identifier.SourceContext));
                 }
             }
         }
@@ -232,9 +232,9 @@ namespace alm.Core.FrontEnd.SemanticAnalysis
             }
             else
                 if (table.IsMethodWithThisNameDeclared(method.Name))
-                    Diagnostics.SemanticErrors.Add(new MethodWithThoseArgumentsIsNotDeclared(method.Name,method.SourceContext));
+                    ReportError(new MethodWithThoseArgumentsIsNotDeclared(method.Name,method.SourceContext));
                 else
-                    Diagnostics.SemanticErrors.Add(new MethodIsNotDeclared(method.Name, method.SourceContext));
+                    ReportError(new MethodIsNotDeclared(method.Name, method.SourceContext));
         }
         public static void ResolveMethodInvokations(SyntaxTreeNode inNode, Table.Table table)
         {
@@ -268,7 +268,7 @@ namespace alm.Core.FrontEnd.SemanticAnalysis
             {
                 TableIdentifier tableIdentifier = table.FetchIdentifier(arrayElement.ArrayName);
                 if (tableIdentifier.Type is String)
-                    Diagnostics.SemanticErrors.Add(new CannotChangeTheString(arrayElement.SourceContext));
+                    ReportError(new CannotChangeTheString(arrayElement.SourceContext));
             }
 
             if (table.CheckIdentifier(arrayElement.ArrayName) && table.FetchIdentifier(arrayElement.ArrayName).Type is ArrayType)
@@ -279,10 +279,10 @@ namespace alm.Core.FrontEnd.SemanticAnalysis
                 arrayElement.ArrayType = tableIdentifier.Type;
 
                 if (arrayElement.Type is null || arrayElement.ArrayDimension != arrayElement.Dimension)
-                    Diagnostics.SemanticErrors.Add(new WrongArrayElementDimension(arrayElement.SourceContext));
+                    ReportError(new WrongArrayElementDimension(arrayElement.SourceContext));
             }
             else
-                Diagnostics.SemanticErrors.Add(new ArrayIsNotDeclared(arrayElement.ArrayName,arrayElement.SourceContext));
+                ReportError(new ArrayIsNotDeclared(arrayElement.ArrayName,arrayElement.SourceContext));
         }
         public static void ResolveArrayElements(SyntaxTreeNode inNode, Table.Table table)
         {
@@ -300,7 +300,7 @@ namespace alm.Core.FrontEnd.SemanticAnalysis
 
             if (body.Childs.Count == 0 || ifConstructions.Length == 0)
             {
-                Diagnostics.SemanticErrors.Add(new NotAllCodePathsReturnsValues(method.SourceContext));
+                ReportError(new NotAllCodePathsReturnsValues(method.SourceContext));
                 return false;
             }
 
@@ -315,6 +315,11 @@ namespace alm.Core.FrontEnd.SemanticAnalysis
             }
 
             return true;
+        }
+
+        public static void ReportError(SemanticError error)
+        {
+            Diagnostics.SemanticErrors.Add(error);
         }
     }
 }

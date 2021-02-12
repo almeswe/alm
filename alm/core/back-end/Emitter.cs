@@ -722,8 +722,8 @@ namespace alm.Core.BackEnd
 
         private static bool OperandsHaveSameTypes(BinaryExpression binary, InnerType type)
         {
-            if (TypeChecker.ResolveExpressionType(binary.LeftOperand) == TypeChecker.ResolveExpressionType(binary.RightOperand))
-                if (TypeChecker.ResolveExpressionType(binary.LeftOperand) == type)
+            if (TypeResolver.ResolveExpressionType(binary.LeftOperand) == TypeResolver.ResolveExpressionType(binary.RightOperand))
+                if (TypeResolver.ResolveExpressionType(binary.LeftOperand) == type)
                     return true;
             return false;
         }

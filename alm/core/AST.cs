@@ -193,7 +193,6 @@ namespace alm.Core.SyntaxTree
         }
         private string GetDirectImportPath(string path)
         {
-            //change
             string parsingDir = System.IO.Path.GetDirectoryName(CurrentParsingModule);
             string newParsingPath = System.IO.Path.Combine(parsingDir, path);
             return System.IO.File.Exists(newParsingPath) ? newParsingPath : path;
@@ -298,10 +297,9 @@ namespace alm.Core.SyntaxTree
         public override NodeType NodeKind => NodeType.MethodDeclaration;
         public override ConsoleColor ConsoleColor => ConsoleColor.DarkGreen;
 
-        //divide by two constructorss
-        public MethodDeclaration(Expression identifier, Expression[] arguments, Expression type, Statement body, SourceContext context, string package = "")
+        public MethodDeclaration(Expression identifier, Expression[] arguments, Expression type, Statement body, SourceContext context)
         {
-            this.IsExternal = package == "" ? false : true;
+            this.IsExternal = false;
             this.Arguments = this.CreateArgumentDeclarationInstances(arguments);
             this.Body = (EmbeddedStatement)body;
             this.Name = ((IdentifierExpression)identifier).Name;
@@ -311,12 +309,22 @@ namespace alm.Core.SyntaxTree
 
             foreach (var argument in arguments)
                 this.AddNode(argument);
-            if (!IsExternal)
-                this.AddNode(body);
-            else
-                this.NETPackage = package;
+            this.AddNode(body);
         }
 
+        public MethodDeclaration(Expression identifier, Expression[] arguments, Expression type,string package, SourceContext context)
+        {
+            this.IsExternal = true;
+            this.Arguments = this.CreateArgumentDeclarationInstances(arguments);
+            this.Name = ((IdentifierExpression)identifier).Name;
+            this.ReturnType = ((TypeExpression)type).Type;
+            this.SourceContext = context;
+            this.ArgCount = (ushort)arguments.Length;
+
+            foreach (var argument in arguments)
+                this.AddNode(argument);
+            this.NETPackage = package;
+        }
 
         public InnerType GetArgumentType(string argName)
         {
@@ -365,7 +373,6 @@ namespace alm.Core.SyntaxTree
             this.AddNodes(identifiers);
         }
 
-        //declaration with assignment
         public IdentifierDeclaration(Expression type, AssignmentStatement assignment)
         {
             this.SetSourceContext(type, assignment);
@@ -374,8 +381,6 @@ namespace alm.Core.SyntaxTree
             this.DeclaringIdentifiers = this.CreateIdentifierInstances(assignment.AdressorExpressions, ((TypeExpression)type).Type);
             this.AddNode(assignment);
         }
-
-        //TODO mult decls -> integer a,b,c = 2; | float a,v,c;
 
         private IdentifierExpression[] CreateIdentifierInstances(Expression[] expressions, InnerType withType)
         {
@@ -409,10 +414,8 @@ namespace alm.Core.SyntaxTree
 
     public abstract class JumpStatement : Statement
     {
-        //return , continue , break , goto(?)
         public override ConsoleColor ConsoleColor => ConsoleColor.Red;
 
-        //??
         public bool IsReturn() => this is ReturnStatement ? true : false;
         public bool IsContinue() => this is ContinueStatement ? true : false;
         public bool IsBreak() => this is BreakStatement ? true : false;
@@ -431,7 +434,7 @@ namespace alm.Core.SyntaxTree
         public bool IsSituatedCorrectly { get; private set; }
 
         public override NodeType NodeKind => NodeType.Continue;
-        //????
+
         public ContinueStatement(Token token)
         {
             this.SetSourceContext(token);
@@ -443,7 +446,7 @@ namespace alm.Core.SyntaxTree
         public bool IsSituatedCorrectly { get; private set; }
 
         public override NodeType NodeKind => NodeType.Break;
-        //????
+
         public BreakStatement(Token token)
         {
             this.SetSourceContext(token);
@@ -470,10 +473,10 @@ namespace alm.Core.SyntaxTree
 
     public abstract class IterationStatement : Statement
     {
-        public override ConsoleColor ConsoleColor => ConsoleColor.DarkBlue;
-
         public Expression Condition { get; protected set; }
         public Statement Body { get; protected set; }
+
+        public override ConsoleColor ConsoleColor => ConsoleColor.DarkBlue;
 
         public override string ToString() => $"{this.NodeKind}";
     }
@@ -581,7 +584,6 @@ namespace alm.Core.SyntaxTree
     }
     public sealed class MethodInvokationStatement : ExpressionStatement
     {
-        //represents method invoke expression like single statement
         public Expression Instance { get; private set; }
 
         public override NodeType NodeKind => NodeType.MethodInvokationAsStatement;
@@ -608,7 +610,6 @@ namespace alm.Core.SyntaxTree
     }
     public sealed class AssignmentStatement : ExpressionStatement
     {
-        // <adressor> <assignsymbl> <expression> 
         public enum AssignOperator
         {
             Assignment,
@@ -645,7 +646,6 @@ namespace alm.Core.SyntaxTree
             this.AddNodes(adressor, GetExtendedAdressableExpression(adressable));
         }
 
-        //constructor for multiple declaring & initialization
         public AssignmentStatement(Expression[] adressors, AssignOperator operatorKind, Expression adressable)
         {
             this.SetSourceContext(adressors[0], adressable);
@@ -752,7 +752,6 @@ namespace alm.Core.SyntaxTree
 
     public abstract class Expression : SyntaxTreeNode
     {
-        //выражение
         public override ConsoleColor ConsoleColor => ConsoleColor.DarkCyan;
     }
     public sealed class ArrayInstance : Expression
@@ -769,7 +768,6 @@ namespace alm.Core.SyntaxTree
         {
             this.SourceContext = context;
             this.Type = ((TypeExpression)type).Type;
-            //+1 ??
             this.Dimension = (ushort)(dimensionSizes.Length + 1);
             this.DimensionSizes = dimensionSizes;
             foreach (Expression dimensionSize in dimensionSizes)
@@ -792,7 +790,6 @@ namespace alm.Core.SyntaxTree
 
             this.Type = ((TypeExpression)typeExpression).Type;
             this.Identifier = (IdentifierExpression)identifierExpression;
-            //this.AddNodes(typeExpression, identifierExpression);
             this.AddNodes(identifierExpression);
         }
     }
@@ -816,7 +813,6 @@ namespace alm.Core.SyntaxTree
         public InnerType Type { get; set; }
         public InnerType ArrayType { get; set; }
         public ushort Dimension { get; private set; }
-        //?
         public ushort ArrayDimension { get; set; }
         public string ArrayName { get; private set; }
         public Expression[] Indexes { get; private set; }
@@ -830,7 +826,6 @@ namespace alm.Core.SyntaxTree
             this.ArrayName = identifier.Name;
             this.Indexes = indexes;
             this.Dimension = (ushort)indexes.Length;
-            //this.AddNode(identifier);
             foreach (Expression index in indexes)
                 this.AddNode(index);
         }
@@ -859,7 +854,6 @@ namespace alm.Core.SyntaxTree
         }
 
         public string Name { get; private set; }
-        // type of id call will init in label checker
         public InnerType Type { get; set; }
         public State IdentifierState { get; private set; }
 
@@ -927,7 +921,7 @@ namespace alm.Core.SyntaxTree
         {
             InnerType[] types = new InnerType[this.ArgCount];
             for (int i = 0; i < this.ArgCount; i++)
-                types[i] = TypeChecker.ResolveExpressionType(this.Parameters[i].ParameterInstance);
+                types[i] = TypeResolver.ResolveExpressionType(this.Parameters[i].ParameterInstance);
             return types;
         }
         public ParameterDeclaration[] CreateParameterInstances(Expression[] parameters)
@@ -946,6 +940,7 @@ namespace alm.Core.SyntaxTree
     {
         public string Value { get; protected set; }
         public virtual InnerType Type { get; protected set; }
+
         public override ConsoleColor ConsoleColor => ConsoleColor.DarkMagenta;
 
         public ConstantExpression(string value)
@@ -964,34 +959,42 @@ namespace alm.Core.SyntaxTree
     public sealed class Int32Constant : ConstantExpression
     {
         public override InnerType Type => new InnerTypes.Int32();
+
         public override NodeType NodeKind => NodeType.IntegralConstant;
 
         public Int32Constant(string value) : base(value) { }
+
         public Int32Constant(Token token) : base(token) { }
     }
     public sealed class Int64Constant : ConstantExpression
     {
         public override InnerType Type => new InnerTypes.Int64();
+
         public override NodeType NodeKind => NodeType.IntegralConstant;
 
         public Int64Constant(string value) : base(value) { }
+
         public Int64Constant(Token token) : base(token) { }
     }
     public sealed class SingleConstant : ConstantExpression
     {
         public override InnerType Type => new InnerTypes.Single();
+
         public override NodeType NodeKind => NodeType.RealConstant;
 
         public SingleConstant(string value) : base(value) { }
+
         public SingleConstant(Token token) : base(token) { }
     }
     public sealed class BooleanConstant : ConstantExpression
     {
         public override InnerType Type => new InnerTypes.Boolean();
+
         public override NodeType NodeKind => NodeType.BooleanConstant;
         public override ConsoleColor ConsoleColor => ConsoleColor.Green;
 
         public BooleanConstant(string value) : base(value) { }
+
         public BooleanConstant(Token token) : base(token) { }
     }
     public sealed class CharConstant : ConstantExpression
@@ -1011,9 +1014,11 @@ namespace alm.Core.SyntaxTree
 
         public override InnerType Type => new InnerTypes.Char();
         public override NodeType NodeKind => NodeType.CharConstant;
+
         public override ConsoleColor ConsoleColor => ConsoleColor.Yellow;
 
         public CharConstant(string value) : base(value) { }
+
         public CharConstant(Token token) : base(token) { }
 
         private bool IsEscapeChar()
@@ -1029,10 +1034,12 @@ namespace alm.Core.SyntaxTree
     public sealed class StringConstant : ConstantExpression
     {
         public override InnerType Type => new InnerTypes.String();
+
         public override NodeType NodeKind => NodeType.StringConstant;
         public override ConsoleColor ConsoleColor => ConsoleColor.Yellow;
 
         public StringConstant(string value) : base(value) { }
+
         public StringConstant(Token token) : base(token) { }
 
         public override string ToString() => $"\"{this.Value}\"->{this.Type}";
@@ -1056,8 +1063,8 @@ namespace alm.Core.SyntaxTree
             GreaterEqualThan,
 
             Mult,
-            FDiv, //float point division 
-            IDiv, //integer division
+            FDiv,
+            IDiv, 
             Power,
             Addition,
             Remainder,

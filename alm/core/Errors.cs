@@ -101,7 +101,6 @@ namespace alm.Core.Errors
         public MissingNameOrValue(Token token) : base("The identifier's name or value expected.", token.Context) { }
     }
 
-
     public sealed class TypeExpected : SyntaxError
     {
         public TypeExpected(Token token) : base("Type expression expected.", token.Context) { }

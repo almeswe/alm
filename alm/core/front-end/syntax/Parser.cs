@@ -82,8 +82,8 @@ namespace alm.Core.FrontEnd.SyntaxAnalysis
 
             if (!Match(tkRpar))
                 return new Expression[] { new ErroredExpression(new MissingRpar(Lexer.CurrentToken)) };
-
             Lexer.GetNextToken();
+
             return parameters.ToArray();
         }
         public Expression[] ParseArgumentDeclarations()
@@ -301,7 +301,6 @@ namespace alm.Core.FrontEnd.SyntaxAnalysis
 
             if (!Match(tkColon))
                 return new ErroredStatement(new MissingColon(Lexer.CurrentToken));
-
             Lexer.GetNextToken();
 
             Expression funcType = ParseTypeExpression();
@@ -310,7 +309,8 @@ namespace alm.Core.FrontEnd.SyntaxAnalysis
 
             Statement funcBody = ParseEmbeddedStatement();
             if (IsErrored(funcBody))
-                return new ErroredStatement(new SyntaxErrorMessage("Statement expected",Lexer.CurrentToken));
+                return (ErroredStatement)funcBody;
+
             return new MethodDeclaration(funcName, args, funcType, funcBody, funcContext);
         }
         public Statement ParseExternalMethodDeclaration()
@@ -350,7 +350,7 @@ namespace alm.Core.FrontEnd.SyntaxAnalysis
                 return new ErroredStatement(new MissingSemi(Lexer.CurrentToken));
             Lexer.GetNextToken();
 
-            return new MethodDeclaration(funcName, arguments, funcType,null, funcContext, ((StringConstant)packageName).Value);
+            return new MethodDeclaration(funcName, arguments, funcType,((StringConstant)packageName).Value, funcContext);
         }
         public Statement ParseGlobalDeclarationStatement()
         {
@@ -788,7 +788,6 @@ namespace alm.Core.FrontEnd.SyntaxAnalysis
         }
         public Expression ParseAdditive()
         {
-            //bad representation
             Expression node;
             if (Match(tkMinus))
                 node = ParseUnaryMinusExpression();

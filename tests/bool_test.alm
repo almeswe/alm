@@ -141,7 +141,7 @@ func test_not_equal(char a, char b, boolean expected, integer test_case_num) : v
 		test_case(false, expected, test_case_num);
 }
 
-func run_boolean_test() : void
+func run_bool_tests() : void
 {
 	println("BOOLEAN OPERATORS TEST\n");
 
@@ -212,6 +212,4 @@ func run_boolean_test() : void
 	test_not_equal(false, false, false, 3);
 	test_not_equal("foo bar", "foo bar", false, 4);
 	println("");
-
-	read("Press any key...");
 }

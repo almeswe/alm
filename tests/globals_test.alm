@@ -1,0 +1,56 @@
+﻿import "test.alm";
+
+global integer test1;
+global integer test2 = 2;
+global integer test3 = test_method();
+global integer test4 = test3;
+
+global integer[] test5 = integer(4);
+global integer[,] test6 = integer(2,2);
+
+func run_globals_tests() : void
+{
+	println("UNINITIALEZED");
+	test1 = 10;
+	test_case(test1,10,1);
+	test1 *= 10;
+	test_case(test1,100,2);
+	println("");
+
+	println("INITIALEZED WITH CONSTANT");
+	test_case(test2,2,1);
+	test2 *= 10;
+	test_case(test2,20,2);
+	println("");
+
+	println("INITIALEZED WITH METHOD");
+	test_case(test3,10,1);
+	test3 *= 10;
+	test_case(test3,100,2);
+	println("");
+
+	println("INITIALEZED WITH OTHER GLOBAL");
+	test_case(test4,10,1);
+	test4 *= 10;
+	test_case(test4,100,2);
+	println("");
+
+	println("INITIALEZED WITH 1-D ARRAY");
+	test5[0] = 10;
+	test_case(test5[0],10,1);
+	test5[0] *= 10;
+	test_case(test5[0],100,2);
+	println("");
+
+	println("INITIALEZED WITH M-D ARRAY");
+	test6[0,0] = 10;
+	test_case(test6[0,0],10,1);
+	test6[0,0] *= 10;
+	test_case(test6[0,0],100,2);
+	println("");
+}
+
+func test_method() : integer
+{
+	return 10;
+}

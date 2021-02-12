@@ -1,0 +1,44 @@
+﻿import "test.alm";
+
+func run_forloop_test() : void
+{
+	println("FOR LOOP TEST");
+	integer counter = 0;
+	for (integer i = 0; i < 1000; i += 1;)
+		counter += 1;
+
+	test_case(counter,1000,1);
+	println("");
+}
+func run_whileloop_test() : void
+{
+	println("WHILE LOOP TEST");
+	integer i = 0;
+
+	while (i < 1000)
+		i += 1;
+
+	test_case(i, 1000, 1);
+	println("");
+}
+func run_dowhileloop_test() : void
+{
+	println("DO-WHILE LOOP TEST");
+	integer i = 0;
+	do
+		i += 1;
+	while (i < 1000);
+
+	test_case(i, 1000, 1);
+	println("");
+}
+
+
+func run_loop_tests() : void
+{
+	println("LOOP TESTS\n");
+
+	run_forloop_test();
+	run_whileloop_test();
+	run_dowhileloop_test();
+}

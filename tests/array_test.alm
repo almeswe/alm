@@ -258,9 +258,8 @@ func run_primitive_array_tests() : void
 	run_primitive_integral_array_test();
 }
 
-func run_all_array_tests() : void
+func run_array_tests() : void
 {
 	run_primitive_array_tests();
 	run_multiple_dimension_array_tests();
-	read();
 }

@@ -1,0 +1,51 @@
+﻿import "test.alm";
+
+func run_method_tests() : void
+{
+	test1();
+	test1(2);
+	test1(true);
+	test1('c');
+	println("");
+	test2('c','c');
+	test2('c', toint64(2));
+	test2(toint64(2), 'c');
+	test2(toint64(2), toint64(2));
+}
+
+func test1() : void
+{
+	println("method [ test1():void ] is called successfully!");
+}
+func test1(integer a) : integer
+{
+	println("method [ test1(integer):integer ] is called successfully!");
+	return 0;
+}
+func test1(boolean a) : integer
+{
+	println("method [ test1(boolean):integer ] is called successfully!");
+	return 0;
+}
+func test1(char a) : boolean
+{
+	println("method [ test1(char):boolean ] is called successfully!");
+	return true;
+}
+
+func test2(char a, char b) : void
+{
+	println("method [ test2(char,char):void ] is called successfully!");
+}
+func test2(char a, long b) : void
+{
+	println("method [ test2(char,long):void ] is called successfully!");
+}
+func test2(long a, char b) : void
+{
+	println("method [ test2(long,char):void ] is called successfully!");
+}
+func test2(long a, long b) : void
+{
+	println("method [ test2(long,long):void ] is called successfully!");
+}

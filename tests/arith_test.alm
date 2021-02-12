@@ -157,11 +157,9 @@ func run_complicated_expr_arith_test() : void
 	println("");
 }
 
-func run_all_arith_tests() : void
+func run_arith_tests() : void
 {
 	run_arith_op_test();
 	run_simple_expr_arith_test();
 	run_complicated_expr_arith_test();
-
-	read("Press any key...");
 }
